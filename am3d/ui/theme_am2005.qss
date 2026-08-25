@@ -1,0 +1,141 @@
+/* 3D MASTER:2005 — retro A:M 2005 theme.
+ *
+ * Classic Windows-2000-era 3D app look: light-gray #D4D0C8 surfaces,
+ * raised/sunken bevel borders, classic tab rendering, navy highlight.
+ * A future dark theme is just another .qss next to this file.
+ */
+
+QWidget {
+    background-color: #D4D0C8;
+    color: #000000;
+    font-size: 12px;
+}
+
+QMainWindow::separator {
+    background: #D4D0C8;
+    width: 4px;
+    height: 4px;
+}
+
+/* -- menus / toolbar ---------------------------------------------------- */
+QMenuBar {
+    background-color: #D4D0C8;
+    border-bottom: 1px solid #808080;
+}
+QMenuBar::item:selected {
+    background-color: #000080;
+    color: #FFFFFF;
+}
+QMenu {
+    background-color: #D4D0C8;
+    border: 1px solid #808080;
+}
+QMenu::item:selected {
+    background-color: #000080;
+    color: #FFFFFF;
+}
+
+/* -- workspace tab bar --------------------------------------------------- */
+QTabBar::tab {
+    background: #D4D0C8;
+    border: 1px solid #808080;
+    border-bottom: none;
+    border-top-left-radius: 3px;
+    border-top-right-radius: 3px;
+    padding: 4px 14px;
+    margin-right: 2px;
+}
+QTabBar::tab:selected {
+    background: #FFFFFF;
+    font-weight: bold;
+}
+QTabBar::tab:hover:!selected {
+    background: #E4E0D8;
+}
+
+/* -- tool-settings strip ------------------------------------------------- */
+#toolStripWorkspace {
+    font-weight: bold;
+    padding-right: 8px;
+}
+#toolStripHint {
+    color: #404040;
+}
+
+/* -- area headers --------------------------------------------------------- */
+#areaHeader {
+    background-color: #C4C0B8;
+    border-bottom: 1px solid #808080;
+}
+#areaTitle {
+    font-weight: bold;
+    color: #202020;
+}
+#areaCollapse, #areaMenu {
+    background: transparent;
+    border: 1px solid transparent;
+    min-width: 18px;
+    min-height: 16px;
+}
+#areaCollapse:hover, #areaMenu:hover {
+    border: 1px solid #808080;
+    background: #E4E0D8;
+}
+
+/* -- splitters ------------------------------------------------------------- */
+QSplitter::handle {
+    background-color: #B8B4AC;
+}
+QSplitter::handle:horizontal {
+    width: 3px;
+}
+QSplitter::handle:vertical {
+    height: 3px;
+}
+QSplitter::handle:hover {
+    background-color: #000080;
+}
+
+/* -- classic beveled frames ----------------------------------------------- */
+QGroupBox, QTabWidget::pane {
+    border: 2px groove #FFFFFF;
+    margin-top: 4px;
+}
+QTabWidget::tab-bar {
+    left: 2px;
+}
+QLineEdit, QSpinBox, QDoubleSpinBox, QComboBox, QSlider, QTreeWidget,
+QTabWidget > QWidget {
+    background-color: #FFFFFF;
+    border: 2px sunken #808080;
+    selection-background-color: #000080;
+    selection-color: #FFFFFF;
+}
+QTreeWidget::item:selected, QListWidget::item:selected {
+    background-color: #000080;
+    color: #FFFFFF;
+}
+
+/* -- push buttons / tool buttons: raised bevel ----------------------------- */
+QPushButton, QToolButton {
+    background-color: #D4D0C8;
+    border: 2px outset #FFFFFF;
+    padding: 2px 8px;
+}
+QPushButton:pressed, QToolButton:pressed {
+    border: 2px inset #FFFFFF;
+}
+QPushButton:disabled {
+    color: #808080;
+}
+
+/* -- status bar ------------------------------------------------------------- */
+QStatusBar {
+    background-color: #D4D0C8;
+    border-top: 1px solid #808080;
+}
+QStatusBar QLabel {
+    border: 1px inset #FFFFFF;
+    padding: 1px 6px;
+    margin: 1px;
+}

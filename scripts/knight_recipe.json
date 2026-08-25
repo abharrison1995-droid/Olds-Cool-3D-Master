@@ -1,0 +1,237 @@
+{
+  "name": "knight_demo",
+  "objects": [
+    {
+      "name": "torso",
+      "primitive": "sphere",
+      "params": {
+        "radius": 0.45,
+        "sections": 16,
+        "rings": 8
+      }
+    },
+    {
+      "name": "shield",
+      "primitive": "cylinder",
+      "params": {
+        "radius": 0.35,
+        "height": 0.08,
+        "sections": 12
+      }
+    },
+    {
+      "name": "hero",
+      "bones": [
+        {
+          "name": "hip",
+          "head": [
+            0,
+            0.9,
+            0
+          ],
+          "tail": [
+            0,
+            1.0,
+            0
+          ]
+        },
+        {
+          "name": "spine",
+          "head": [
+            0,
+            1.0,
+            0
+          ],
+          "tail": [
+            0,
+            1.4,
+            0
+          ],
+          "parent": "hip"
+        },
+        {
+          "name": "head",
+          "head": [
+            0,
+            1.4,
+            0
+          ],
+          "tail": [
+            0,
+            1.6,
+            0
+          ],
+          "parent": "spine"
+        },
+        {
+          "name": "arm_l",
+          "head": [
+            -0.22,
+            1.35,
+            0
+          ],
+          "tail": [
+            -0.48,
+            1.05,
+            0
+          ],
+          "parent": "spine"
+        },
+        {
+          "name": "arm_r",
+          "head": [
+            0.22,
+            1.35,
+            0
+          ],
+          "tail": [
+            0.48,
+            1.05,
+            0
+          ],
+          "parent": "spine"
+        },
+        {
+          "name": "leg_l",
+          "head": [
+            -0.12,
+            0.9,
+            0
+          ],
+          "tail": [
+            -0.12,
+            0.45,
+            0
+          ],
+          "parent": "hip"
+        },
+        {
+          "name": "leg_r",
+          "head": [
+            0.12,
+            0.9,
+            0
+          ],
+          "tail": [
+            0.12,
+            0.45,
+            0
+          ],
+          "parent": "hip"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "steel",
+      "color": [
+        0.62,
+        0.66,
+        0.74
+      ],
+      "metalness": 0.8
+    },
+    {
+      "name": "gold_trim",
+      "color": [
+        0.85,
+        0.65,
+        0.2
+      ],
+      "metalness": 1.0,
+      "pattern": "noise",
+      "params": {
+        "base": [
+          0.85,
+          0.65,
+          0.2
+        ],
+        "contrast": 0.35
+      },
+      "objects": [
+        "shield"
+      ]
+    },
+    {
+      "name": "aged_brick",
+      "graph": [
+        {
+          "type": "bricks",
+          "params": {
+            "rows": 8
+          }
+        },
+        {
+          "type": "tint",
+          "params": {
+            "color": [
+              1.1,
+              0.9,
+              0.8
+            ]
+          }
+        }
+      ],
+      "objects": [
+        "torso"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "walk",
+      "kind": "walk",
+      "duration": 1.1,
+      "character": "hero",
+      "params": {
+        "stride": 0.6,
+        "amplitude_deg": 28
+      }
+    },
+    {
+      "name": "idle",
+      "kind": "idle",
+      "duration": 3.0,
+      "character": "hero"
+    }
+  ],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "knight"
+    },
+    {
+      "format": "glb",
+      "path": "knight"
+    },
+    {
+      "format": "am3d",
+      "path": "knight_project"
+    },
+    {
+      "format": "spritesheet",
+      "path": "knight_sprite",
+      "params": {
+        "views": 8,
+        "size": 96,
+        "color": [
+          0.62,
+          0.66,
+          0.78
+        ],
+        "silhouette": false
+      }
+    },
+    {
+      "format": "toon_sheet",
+      "path": "knight_toon",
+      "params": {
+        "views": 4,
+        "size": 96,
+        "bands": 4,
+        "ink": true
+      }
+    }
+  ]
+}

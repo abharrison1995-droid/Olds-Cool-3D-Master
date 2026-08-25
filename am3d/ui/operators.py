@@ -31,6 +31,7 @@ __all__ = [
     "CreateActionCommand", "DeleteActionCommand", "RenameActionCommand",
     "AssignActionCommand", "InsertKeyCommand", "MoveKeyCommand",
     "DeleteKeyCommand", "SetAnimationSettingsCommand",
+    "CreatePrimitiveCommand",
 ]
 
 
@@ -87,6 +88,29 @@ class AddObjectCommand(_SessionCommand):
 
     def redo(self):
         self.session.create_object(self.name)
+
+    def undo(self):
+        self.session.delete_object(self.name)
+
+
+class CreatePrimitiveCommand(_SessionCommand):
+    """Create a named object and build a primitive patch net on it."""
+
+    def __init__(self, session, name, primitive_name, params=None):
+        super().__init__(session, f"Create {primitive_name} {name}")
+        self.name = name
+        self.primitive_name = primitive_name
+        self.params = dict(params or {})
+
+    def redo(self):
+        from am3d.recipes.primitives import build_primitive
+        from am3d.core.project import Patch
+        s = self.session
+        s.create_object(self.name)
+        result = build_primitive(self.primitive_name, self.params)
+        obj = s.get_object(self.name)
+        for pname, net, du, dv in result["patches"]:
+            obj.patches.append(Patch(name=pname, splines=[], interior=net))
 
     def undo(self):
         self.session.delete_object(self.name)

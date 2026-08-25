@@ -17,15 +17,17 @@ from pathlib import Path
 from PySide6.QtGui import QAction, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox,
-    QToolButton, QVBoxLayout, QWidget,
+    QStackedWidget, QToolButton, QVBoxLayout, QWidget,
 )
 
 from am3d.core.script import Session
 from .area_layout import TiledArea
 from .dopesheet import TimelineDock
+from .home import HomeWidget
 from .object_panel import ObjectDock
 from .properties import PropertiesDock
 from .viewport import Viewport
+from .document_controller import DocumentController
 from .workspaces import (
     MODE_TO_WORKSPACE, MODES, WORKSPACE_NAMES, WORKSPACES,
     ToolStrip, WorkspaceTabBar, workspace_for_mode,
@@ -73,35 +75,59 @@ class MainWindow(QMainWindow):
         super().__init__()
         self.setWindowTitle("3D MASTER:2005")
         self.resize(1280, 820)
-        self.session = Session()
+
+        # Document controller owns the session, dirty state, and file ops.
+        self.doc_ctrl = DocumentController(self)
+
         self.undo_stack = QUndoStack(self)
+        self.undo_stack.cleanChanged.connect(self._on_clean_changed)
+
         self.current_workspace = WORKSPACE_NAMES[0]
         self.current_mode = MODES[0]
         # Current outliner/viewport context (kind, object_name, item_name).
         self.current_context = ("", "", "")
         # Saved splitter sizes per workspace (restored on switch-back).
         self._workspace_state = {}
-        self._seed_scene()
         self.viewport = Viewport(self)
         self._build_panels()
         self._build_central()
         self._build_menu()
         self._build_status_bar()
         self._connect()
-        self.set_workspace(WORKSPACE_NAMES[0])
+        self.home = HomeWidget()
+        self._connect_home()
+        self.editor_widget = self._editor_widget  # built by _build_central
+        self.stack = QStackedWidget()
+        self.stack.addWidget(self.home)         # index 0
+        self.stack.addWidget(self.editor_widget) # index 1
+        self.setCentralWidget(self.stack)
+        self.show_home()
+
+    # -- session shortcut (backward compat for panels) -----------------------
+
+    @property
+    def session(self) -> Session:
+        return self.doc_ctrl.session
+
+    @session.setter
+    def session(self, value: Session):
+        self.doc_ctrl.session = value
+
+    # -- title / dirty -------------------------------------------------------
+
+    def _update_title(self):
+        ctrl = self.doc_ctrl
+        title = ctrl.display_name or "Untitled"
+        if ctrl.dirty:
+            title += " *"
+        self.setWindowTitle(f"{title} - 3D MASTER:2005")
+
+    def _on_clean_changed(self, clean: bool):
+        if clean:
+            self.doc_ctrl.dirty = False
+        self._update_title()
 
     # -- construction ---------------------------------------------------------
-    def _seed_scene(self):
-        from am3d.recipes.primitives import build_primitive
-        from am3d.core.project import Patch
-        s = self.session
-        s.create_object("sphere")
-        for pname, net, du, dv in build_primitive(
-                "sphere", dict(radius=0.8, sections=12, rings=8))["patches"]:
-            s.get_object("sphere").patches.append(
-                Patch(name=pname, splines=[], interior=net))
-        s.create_material("base", color=(0.72, 0.75, 0.85))
-
     def _build_panels(self):
         self.object_dock = ObjectDock(self)
         self.properties_dock = PropertiesDock(self)
@@ -111,8 +137,8 @@ class MainWindow(QMainWindow):
                                self)
 
     def _build_central(self):
-        central = QWidget()
-        layout = QVBoxLayout(central)
+        self._editor_widget = QWidget()
+        layout = QVBoxLayout(self._editor_widget)
         layout.setContentsMargins(0, 0, 0, 0)
         layout.setSpacing(0)
         self.workspace_tabs = WorkspaceTabBar()
@@ -122,7 +148,7 @@ class MainWindow(QMainWindow):
         self._build_tool_options()
         layout.addWidget(self.tool_strip)
         layout.addWidget(self.tiled, 1)
-        self.setCentralWidget(central)
+        # Don't setCentralWidget here — we'll wrap it in a stack in __init__
 
         # Compatibility layer: the old mode toolbar is gone, but the
         # checkable actions remain so set_mode() and any external
@@ -252,11 +278,121 @@ class MainWindow(QMainWindow):
         redo.setShortcuts([QKeySequence.Redo, QKeySequence("Ctrl+Shift+Z")])
         em.addAction(undo)
         em.addAction(redo)
+
+        cm = m.addMenu("Create")
+        self._build_create_menu(cm)
+
         wm = m.addMenu("Workspace")
         for name in WORKSPACE_NAMES:
             wm.addAction(name, lambda _=False, n=name: self.set_workspace(n))
+        sm = m.addMenu("Settings")
+        sm.addAction("Preferences...", self._file_settings)
+
         hm = m.addMenu("Help")
         hm.addAction("About", self._about)
+
+    def _build_create_menu(self, cm):
+        """Populate the Create menu with primitives and spline actions."""
+        from .operators import CreatePrimitiveCommand, push_or_apply
+
+        def _primitive(name, menu_label, params=None):
+            def _do():
+                push_or_apply(self, CreatePrimitiveCommand(
+                    self.session, menu_label.lower(), name, params))
+                self._refresh_all()
+            cm.addAction(menu_label, _do)
+
+        cm.addAction("Sphere", lambda: _primitive("sphere", "Sphere", dict(radius=0.8, sections=12, rings=8)))
+        cm.addAction("Box", lambda: _primitive("box", "Box", dict(width=1.0, height=1.0, depth=1.0)))
+        cm.addAction("Cylinder", lambda: _primitive("cylinder", "Cylinder", dict(radius=0.5, height=1.0)))
+        cm.addAction("Cone", lambda: _primitive("cone", "Cone", dict(radius=0.5, height=1.0)))
+        cm.addAction("Torus", lambda: _primitive("torus", "Torus", dict(radius=0.6, tube_radius=0.2)))
+        cm.addAction("Plane", lambda: _primitive("plane", "Plane", dict(width=1.0, height=1.0)))
+
+        cm.addSeparator()
+        cm.addAction("Profile/Spline", self._create_spline)
+        cm.addAction("Lathe Selected Profile", self._lathe_selected)
+        cm.addAction("Extrude Selected Spline", self._extrude_selected)
+        cm.addSeparator()
+        cm.addAction("Duplicate Object", self._duplicate_object)
+
+    def _build_create_menu_workaround(self, cm):
+        # _build_create_menu is defined above
+        pass
+
+    def _create_spline(self):
+        """Create a new object with one spline and CPs."""
+        from am3d.core.project import Spline, ControlPoint
+        import numpy as np
+        base = "spline"
+        name = base
+        i = 1
+        while name in self.session.project.objects:
+            name = f"{base}_{i}"
+            i += 1
+        obj = self.session.create_object(name)
+        obj.add_spline(Spline(name="profile", cps=[
+            ControlPoint(np.array([0.0, -0.5, 0.0])),
+            ControlPoint(np.array([0.3, 0.0, 0.0])),
+            ControlPoint(np.array([0.0, 0.5, 0.0])),
+        ]))
+        self._refresh_all()
+
+    def _lathe_selected(self):
+        """Lathe the first spline of the selected object."""
+        kind, oname, _ = self.current_context
+        if kind != "object" or not oname:
+            return
+        obj = self.session.project.objects.get(oname)
+        if not obj or not obj.splines:
+            return
+        first_spline = next(iter(obj.splines.values()))
+        pts = first_spline.point_array()
+        # Use XZ plane as [radius, axial] profile
+        profile = pts[:, [0, 2]]
+        from am3d.recipes.primitives import make_lathe_profile
+        from am3d.core.project import Patch
+        result = make_lathe_profile(profile, sections=24)
+        for pname, net, du, dv in result["patches"]:
+            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+        self._refresh_all()
+
+    def _extrude_selected(self):
+        """Extrude the first spline of the selected object."""
+        kind, oname, _ = self.current_context
+        if kind != "object" or not oname:
+            return
+        obj = self.session.project.objects.get(oname)
+        if not obj or not obj.splines:
+            return
+        first_spline = next(iter(obj.splines.values()))
+        pts = first_spline.point_array()
+        from am3d.recipes.primitives import make_extrude_profile
+        from am3d.core.project import Patch
+        result = make_extrude_profile(pts, height=1.0, rings=4)
+        for pname, net, du, dv in result["patches"]:
+            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+        self._refresh_all()
+
+    def _duplicate_object(self):
+        """Duplicate the selected object."""
+        import copy
+        kind, oname, _ = self.current_context
+        if kind != "object" or not oname:
+            return
+        obj = self.session.project.objects.get(oname)
+        if obj is None:
+            return
+        base = f"{oname}_copy"
+        name = base
+        i = 1
+        while name in self.session.project.objects:
+            name = f"{base}_{i}"
+            i += 1
+        new_obj = copy.deepcopy(obj)
+        new_obj.name = name
+        self.session.project.objects[name] = new_obj
+        self._refresh_all()
 
     def _build_status_bar(self):
         bar = self.statusBar()
@@ -283,7 +419,7 @@ class MainWindow(QMainWindow):
             self._on_context_changed)
         self.timeline_dock.frame_changed.connect(
             self._update_frame_status)
-        self.undo_stack.indexChanged.connect(lambda *_: self._refresh_all())
+        self.undo_stack.indexChanged.connect(self._on_index_changed)
 
     # -- status bar -----------------------------------------------------------
     def _on_viewport_selection(self, name, _index):
@@ -358,54 +494,120 @@ class MainWindow(QMainWindow):
                   self.timeline_dock):
             d.refresh()
         self.viewport.update()
-
-    def _save_project(self, project, path):
-        from am3d.core.serializer import save_project
-        save_project(project, path)
-
-    def _load_project(self, path):
-        from am3d.core.serializer import load_project
-        return load_project(path)
+        self._update_title()
 
     def _tessellate(self):
         from am3d.renderer.tessellate import tessellate_project
         return tessellate_project(self.session.project)
 
     def _file_new(self):
-        if not self.undo_stack.isClean():
-            answer = QMessageBox.question(
-                self, "Unsaved changes",
-                "Discard unsaved changes and start a new project?",
-                QMessageBox.Yes | QMessageBox.No, QMessageBox.No)
-            if answer != QMessageBox.Yes:
-                return
-        self.session.new_project("Untitled")
-        self.undo_stack.clear()
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
+        self.doc_ctrl.do_new()
         self._refresh_all()
+        self.show_editor()
 
     def _file_open(self):
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
         path, _ = QFileDialog.getOpenFileName(
             self, "Open project", "", "AM3D Project (*.am3d)")
         if not path:
             return
         try:
-            self.session = Session(project=self._load_project(path))
-            self.undo_stack.clear()
+            self.doc_ctrl.do_open(path)
             self._refresh_all()
+            self.show_editor()
         except Exception as exc:
             QMessageBox.critical(self, "Open failed", str(exc))
 
     def _file_save(self):
-        path, _ = QFileDialog.getSaveFileName(
-            self, "Save project", "project.am3d", "AM3D Project (*.am3d)")
-        if not path:
-            return
         try:
-            self._save_project(self.session.project, path)
-            self.undo_stack.setClean()
-            self.statusBar().showMessage("Saved: " + path)
+            result = self.doc_ctrl.do_save()
+            if result:
+                self.doc_ctrl.add_recent(result)
+                self.statusBar().showMessage("Saved: " + result)
+                self._update_title()
+                self.home.set_recent_projects(self.doc_ctrl.recent_projects())
         except Exception as exc:
             QMessageBox.critical(self, "Save failed", str(exc))
+
+    def show_home(self):
+        """Switch to the Home hub."""
+        self.stack.setCurrentIndex(0)
+        self.home.set_recent_projects(self.doc_ctrl.recent_projects())
+        self.home.set_recover_visible(self.doc_ctrl.autosave_exists())
+        self.menuBar().setVisible(False)
+        self.workspace_tabs.setVisible(False)
+        self.tiled.setVisible(False)
+        self.update()
+
+    def show_editor(self):
+        """Switch to the editor workspace."""
+        self.stack.setCurrentIndex(1)
+        self.menuBar().setVisible(True)
+        self.workspace_tabs.setVisible(True)
+        self.tiled.setVisible(True)
+        self._refresh_all()
+        self.update()
+
+    def _connect_home(self):
+        """Wire HomeWidget signals to MainWindow actions."""
+        h = self.home
+        h.action_new.connect(self._file_new)
+        h.action_open.connect(self._file_open)
+        h.action_enter_editor.connect(self.show_editor)
+        h.action_about.connect(self._about)
+        h.action_exit.connect(self._file_quit)
+        h.action_recent.connect(self._open_recent)
+        h.action_recover.connect(self._recover_project)
+
+    def _open_recent(self, path: str):
+        """Open a project from the recent-projects list."""
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
+        try:
+            self.doc_ctrl.do_open(path)
+            self.doc_ctrl.add_recent(path)
+            self.show_editor()
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Open failed", str(exc))
+
+    def _recover_project(self, path: str):
+        """Open a recovery/autosave file."""
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
+        try:
+            self.doc_ctrl.recover_from(path)
+            self.show_editor()
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Recovery failed", str(exc))
+
+    def _file_quit(self):
+        """Exit the application with dirty check."""
+        self.close()
+
+    def closeEvent(self, event):
+        """Warn about unsaved changes on close."""
+        if self.doc_ctrl.maybe_abandon_document():
+            self.doc_ctrl.clear_autosave()
+            event.accept()
+        else:
+            event.ignore()
+
+    def _on_index_changed(self, *args):
+        """Refresh all panels on undo/redo, but skip if window is closing."""
+        if not self.isVisible() and not self.isMinimized():
+            return
+        self._refresh_all()
+
+    def push_command(self, cmd):
+        """Push a QUndoCommand onto the undo stack (used by panels)."""
+        self.undo_stack.push(cmd)
+        self.doc_ctrl.mark_dirty()
+        self._update_title()
 
     def _file_import_action(self):
         path, _ = QFileDialog.getOpenFileName(
@@ -414,6 +616,7 @@ class MainWindow(QMainWindow):
             return
         try:
             act = self.session.load_action_file(path)
+            self.doc_ctrl.mark_dirty()
             self.statusBar().showMessage(f"Imported action: {act.name}")
             self._refresh_all()
         except Exception as exc:
@@ -442,6 +645,12 @@ class MainWindow(QMainWindow):
             self.statusBar().showMessage("Exported: " + path)
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))
+
+    def _file_settings(self):
+        """Open the Settings dialog."""
+        from .settings import SettingsDialog
+        dlg = SettingsDialog(self)
+        dlg.exec()
 
     def _about(self):
         QMessageBox.about(

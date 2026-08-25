@@ -36,6 +36,7 @@ def test_main_window_smoke():
 
     from am3d.ui.app import MainWindow
     win = MainWindow()
+    win.show_editor()
     win.show()
     # Outliner + properties are visible in every editing mode.
     for mode in ("object", "segment", "material"):
@@ -67,8 +68,23 @@ def _make_main_window():
 
     from am3d.ui.app import MainWindow
     win = MainWindow()
+    _add_test_sphere(win)
+    win.show_editor()
     win.set_mode("object")
     return win
+
+
+def _add_test_sphere(win):
+    """Add a test sphere to a MainWindow for tests that need it."""
+    from am3d.recipes.primitives import build_primitive
+    from am3d.core.project import Patch
+    s = win.session
+    s.create_object("sphere")
+    for pname, net, du, dv in build_primitive(
+            "sphere", dict(radius=0.8, sections=12, rings=8))["patches"]:
+        s.get_object("sphere").patches.append(
+            Patch(name=pname, splines=[], interior=net))
+    s.create_material("base", color=(0.72, 0.75, 0.85))
 
 
 def test_outliner_selection_sync():

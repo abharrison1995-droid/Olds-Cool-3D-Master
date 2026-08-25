@@ -12,6 +12,63 @@ import io
 import msgpack
 import numpy as np
 
+class ProjectFormatError(Exception):
+    """Raised when a project file is malformed or exceeds safety limits."""
+
+
+# Schema version and safety limits
+FORMAT_VERSION = 1
+_MAX_FILE_BYTES = 64 * 1024 * 1024       # 64 MB
+_MAX_OBJECTS = 1000
+_MAX_SPLINES = 5000
+_MAX_PATCHES = 5000
+_MAX_BONES = 500
+_MAX_ACTIONS = 200
+_MAX_CHANNELS = 2000
+_MAX_KEYS = 50000
+_MAX_CONTAINER_DEPTH = 20
+_MAX_ARRAY_ELEMENTS = 10_000_000
+_ALLOWED_DTYPES = {"float16", "float32", "float64", "int8", "int16",
+                   "int32", "int64", "uint8", "uint16", "uint32", "uint64",
+                   "bool"}
+
+
+def validate_project_bytes(payload: bytes) -> None:
+    """Check *payload* size and structural limits before unpacking.
+
+    Raises ProjectFormatError if any limit is exceeded.
+    """
+    if len(payload) > _MAX_FILE_BYTES:
+        raise ProjectFormatError(
+            f"File too large: {len(payload)} bytes (max {_MAX_FILE_BYTES})")
+    if len(payload) < 4:
+        raise ProjectFormatError("File too small (truncated?)")
+
+
+def validate_project_data(data: dict) -> None:
+    """Validate deserialized project dict against safety limits."""
+    objs = data.get("objects", {})
+    if len(objs) > _MAX_OBJECTS:
+        raise ProjectFormatError(
+            f"Too many objects: {len(objs)} (max {_MAX_OBJECTS})")
+    for oname, odata in objs.items():
+        if len(odata.get("splines", {})) > _MAX_SPLINES:
+            raise ProjectFormatError(
+                f"Too many splines in {oname!r}")
+        if len(odata.get("patches", [])) > _MAX_PATCHES:
+            raise ProjectFormatError(
+                f"Too many patches in {oname!r}")
+    skels = data.get("skeletons", {})
+    for oname, bones in skels.items():
+        if len(bones) > _MAX_BONES:
+            raise ProjectFormatError(
+                f"Too many bones in {oname!r} (max {_MAX_BONES})")
+    acts = data.get("actions", {}).get("items", {})
+    if len(acts) > _MAX_ACTIONS:
+        raise ProjectFormatError(
+            f"Too many actions: {len(acts)} (max {_MAX_ACTIONS})")
+
+
 from .animation import Action, Channel, Interpolation, Keyframe
 from .project import Material, Project, Spline, ControlPoint
 
@@ -199,7 +256,9 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
 
 
 def load_project_bytes(payload: bytes) -> Project:
+    validate_project_bytes(payload)
     data = msgpack.unpackb(payload, raw=False)
+    validate_project_data(data)
     p = Project(name=data["name"])
     p.mode = data.get("mode", "object")
     p.frame = data.get("frame", 0.0)

@@ -9,6 +9,13 @@ patches.  Surfaces stay mathematically smooth at any render resolution while
 the on-disk representation remains tiny (just control points + knot
 vectors).
 
+## Interface
+
+![3D MASTER:2005 Layout workspace](docs/screenshots/layout-workspace.png)
+
+The PySide6 desktop editor provides dedicated Layout, Model, Rig, Animate,
+and Render workspaces around the spline-patch viewport.
+
 ## Status
 
 | Subsystem | State | Tests |

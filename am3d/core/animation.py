@@ -22,6 +22,10 @@ class Interpolation:
     SMOOTH = "smooth"
 
 
+# Two keys closer together than this are the same key.
+KEY_TIME_EPS = 1e-9
+
+
 @dataclass
 class Keyframe:
     """A single pose value at a time with bezier-style tangents."""
@@ -56,8 +60,35 @@ class Channel:
     property: str = "translate"   # translate | rotate | scale | weight
     keys: list = field(default_factory=list)   # list[Keyframe] sorted by time
 
+    def key_at(self, time: float):
+        """The existing key at *time*, or ``None``."""
+        time = float(time)
+        for k in self.keys:
+            if abs(k.time - time) <= KEY_TIME_EPS:
+                return k
+        return None
+
     def add_key(self, time, value, interp=Interpolation.SMOOTH) -> Keyframe:
-        k = Keyframe(float(time), np.asarray(value, dtype=np.float64), interp)
+        """Add a key, or replace the one already at *time*.
+
+        Time is a key's identity within a channel. Appending a second key
+        at an existing time made the newer one unreachable: ``sample``
+        scans forward and stops at the first match, and the sort is
+        stable, so the older key kept winning and the write was silently
+        lost. Replacing keeps ``keys`` sorted and duplicate-free.
+
+        Tangents are cleared on replace -- they described the old value's
+        velocity and would otherwise be applied to the new one.
+        """
+        value = np.asarray(value, dtype=np.float64)
+        existing = self.key_at(time)
+        if existing is not None:
+            existing.value = value
+            existing.interp = interp
+            existing.in_tangent = None
+            existing.out_tangent = None
+            return existing
+        k = Keyframe(float(time), value, interp)
         self.keys.append(k)
         self.keys.sort(key=lambda k_: k_.time)
         return k

@@ -665,13 +665,25 @@ in this plan that GPU paths are untested-by-skip does not hold on this host.
 
 **Open, verified, not yet fixed:**
 
-- **[MAJOR — reproduced]** `core/animation.py:59` — `Channel.add_key` appends
-  and sorts without checking for an existing key at the same time, and Python's
-  stable sort then keeps the *older* key first, so `sample()` returns the
-  superseded value: `add_key(1.0, a); add_key(1.0, b); sample(1.0) -> a`. The
-  later write is unreachable. `Session.insert_keyframe` (`script.py:312`)
-  dedupes correctly, so only callers bypassing that wrapper are exposed —
-  but the invariant belongs on `Channel`.
+- **[MAJOR — reproduced, fixed]** `core/animation.py:59` — `Channel.add_key`
+  appended and sorted without checking for an existing key at the same time,
+  and because the sort is stable the *older* key stayed first, so `sample()`
+  returned the superseded value and the newer write was unreachable.
+  `add_key` now replaces the key at the same time (within `KEY_TIME_EPS`),
+  returning the same `Keyframe` object so undo commands holding a reference
+  are not orphaned, and clearing tangents that described the old value's
+  velocity. `Session.insert_keyframe` carried a second copy of the dedupe
+  loop and now delegates, so the invariant has one owner. Eight regression
+  tests; five fail against the previous implementation. Suite:
+  **336 -> 344 passed**.
+
+  **Related, still open:** `ui/operators.py:590` (`MoveKeyCommand._set`)
+  mutates `key.time` directly and re-sorts, bypassing `add_key` entirely, so
+  dragging a dopesheet key onto another still produces two keys at one time —
+  verified: three keys at 0/1/2, drag the first onto 1.0, and `sample(1.0)`
+  returns the dragged-over key's value. Fixing it needs a product decision
+  (overwrite the target, refuse the move, or nudge), so it is recorded here
+  rather than decided unilaterally.
 - **[MAJOR — reproduced, fixed]** `core/serializer.py:289` —
   `zip(pts, weights)` truncated to the shorter sequence, so a corrupt or
   truncated weights array silently dropped control points instead of raising.

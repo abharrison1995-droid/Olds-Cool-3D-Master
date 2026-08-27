@@ -317,12 +317,8 @@ class Session:
         ch = act.get_channel(bone, prop)
         if ch is None:
             ch = act.add_channel(bone, prop)
-        time = float(time)
-        for k in ch.keys:
-            if abs(k.time - time) < 1e-9:
-                k.value = np.asarray(value, dtype=np.float64).reshape(-1)
-                return k
-        return ch.add_key(time, value,
+        # Channel.add_key owns the replace-at-same-time invariant.
+        return ch.add_key(float(time), value,
                           interp or Interpolation.SMOOTH)
 
     def remove_keyframe(self, action_name: str, bone: str, prop: str,

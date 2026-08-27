@@ -37,8 +37,24 @@ PRIMITIVES = frozenset({
 # Procedural action generators accepted in ActionRecipe.kind.
 ACTION_KINDS = frozenset({"walk", "idle", "jump", "custom", "retarget"})
 
-EXPORT_FORMATS = frozenset({"obj", "glb", "gltf", "spritesheet",
-                            "toon_sheet", "am3d", "atlas", "render"})
+# Only formats ``RecipeExecutor._run_exports`` actually writes belong here.
+# Advertising a format with no writer makes the run report success while
+# producing no file, so this set and that dispatch must stay in step.
+EXPORT_FORMATS = frozenset({"obj", "glb", "spritesheet",
+                            "toon_sheet", "am3d"})
+
+# Accepted spellings that are not writer names in their own right.
+_FORMAT_ALIASES = {"gltf": "glb"}      # we always emit binary glTF
+
+
+def normalize_export_format(fmt) -> str:
+    """Canonical writer name for a user-supplied export format.
+
+    Applied by ``recipe_from_dict``, ``validate_recipe`` and the executor
+    alike, so an alias means the same thing on every path into a run.
+    """
+    fmt = str(fmt).lower()
+    return _FORMAT_ALIASES.get(fmt, fmt)
 
 
 @dataclass
@@ -117,7 +133,7 @@ class ActionRecipe:
 
 @dataclass
 class ExportRecipe:
-    format: str = "obj"                   # obj | glb | gltf | spritesheet | am3d
+    format: str = "obj"                   # see EXPORT_FORMATS
     path: str = "./out"
     params: dict = field(default_factory=dict)
 
@@ -188,9 +204,7 @@ def recipe_from_dict(data: dict) -> Recipe:
 
     for ed in data.get("exports", []) or []:
         ex = _coerce(ed, ExportRecipe)
-        fmt = ex.format.lower()
-        if fmt == "gltf":
-            fmt = "glb"       # we always emit binary glTF
+        fmt = normalize_export_format(ex.format)
         if fmt not in EXPORT_FORMATS:
             raise ValueError(
                 f"unknown export format {ex.format!r} "
@@ -218,8 +232,41 @@ def validate_recipe(recipe: Recipe) -> list:
                 problems.append(
                     f"object {obj.name!r}: bone {bone.name!r} references "
                     f"unknown parent {bone.parent!r}")
+    # ``RecipeExecutor.execute`` calls ``Session.new_project`` first, which
+    # clears ``session.actions`` -- so a retarget source can only be an
+    # action defined earlier in this same recipe. That makes every
+    # action precondition checkable here, before anything is built.
+    object_bones = {o.name: list(o.bones or []) for o in recipe.objects}
+    defined_actions = set()
     for act in recipe.actions:
         if act.character and act.character not in seen_objects:
             problems.append(
                 f"action {act.name!r}: unknown character {act.character!r}")
+        elif act.character and not object_bones.get(act.character):
+            problems.append(
+                f"action {act.name!r}: character {act.character!r} declares "
+                f"no bones, so the action cannot be applied to it")
+
+        if act.kind == "retarget":
+            if not act.character:
+                problems.append(
+                    f"action {act.name!r}: retarget needs a character")
+            if not act.source_action:
+                problems.append(
+                    f"action {act.name!r}: retarget needs source_action")
+            elif act.source_action not in defined_actions:
+                problems.append(
+                    f"action {act.name!r}: source_action "
+                    f"{act.source_action!r} is not defined earlier in this "
+                    f"recipe (sources must precede the actions that use them)")
+        elif act.kind != "custom" and not act.character:
+            problems.append(
+                f"action {act.name!r}: procedural kind {act.kind!r} needs a "
+                f"character with bones")
+        defined_actions.add(act.name)
+    for ex in recipe.exports:
+        if normalize_export_format(ex.format) not in EXPORT_FORMATS:
+            problems.append(
+                f"export {ex.path!r}: unknown format {ex.format!r} "
+                f"(choose from {sorted(EXPORT_FORMATS)})")
     return problems

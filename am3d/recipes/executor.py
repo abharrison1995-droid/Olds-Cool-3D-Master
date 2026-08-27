@@ -168,15 +168,18 @@ class RecipeExecutor:
                         f"{b.name}->{b.parent or 'root'}" for b in bones)
             elif spec.kind == "retarget":
                 if not bones or not spec.source_action:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: retarget needs character + "
-                        "source_action; skipped")
+                        "source_action; action not created")
                     continue
                 src = s.actions.get(spec.source_action)
                 if src is None:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: source action "
-                        f"{spec.source_action!r} not found; skipped")
+                        f"{spec.source_action!r} not found; action not "
+                        f"created")
                     continue
                 from am3d.core.retarget import retarget_action
                 act = retarget_action(src, bones, bones,
@@ -186,9 +189,11 @@ class RecipeExecutor:
                 s.actions[act.name] = act
             else:
                 if not bones:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: procedural kind "
-                        f"{spec.kind!r} needs a character with bones; skipped")
+                        f"{spec.kind!r} needs a character with bones; "
+                        f"action not created")
                     continue
                 act = generate_action(spec.kind, bones, name=spec.name,
                                       duration=spec.duration,
@@ -243,6 +248,7 @@ class RecipeExecutor:
 
     def _run_exports(self, recipe: Recipe, res: ExecutionResult) -> None:
         from am3d.core.serializer import save_project
+        from .schema import normalize_export_format
         from am3d.renderer.sprite import save_sprite_sheet
         from am3d.renderer.tessellate import tessellate_project
 
@@ -250,7 +256,7 @@ class RecipeExecutor:
         atlas_dir = _atlas_outdir(recipe.exports)
 
         for spec in recipe.exports:
-            fmt = spec.format
+            fmt = normalize_export_format(spec.format)
             base = spec.path
             _ensure_parent(base)
 
@@ -303,7 +309,14 @@ class RecipeExecutor:
                 res.exports.append((fmt, ", ".join(paths)))
                 continue
             else:
-                res.warnings.append(f"unsupported export format {fmt!r}")
+                # Reached only if EXPORT_FORMATS and this dispatch drift
+                # apart. Producing no file is a failure, not a warning:
+                # a caller that sees ok=True is entitled to assume every
+                # requested export exists on disk.
+                res.ok = False
+                res.errors.append(
+                    f"export format {fmt!r} passed validation but has no "
+                    f"writer; no file was produced for {base!r}")
                 continue
 
             res.exports.append((fmt, path))

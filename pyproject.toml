@@ -11,17 +11,15 @@ requires-python = ">=3.10"
 authors = [{name = "3D MASTER:2005 Team"}]
 dependencies = [
     "numpy>=1.24",
-    "scipy>=1.10",
-    "numba>=0.58",
-    "moderngl>=5.11",
-    "moderngl-window>=3.0",
     "msgpack>=1.0",
     "PySide6>=6.5",
+    "Pillow>=10.0",
 ]
 
 [project.optional-dependencies]
 test = ["pytest>=7.0", "hypothesis>=6.0"]
-renderer = ["moderngl>=5.11", "moderngl-window>=3.0"]
+renderer = ["moderngl>=5.11"]
+accel = ["numba>=0.58"]
 
 [project.scripts]
 am3d = "am3d.ui.app:main"

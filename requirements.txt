@@ -1,9 +1,14 @@
+# Runtime requirements. Pillow is NOT optional: the PNG export and texture
+# loading paths raise without it (am3d/renderer/sprite.py, materials.py).
 numpy>=1.24
-scipy>=1.10
-numba>=0.58
-moderngl>=5.11
-moderngl-window>=3.0
 msgpack>=1.0
 PySide6>=6.5
+Pillow>=10.0
+
+# Optional GPU renderer. am3d falls back to the software toon path when
+# this is absent, so it is not required to run the app.
+moderngl>=5.11
+
+# Tests
 pytest>=7.0
 hypothesis>=6.0

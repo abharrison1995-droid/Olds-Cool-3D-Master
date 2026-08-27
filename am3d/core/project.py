@@ -132,6 +132,9 @@ class Project:
         # frame range at ``fps`` (default 0..120 @ 30 fps == the old 4.0 s).
         self.animation_settings = {"frame_start": 0, "frame_end": 120,
                                    "fps": 30.0}
+        # Session-level state persisted in format_version >= 2
+        self.active_action: str | None = None
+        self.action_assignments: dict = {}
 
     # ---- object management -------------------------------------------------
     def create_object(self, name: str) -> Object3D:

@@ -1,9 +1,16 @@
 # AM3D Modernization — Progress Report
 
-Date: 2026-08-25
-Status: **Phases 0–5 complete and verified (276 tests passing).**
+Date: 2026-08-26
+Status: **V1 Phases 0–5 below are complete and verified. A post-implementation
+review found several of these "complete" phases did not satisfy their exit
+gates for a real beta release — see [`docs/V2_BETA_IMPLEMENTATION_PLAN.md`](docs/V2_BETA_IMPLEMENTATION_PLAN.md),
+which now supersedes this document and Phase 6 below as the source of truth
+for beta-readiness. Current test count: 302 passing (see V2 plan section 13
+for what's still open: serializer hardening, Lathe/Extrude architecture
+duplication, material persistence, autosave/recovery, Home/Settings, export
+parity, Windows packaging).**
 
-Full plan lives in the approved implementation plan (bug review + 7 phases). This document tracks execution state.
+Full plan lives in the approved implementation plan (bug review + 7 phases). This document tracks execution state through V1 Phase 5; V1 Phase 6 and all beta-remediation work moved to the V2 plan linked above.
 
 ## Completed
 
@@ -70,7 +77,7 @@ Deferred to Phase 6: graph editor, ik_two_bone UI wiring, pose/assignment serial
 
 ## Not started
 
-- **Phase 6 — Polish**: pie menus, asset browser, `atlas`/`render` export formats, quad-view, GPU skinning, graph editor, ik_two_bone UI wiring, persistence of poses/action assignments in .am3d.
+- **Phase 6 — Polish**: pie menus, asset browser, `atlas`/`render` export formats, quad-view, GPU skinning, graph editor, ik_two_bone UI wiring, persistence of poses/action assignments in .am3d. *(Superseded — pose/assignment persistence now lands as part of the V2 plan's Phase 1; the rest of this list is still genuinely not started.)*
 
 ## Known loose ends
 
@@ -82,4 +89,10 @@ Deferred to Phase 6: graph editor, ik_two_bone UI wiring, pose/assignment serial
 
 ## How to resume
 
-Say "continue" — next step is Phase 6 (polish: pie menus, asset browser, export formats, quad-view, GPU skinning; plus the Phase 5 deferrals listed above).
+Work here now tracks `docs/V2_BETA_IMPLEMENTATION_PLAN.md`, not this
+document's Phase 6. That plan's section 13 has current status and a
+prioritized remaining-work list (serializer hardening gaps and the
+Lathe/Extrude facade duplication first, then material persistence, then
+Phases 2–6 of that plan). V1 Phase 6 (polish: pie menus, asset browser,
+export formats, quad-view, GPU skinning) remains genuinely not started and
+comes after the V2 plan's beta-readiness work.

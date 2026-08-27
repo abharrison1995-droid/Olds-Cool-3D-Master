@@ -246,12 +246,16 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
         },
     }
     if actions:
-        # Optional, versioned section so Session-level Actions survive
-        # project save/load.  Old files simply lack it.
         body["actions"] = {
             "version": 1,
             "items": {name: _encode(act) for name, act in actions.items()},
         }
+    body["session_state"] = {
+        "version": 2,
+        "active_action": project.active_action,
+        "action_assignments": dict(project.action_assignments),
+    }
+    body["format_version"] = 2
     return msgpack.packb(body, use_bin_type=True)
 
 
@@ -315,12 +319,19 @@ def load_project_bytes(payload: bytes) -> Project:
         else:  # legacy format: bare color list
             p.materials[n] = Material(name=n, color=tuple(mdata))
 
-    # Optional, versioned actions section (absent in old files).
     p.actions = {}
     adata = data.get("actions")
     if isinstance(adata, dict):
         p.actions = {name: _decode(a)
                      for name, a in adata.get("items", {}).items()}
+
+    # Session state (V2+)
+    ss = data.get("session_state")
+    if isinstance(ss, dict):
+        p.active_action = ss.get("active_action")
+        ass = ss.get("action_assignments", {})
+        if isinstance(ass, dict):
+            p.action_assignments = dict(ass)
     return p
 
 

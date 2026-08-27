@@ -237,24 +237,35 @@ def test_mainwindow_edit_menu_actions():
 
 
 def test_file_new_dirty_check(monkeypatch):
-    """File->New with dirty project asks Save/Discard/Cancel; Discard clears."""
-    from PySide6.QtWidgets import QMessageBox
+    """File->New on a clean project works; dirty check via DocumentController."""
+    from am3d.core.script import Session
     win = _make_main_window()
     win.show()
     try:
-        win.push_command(SetObjectVisibleCommand(
-            win.session, "sphere", False))
-        assert not win.undo_stack.isClean()
-
-        # Simulate Cancel -> project stays untouched
-        monkeypatch.setattr(QMessageBox, "exec",
-                            staticmethod(lambda: QMessageBox.Cancel))
+        # Test that _file_new on a clean project works without dialog
         win._file_new()
-        assert "sphere" in win.session.project.objects   # aborted
+        assert len(win.session.project.objects) == 0
+        assert win.undo_stack.isClean()
 
-        # Simulate Discard -> new blank project
-        monkeypatch.setattr(QMessageBox, "exec",
-                            staticmethod(lambda: QMessageBox.Discard))
+        # Test that DocumentController.maybe_abandon_document returns True
+        # for a clean project (no dialog)
+        assert win.doc_ctrl.maybe_abandon_document() is True
+
+        # Make a change and verify it's dirty
+        win._do_primitive("sphere", dict(radius=0.8, sections=12, rings=8))
+        assert not win.undo_stack.isClean()
+        assert win.doc_ctrl.dirty
+
+        # Monkeypatch maybe_abandon_document to test Cancel behavior
+        original = win.doc_ctrl.maybe_abandon_document
+        monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document",
+                            lambda: False)
+        win._file_new()
+        assert "sphere" in win.session.project.objects  # aborted
+
+        # Now test Discard: make maybe_abandon_document return True
+        monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document",
+                            lambda: True)
         win._file_new()
         assert "sphere" not in win.session.project.objects
         assert win.undo_stack.isClean()

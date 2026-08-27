@@ -81,6 +81,7 @@ class MainWindow(QMainWindow):
 
         self.undo_stack = QUndoStack(self)
         self.undo_stack.cleanChanged.connect(self._on_clean_changed)
+        self.doc_ctrl.set_undo_stack(self.undo_stack)
 
         self.current_workspace = WORKSPACE_NAMES[0]
         self.current_mode = MODES[0]
@@ -123,8 +124,7 @@ class MainWindow(QMainWindow):
         self.setWindowTitle(f"{title} - 3D MASTER:2005")
 
     def _on_clean_changed(self, clean: bool):
-        if clean:
-            self.doc_ctrl.dirty = False
+        self.doc_ctrl.dirty = not clean
         self._update_title()
 
     # -- construction ---------------------------------------------------------
@@ -246,10 +246,7 @@ class MainWindow(QMainWindow):
                 and self.session.active_action:
             dock.key_bone(object_name, bone_name)
 
-    def push_command(self, command):
-        """Push an undoable command (see :mod:`am3d.ui.operators`)."""
-        self.undo_stack.push(command)
-
+    
     def _build_menu(self):
         m = self.menuBar()
         fm = m.addMenu("File")
@@ -261,9 +258,14 @@ class MainWindow(QMainWindow):
             a.triggered.connect(slot)
             fm.addAction(a)
 
-        _add("New", self._file_new)
-        _add("Open .am3d...", self._file_open)
-        _add("Save .am3d", self._file_save)
+        _add("New", self._file_new, "Ctrl+N")
+        _add("Open .am3d...", self._file_open, "Ctrl+O")
+        fm.addSeparator()
+        _add("Save .am3d", self._file_save, "Ctrl+S")
+        _add("Save As .am3d...", self._file_save_as)
+        fm.addSeparator()
+        _add("Close Project", self._file_close_project)
+        _add("Close Editor", self.show_home)
         fm.addSeparator()
         _add("Import Action (.am3a)...", self._file_import_action)
         _add("Export OBJ...", self._file_export_obj)
@@ -293,21 +295,20 @@ class MainWindow(QMainWindow):
 
     def _build_create_menu(self, cm):
         """Populate the Create menu with primitives and spline actions."""
-        from .operators import CreatePrimitiveCommand, push_or_apply
+        from .operators import CreatePrimitiveCommand
 
-        def _primitive(name, menu_label, params=None):
-            def _do():
-                push_or_apply(self, CreatePrimitiveCommand(
-                    self.session, menu_label.lower(), name, params))
-                self._refresh_all()
-            cm.addAction(menu_label, _do)
-
-        cm.addAction("Sphere", lambda: _primitive("sphere", "Sphere", dict(radius=0.8, sections=12, rings=8)))
-        cm.addAction("Box", lambda: _primitive("box", "Box", dict(width=1.0, height=1.0, depth=1.0)))
-        cm.addAction("Cylinder", lambda: _primitive("cylinder", "Cylinder", dict(radius=0.5, height=1.0)))
-        cm.addAction("Cone", lambda: _primitive("cone", "Cone", dict(radius=0.5, height=1.0)))
-        cm.addAction("Torus", lambda: _primitive("torus", "Torus", dict(radius=0.6, tube_radius=0.2)))
-        cm.addAction("Plane", lambda: _primitive("plane", "Plane", dict(width=1.0, height=1.0)))
+        primitives = [
+            ("sphere", "Sphere", dict(radius=0.8, sections=12, rings=8)),
+            ("box", "Box", dict(width=1.0, height=1.0, depth=1.0)),
+            ("cylinder", "Cylinder", dict(radius=0.5, height=1.0)),
+            ("cone", "Cone", dict(radius=0.5, height=1.0)),
+            ("torus", "Torus", dict(major_radius=0.6, minor_radius=0.2)),
+            ("plane", "Plane", dict(width=1.0, height=1.0)),
+        ]
+        for pname, label, params in primitives:
+            act = cm.addAction(label)
+            act.triggered.connect(
+                lambda _=False, n=pname, p=params: self._do_primitive(n, p))
 
         cm.addSeparator()
         cm.addAction("Profile/Spline", self._create_spline)
@@ -316,70 +317,97 @@ class MainWindow(QMainWindow):
         cm.addSeparator()
         cm.addAction("Duplicate Object", self._duplicate_object)
 
+    def _do_primitive(self, name, params):
+        """Undoably create a primitive object with collision-safe naming."""
+        from .operators import CreatePrimitiveCommand, push_or_apply
+        base = name
+        obj_name = base
+        i = 1
+        while obj_name in self.session.project.objects:
+            obj_name = f"{base}_{i:03d}"
+            i += 1
+            if i > 999:
+                return
+        push_or_apply(self, CreatePrimitiveCommand(
+            self.session, obj_name, name, params))
+        self._refresh_all()
+
     def _build_create_menu_workaround(self, cm):
         # _build_create_menu is defined above
         pass
 
     def _create_spline(self):
-        """Create a new object with one spline and CPs."""
-        from am3d.core.project import Spline, ControlPoint
+        """Undoably create a new object with a profile spline."""
+        from .operators import CreateSplineProfileCommand, push_or_apply
         import numpy as np
         base = "spline"
         name = base
         i = 1
         while name in self.session.project.objects:
-            name = f"{base}_{i}"
+            name = f"{base}_{i:03d}"
             i += 1
-        obj = self.session.create_object(name)
-        obj.add_spline(Spline(name="profile", cps=[
-            ControlPoint(np.array([0.0, -0.5, 0.0])),
-            ControlPoint(np.array([0.3, 0.0, 0.0])),
-            ControlPoint(np.array([0.0, 0.5, 0.0])),
-        ]))
+            if i > 999:
+                return
+        cps = [
+            np.array([0.0, -0.5, 0.0], dtype=np.float64),
+            np.array([0.3, 0.0, 0.0], dtype=np.float64),
+            np.array([0.0, 0.5, 0.0], dtype=np.float64),
+            np.array([-0.3, 1.0, 0.0], dtype=np.float64),
+        ]
+        push_or_apply(self, CreateSplineProfileCommand(
+            self.session, name, "profile", cps))
         self._refresh_all()
 
     def _lathe_selected(self):
-        """Lathe the first spline of the selected object."""
-        kind, oname, _ = self.current_context
+        """Undoably lathe the selected object's profile spline."""
+        from .operators import LatheProfileCommand, push_or_apply
+        kind, oname, sname = self.current_context
         if kind != "object" or not oname:
-            return
+            sel = getattr(self.viewport, "_selected", None)
+            if sel and sel[0] in self.session.project.objects:
+                oname = sel[0]
         obj = self.session.project.objects.get(oname)
         if not obj or not obj.splines:
             return
-        first_spline = next(iter(obj.splines.values()))
-        pts = first_spline.point_array()
-        # Use XZ plane as [radius, axial] profile
-        profile = pts[:, [0, 2]]
-        from am3d.recipes.primitives import make_lathe_profile
-        from am3d.core.project import Patch
-        result = make_lathe_profile(profile, sections=24)
-        for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+        sname = sname if sname in obj.splines else next(iter(obj.splines))
+        spline = obj.splines[sname]
+        pts = spline.point_array()
+        # Profile spline varies in X/Y; extract [radius, axial] as [X, Z].
+        profile = pts[:, [0, 2]]  # X -> radius, Z -> axial
+        if len(profile) < 2:
+            return
+        push_or_apply(self, LatheProfileCommand(
+            self.session, oname, profile, sections=24))
         self._refresh_all()
 
     def _extrude_selected(self):
-        """Extrude the first spline of the selected object."""
-        kind, oname, _ = self.current_context
+        """Undoably extrude the selected spline."""
+        from .operators import ExtrudeProfileCommand, push_or_apply
+        kind, oname, sname = self.current_context
         if kind != "object" or not oname:
-            return
+            sel = getattr(self.viewport, "_selected", None)
+            if sel and sel[0] in self.session.project.objects:
+                oname = sel[0]
         obj = self.session.project.objects.get(oname)
         if not obj or not obj.splines:
             return
-        first_spline = next(iter(obj.splines.values()))
-        pts = first_spline.point_array()
-        from am3d.recipes.primitives import make_extrude_profile
-        from am3d.core.project import Patch
-        result = make_extrude_profile(pts, height=1.0, rings=4)
-        for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+        sname = sname if sname in obj.splines else next(iter(obj.splines))
+        spline = obj.splines[sname]
+        pts = spline.point_array()
+        if len(pts) < 2:
+            return
+        push_or_apply(self, ExtrudeProfileCommand(
+            self.session, oname, pts, height=1.0, rings=4))
         self._refresh_all()
 
     def _duplicate_object(self):
-        """Duplicate the selected object."""
-        import copy
+        """Undoably duplicate the selected object."""
+        from .operators import DuplicateObjectCommand, push_or_apply
         kind, oname, _ = self.current_context
         if kind != "object" or not oname:
-            return
+            sel = getattr(self.viewport, "_selected", None)
+            if sel and sel[0] in self.session.project.objects:
+                oname = sel[0]
         obj = self.session.project.objects.get(oname)
         if obj is None:
             return
@@ -387,11 +415,12 @@ class MainWindow(QMainWindow):
         name = base
         i = 1
         while name in self.session.project.objects:
-            name = f"{base}_{i}"
+            name = f"{base}_{i:03d}"
             i += 1
-        new_obj = copy.deepcopy(obj)
-        new_obj.name = name
-        self.session.project.objects[name] = new_obj
+            if i > 999:
+                return
+        push_or_apply(self, DuplicateObjectCommand(
+            self.session, oname, name))
         self._refresh_all()
 
     def _build_status_bar(self):
@@ -504,22 +533,40 @@ class MainWindow(QMainWindow):
         if not self.doc_ctrl.maybe_abandon_document():
             return
         self.doc_ctrl.do_new()
+        self._reset_document_ui_state()
         self._refresh_all()
         self.show_editor()
 
     def _file_open(self):
-        if not self.doc_ctrl.maybe_abandon_document():
-            return
         path, _ = QFileDialog.getOpenFileName(
             self, "Open project", "", "AM3D Project (*.am3d)")
         if not path:
             return
+        # Check abandon only after the user has chosen a file
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
         try:
             self.doc_ctrl.do_open(path)
+            self._reset_document_ui_state()
             self._refresh_all()
             self.show_editor()
         except Exception as exc:
             QMessageBox.critical(self, "Open failed", str(exc))
+
+    def _reset_document_ui_state(self):
+        """Reset viewport, selection, panels, and playback after doc replacement."""
+        # Stop playback
+        self.timeline_dock.play_button.setChecked(False)
+        # Clear selections
+        self.viewport.set_selected(None)
+        self.current_context = ("", "", "")
+        # Clear properties and outliner
+        self.properties_dock.set_context("", "", "")
+        self.object_dock.refresh()
+        self.properties_dock.refresh()
+        self.timeline_dock.refresh()
+        self.viewport._timer.stop()
+        self.viewport._timer.start(33)
 
     def _file_save(self):
         try:
@@ -598,9 +645,7 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def _on_index_changed(self, *args):
-        """Refresh all panels on undo/redo, but skip if window is closing."""
-        if not self.isVisible() and not self.isMinimized():
-            return
+        """Refresh all panels on undo/redo."""
         self._refresh_all()
 
     def push_command(self, cmd):
@@ -608,6 +653,24 @@ class MainWindow(QMainWindow):
         self.undo_stack.push(cmd)
         self.doc_ctrl.mark_dirty()
         self._update_title()
+
+    def _file_save_as(self):
+        """Save to a new path."""
+        try:
+            result = self.doc_ctrl.do_save_as()
+            if result:
+                self.doc_ctrl.add_recent(result)
+                self.statusBar().showMessage("Saved: " + result)
+                self._update_title()
+                self.home.set_recent_projects(self.doc_ctrl.recent_projects())
+        except Exception as exc:
+            QMessageBox.critical(self, "Save failed", str(exc))
+
+    def _file_close_project(self):
+        """Close current project and return to Home."""
+        if self.doc_ctrl.maybe_abandon_document():
+            self.doc_ctrl.do_new()
+            self.show_home()
 
     def _file_import_action(self):
         path, _ = QFileDialog.getOpenFileName(

@@ -63,8 +63,11 @@ class Session:
         return self.project
 
     def save_project(self, path: str):
-        """Save the project (and this session's actions) to a .am3d file."""
+        """Save the project (and session state) to a .am3d file."""
         from .serializer import save_project
+        # Sync session state to project before serializing
+        self.project.active_action = self.active_action
+        self.project.action_assignments = dict(self.action_assignments)
         save_project(self.project, path, actions=self.actions)
 
     def load_project(self, path: str) -> Project:
@@ -75,8 +78,10 @@ class Session:
         self.poses = {}
         self.pose_offsets = {}
         self.posed_transforms = {}
-        self.active_action = next(iter(self.actions), None)
-        self.action_assignments = {}
+        self.active_action = getattr(self.project, "active_action", next(iter(self.actions), None))
+        self.action_assignments = getattr(self.project, "action_assignments", {})
+        if not isinstance(self.action_assignments, dict):
+            self.action_assignments = {}
         return self.project
 
     # -- object mode --------------------------------------------------------
@@ -86,6 +91,10 @@ class Session:
     def delete_object(self, name: str) -> None:
         self.project.remove_object(name)
         self.project.skeletons.pop(name, None)
+        self.poses.pop(name, None)
+        self.pose_offsets.pop(name, None)
+        self.posed_transforms.pop(name, None)
+        self.action_assignments.pop(name, None)
 
     def rename_object(self, name: str, new_name: str) -> Object3D:
         if name not in self.project.objects:
@@ -95,6 +104,10 @@ class Session:
             raise ScriptingError("object name must not be empty")
         if new_name != name and new_name in self.project.objects:
             raise ScriptingError(f"object {new_name!r} already exists")
+        for d in (self.poses, self.pose_offsets, self.posed_transforms,
+                   self.action_assignments):
+            if name in d:
+                d[new_name] = d.pop(name)
         self.project.rename_object(name, new_name)
         return self.project.objects[new_name]
 
@@ -234,6 +247,7 @@ class Session:
         self.actions[name] = act
         if self.active_action is None:
             self.active_action = name
+        self.project.active_action = self.active_action
         return act
 
     def get_action(self, name: str) -> Action:
@@ -251,6 +265,8 @@ class Session:
             if act != name}
         if self.active_action == name:
             self.active_action = next(iter(self.actions), None)
+        self.project.active_action = self.active_action
+        self.project.action_assignments = dict(self.action_assignments)
 
     def rename_action(self, name: str, new_name: str) -> Action:
         if name not in self.actions:
@@ -270,6 +286,8 @@ class Session:
         self.action_assignments = {
             obj: (new_name if a == name else a)
             for obj, a in self.action_assignments.items()}
+        self.project.active_action = self.active_action
+        self.project.action_assignments = dict(self.action_assignments)
         return act
 
     def set_active_action(self, name: str | None) -> None:
@@ -277,15 +295,18 @@ class Session:
         if name is not None and name not in self.actions:
             raise ScriptingError(f"no such action: {name!r}")
         self.active_action = name
+        self.project.active_action = name
 
     def assign_action(self, action_name: str, object_name: str) -> Action:
         """Assign an action to drive an object during playback."""
         act = self.apply_action_to_character(action_name, object_name)
         self.action_assignments[object_name] = action_name
+        self.project.action_assignments = dict(self.action_assignments)
         return act
 
     def unassign_action(self, object_name: str) -> None:
         self.action_assignments.pop(object_name, None)
+        self.project.action_assignments = dict(self.action_assignments)
 
     # -- keyframe editing ---------------------------------------------------
     def insert_keyframe(self, action_name: str, bone: str, prop: str,
@@ -376,6 +397,7 @@ class Session:
         self.actions[act.name] = act
         if self.active_action is None:
             self.active_action = act.name
+        self.project.active_action = self.active_action
         return act
 
     def apply_action_to_character(self, action_name: str, object_name: str,

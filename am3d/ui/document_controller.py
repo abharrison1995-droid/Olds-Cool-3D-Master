@@ -28,6 +28,7 @@ class DocumentController:
         self._path: str | None = None
         self._dirty = False
         self._undo_blocked = False
+        self._testing_discard = False  # When True, maybe_abandon_document auto-discards
 
     # -- properties ----------------------------------------------------------
 
@@ -58,6 +59,20 @@ class DocumentController:
     @property
     def has_path(self) -> bool:
         return self._path is not None
+
+    # -- undo stack sync ----------------------------------------------------
+
+    def set_undo_stack(self, stack):
+        """Attach the MainWindow's QUndoStack for clean-revision tracking."""
+        self._undo_stack = stack
+
+    def _mark_clean(self):
+        """Mark the attached undo stack clean so dirty == divergence."""
+        self._dirty = False
+        stack = getattr(self, '_undo_stack', None)
+        if stack is not None:
+            stack.setClean()
+
 # -- document transitions ------------------------------------------------
 
     def _ensure_atomic_save(self, path: str) -> None:
@@ -79,21 +94,19 @@ class DocumentController:
         """Reset to a blank project.  Caller must have checked maybe_abandon()."""
         self.session.new_project()
         self._path = None
-        self._dirty = False
-        self._clear_undo()
+        self._mark_clean()
 
     def do_open(self, path: str) -> None:
         """Load *path*, replacing the current session."""
         self.session.load_project(path)
         self._path = path
-        self._dirty = False
-        self._clear_undo()
+        self._mark_clean()
 
     def do_save(self) -> str | None:
         """Save to current path or prompt (Save As).  Returns path or None."""
         if self._path:
             self._ensure_atomic_save(self._path)
-            self._dirty = False
+            self._mark_clean()
             return self._path
         return self.do_save_as()
 
@@ -110,14 +123,16 @@ class DocumentController:
             path += ".am3d"
         self._ensure_atomic_save(path)
         self._path = path
-        self._dirty = False
+        self._mark_clean()
         return path
 
     def maybe_abandon_document(self) -> bool:
         """If dirty, ask Save/Discard/Cancel.  True = proceed, False = cancel."""
         if not self._dirty:
             return True
-        if not self._parent.isVisible():
+        if self._testing_discard:
+            return True
+        if not self._parent or not self._parent.isVisible():
             return True
 
         msg = QMessageBox(self._parent)
@@ -137,6 +152,8 @@ class DocumentController:
             return True
         if ret == QMessageBox.Discard:
             return True
+        return False  # Cancel
+
 # -- dirty tracking helpers ----------------------------------------------
 
     def mark_dirty(self) -> None:
@@ -222,4 +239,3 @@ class DocumentController:
                 Path(p).unlink(missing_ok=True)
             except OSError:
                 pass
-        return False

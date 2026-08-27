@@ -32,6 +32,10 @@ __all__ = [
     "AssignActionCommand", "InsertKeyCommand", "MoveKeyCommand",
     "DeleteKeyCommand", "SetAnimationSettingsCommand",
     "CreatePrimitiveCommand",
+    "CreateSplineProfileCommand",
+    "LatheProfileCommand",
+    "ExtrudeProfileCommand",
+    "DuplicateObjectCommand",
 ]
 
 
@@ -81,16 +85,142 @@ class DeleteObjectCommand(_SessionCommand):
             proj.skeletons[self.name] = copy.deepcopy(self._skeleton)
 
 
+class CreateSplineProfileCommand(_SessionCommand):
+    """Create object + cubic profile spline (redo-idempotent)."""
+
+    def __init__(self, session, object_name, spline_name, cps):
+        super().__init__(session, f"Create profile {object_name}")
+        self.object_name = object_name
+        self.spline_name = spline_name
+        self.cps = [np.asarray(cp, dtype=np.float64).reshape(3) for cp in cps]
+        self._created = False
+
+    def redo(self):
+        from am3d.core.project import Spline, ControlPoint
+        s = self.session
+        if self.object_name in s.project.objects:
+            s.delete_object(self.object_name)
+        obj = s.create_object(self.object_name)
+        cpoints = [ControlPoint(p) for p in self.cps]
+        degree = min(3, len(cpoints) - 1) if len(cpoints) > 1 else 1
+        obj.add_spline(Spline(name=self.spline_name, cps=cpoints, degree=degree))
+        self._created = True
+
+    def undo(self):
+        if self._created:
+            self.session.delete_object(self.object_name)
+            self._created = False
+
+
+class LatheProfileCommand(_SessionCommand):
+    """Lathe a [radius, axial] profile onto an object (undoable)."""
+
+    def __init__(self, session, object_name, profile, sections=24):
+        super().__init__(session, f"Lathe {object_name}")
+        self.object_name = object_name
+        self.profile = np.asarray(profile, dtype=np.float64)
+        self.sections = int(sections)
+        self._patch_names = []
+
+    def redo(self):
+        from am3d.recipes.primitives import make_lathe_profile
+        from am3d.core.project import Patch
+        obj = self.session.project.objects.get(self.object_name)
+        if obj is None:
+            return
+        result = make_lathe_profile(self.profile, sections=self.sections)
+        for pname, net, du, dv in result["patches"]:
+            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+            self._patch_names.append(pname)
+
+    def undo(self):
+        obj = self.session.project.objects.get(self.object_name)
+        if obj is None:
+            return
+        keep = set(self._patch_names)
+        obj.patches = [p for p in obj.patches if p.name not in keep]
+        self._patch_names = []
+
+
+class ExtrudeProfileCommand(_SessionCommand):
+    """Extrude a 3D profile along Y (undoable)."""
+
+    def __init__(self, session, object_name, profile, height=1.0, rings=4):
+        super().__init__(session, f"Extrude {object_name}")
+        self.object_name = object_name
+        self.profile = np.asarray(profile, dtype=np.float64)
+        self.height = float(height)
+        self.rings = int(rings)
+        self._patch_names = []
+
+    def redo(self):
+        from am3d.recipes.primitives import make_extrude_profile
+        from am3d.core.project import Patch
+        obj = self.session.project.objects.get(self.object_name)
+        if obj is None:
+            return
+        result = make_extrude_profile(self.profile, height=self.height,
+                                       rings=self.rings)
+        for pname, net, du, dv in result["patches"]:
+            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+            self._patch_names.append(pname)
+
+    def undo(self):
+        obj = self.session.project.objects.get(self.object_name)
+        if obj is None:
+            return
+        keep = set(self._patch_names)
+        obj.patches = [p for p in obj.patches if p.name not in keep]
+        self._patch_names = []
+
+
+class DuplicateObjectCommand(_SessionCommand):
+    """Undoably duplicate an object (deep snapshot)."""
+
+    def __init__(self, session, src_name, dst_name):
+        super().__init__(session, f"Duplicate {src_name}")
+        self.src_name = src_name
+        self.dst_name = dst_name
+        self._created = False
+
+    def redo(self):
+        import copy
+        s = self.session
+        if self.dst_name in s.project.objects:
+            s.delete_object(self.dst_name)
+        src = s.project.objects.get(self.src_name)
+        if src is None:
+            return
+        new_obj = copy.deepcopy(src)
+        new_obj.name = self.dst_name
+        s.project.objects[self.dst_name] = new_obj
+        if self.src_name in s.project.skeletons:
+            s.project.skeletons[self.dst_name] = copy.deepcopy(
+                s.project.skeletons[self.src_name])
+        self._created = True
+
+    def undo(self):
+        if self._created:
+            self.session.delete_object(self.dst_name)
+            self._created = False
+
+
 class AddObjectCommand(_SessionCommand):
     def __init__(self, session, name):
         super().__init__(session, f"Add object {name}")
         self.name = name
+        self._created = False
 
     def redo(self):
-        self.session.create_object(self.name)
+        """Idempotent: only create if the object does not already exist."""
+        if self.name not in self.session.project.objects:
+            self.session.create_object(self.name)
+        self._created = True
 
     def undo(self):
-        self.session.delete_object(self.name)
+        if self._created and self.name in self.session.project.objects:
+            self.session.delete_object(self.name)
+        self._created = False
 
 
 class CreatePrimitiveCommand(_SessionCommand):
@@ -101,19 +231,29 @@ class CreatePrimitiveCommand(_SessionCommand):
         self.name = name
         self.primitive_name = primitive_name
         self.params = dict(params or {})
+        self._created = False
+        self._patch_names = []
 
     def redo(self):
+        """Idempotent: remove any existing object with the same name first."""
         from am3d.recipes.primitives import build_primitive
         from am3d.core.project import Patch
         s = self.session
+        if self.name in s.project.objects:
+            s.delete_object(self.name)
         s.create_object(self.name)
         result = build_primitive(self.primitive_name, self.params)
         obj = s.get_object(self.name)
         for pname, net, du, dv in result["patches"]:
             obj.patches.append(Patch(name=pname, splines=[], interior=net))
+            self._patch_names.append(pname)
+        self._created = True
 
     def undo(self):
-        self.session.delete_object(self.name)
+        if self._created and self.name in self.session.project.objects:
+            self.session.delete_object(self.name)
+        self._created = False
+        self._patch_names = []
 
 
 class SetObjectVisibleCommand(_SessionCommand):
@@ -349,6 +489,7 @@ class DeleteActionCommand(_SessionCommand):
         self.name = name
         self._action = copy.deepcopy(session.actions[name])
         self._assignments = dict(session.action_assignments)
+        self._active_action = session.active_action
 
     def redo(self):
         self.session.delete_action(self.name)
@@ -356,6 +497,7 @@ class DeleteActionCommand(_SessionCommand):
     def undo(self):
         self.session.actions[self.name] = copy.deepcopy(self._action)
         self.session.action_assignments = dict(self._assignments)
+        self.session.set_active_action(self._active_action)
 
 
 class RenameActionCommand(_SessionCommand):

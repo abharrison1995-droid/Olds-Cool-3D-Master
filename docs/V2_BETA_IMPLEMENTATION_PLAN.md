@@ -2,13 +2,15 @@
 
 Status: remediation and completion roadmap after post-implementation review
 Target: evidence-backed Windows V1 beta candidate
-Last updated: 2026-08-26
+Last updated: 2026-08-27
 Reviewed implementation: commit `0a7094d` plus uncommitted Phase 0/1 working
 tree
 Review method: two independent Terra reviewers plus local code, runtime,
 test, and packaged-launch verification (original pass); 6-way parallel Haiku
-swarm review plus manual verification of every cited line (2026-08-26 pass,
-see section 13)
+swarm review plus manual verification of every cited line (2026-08-26 pass);
+12-way parallel Haiku swarm over the whole source tree, with the leading
+findings reproduced by execution in a real interpreter (2026-08-27 pass, see
+section 13)
 
 ## 1. Purpose
 
@@ -28,7 +30,10 @@ Section 12 is supported by automated or recorded manual evidence.
 
 ### Working foundations
 
-- `python -m pytest am3d -q`: **276 passed, 4 Qt deprecation warnings**.
+- `QT_QPA_PLATFORM=offscreen python -m pytest am3d -q`: **307 passed, 4 Qt
+  deprecation warnings** (2026-08-27, commit `5026e2e` plus the OBJ fix below).
+  The suite requires the offscreen Qt platform and **Pillow**, which is
+  declared in neither `requirements.txt` nor `pyproject.toml` — see blocker 11.
 - Production startup no longer seeds the demo sphere or material.
 - Launch displays Home; New Empty starts with zero objects and materials.
 - `DocumentController` centralizes basic New/Open/Save/close operations.
@@ -76,6 +81,19 @@ Section 12 is supported by automated or recorded manual evidence.
    raw `KeyError` instead of `ProjectFormatError` on a malformed file.
 9. Windows build automation has the wrong root and no real workflow smoke test. — still open (Phase 5).
 10. Home and Settings contain dead or decorative controls. — still open (Phase 3).
+11. Pillow is an undeclared runtime dependency. Without it, six
+    `am3d/recipes/test_executor.py` tests fail with
+    `RuntimeError: Pillow required to write PNG`, and a packaged build made
+    from the current `am3d.spec` would ship an app whose image-export paths
+    raise at runtime. Conversely `scipy` is declared but imported nowhere, and
+    `numba` is only a guarded fallback in `am3d/spline/kernel.py` — the full
+    suite passes with neither installed. — still open (Phase 5, section 10.2).
+12. ~~Multi-mesh OBJ export emits index references into channels it never
+    wrote, producing files that standard importers reject.~~ **Fixed**
+    (2026-08-27) — see section 13.
+13. ~~Recipe runs report `ok=True` after silently producing none of what was
+    asked for — export formats with no writer, and actions skipped for
+    unmet preconditions.~~ **Fixed** (2026-08-27) — see section 13.
 
 ## 4. Required architecture corrections
 
@@ -536,9 +554,155 @@ above. Verified findings (file:line, cited and re-checked against source):
 
 Correctness and performance/memory lanes reported no issues, spot-verified.
 
+### 2026-08-27 — 12-way Haiku swarm review of the whole source tree
+
+Scope: all ~15.2k lines of `am3d/` and `scripts/`, partitioned across 12
+reviewers (spline kernel/mathutil; serializer/project; rigging/retarget;
+animation/material graph; core script; recipes executor/schema/cli; recipes
+primitives/animation; renderer + export; gpu; UI shell/workspaces/home/settings;
+viewport3d/camera/gizmos/picking; operators/document controller/dopesheet/
+panels). Every finding below was re-checked against source; those marked
+**reproduced** were demonstrated by running code, not by inspection.
+
+Three slices returned clean: spline kernel/mathutil, the UI shell, and
+viewport/camera/gizmos/picking.
+
+**Environment note.** This review was the first to run the suite on this
+machine. There is no system `pip`, `uv`, or `ensurepip` here; the venv at
+`.venv/` was created with `python3 -m venv --without-pip` and pip bootstrapped
+from `bootstrap.pypa.io`. Qt requires `QT_QPA_PLATFORM=offscreen`. A real GL
+context **is** available (Mesa 26.1.4, AMD radeonsi, GL 4.6 core), so the
+`am3d/gpu` tests genuinely execute rather than skip — the assumption elsewhere
+in this plan that GPU paths are untested-by-skip does not hold on this host.
+
+**Fixed in this pass:**
+
+- **[MAJOR — reproduced, fixed]** `export/obj.py` — `write_obj` and its
+  byte-identical twin `write_obj_into` advanced a single `base` counter by
+  vertex count for the `v`, `vt` *and* `vn` index spaces, while `vt` lines were
+  emitted only for meshes satisfying `len(uvs) == len(verts)`. OBJ treats the
+  three as independent 1-based spaces, so any scene mixing UV'd and un-UV'd
+  meshes produced faces referencing `vt` elements that were never written:
+  exporting one 4-vertex mesh without UVs plus one with yielded
+  `f 5/5/5 6/6/6 7/7/7` against only 4 `vt` lines — a file standard importers
+  reject. Same defect for normals whose count did not match the vertex count.
+  Fixed by tracking `v_base`/`vt_base`/`vn_base` separately, emitting the
+  narrowest legal face form per mesh, and collapsing the duplicated writer into
+  one `_write_meshes()` used by both entry points. Five regression tests added
+  to `test_export.py`; four of them fail against the previous `obj.py` and pass
+  against the fix. Suite: **302 -> 307 passed**.
+
+- **[MAJOR — reproduced, fixed]** `recipes/schema.py:40` advertised `atlas`
+  and `render` in `EXPORT_FORMATS` with no corresponding branch in
+  `_run_exports`: the run appended a warning, wrote no file, and returned
+  `ok=True`, so a recipe that produced nothing reported success. Three
+  separate defects were behind it:
+  1. `EXPORT_FORMATS` listed two formats no writer implements. Narrowed to
+     the five that are actually written, with a comment tying the set to the
+     dispatch. README's format list was already narrower than the schema and
+     is now correct and complete.
+  2. `validate_recipe` never checked export formats **at all** — only
+     `recipe_from_dict` did, so a directly-constructed `Recipe` reached the
+     executor completely unvalidated. Format checking now lives in
+     `validate_recipe`, covering both entry paths.
+  3. The `gltf -> glb` alias existed only inside `recipe_from_dict`, so the
+     same recipe was valid as a dict and invalid as an object. Extracted to
+     `schema.normalize_export_format()`, now applied by `recipe_from_dict`,
+     `validate_recipe` and `_run_exports` alike.
+
+  The executor's fall-through branch is retained as a backstop but now sets
+  `ok = False` and appends to `errors` rather than warning, so any future
+  drift between the format set and the dispatch fails loudly. Ten regression
+  tests added, including `test_every_advertised_export_format_actually_writes`,
+  which executes every member of `EXPORT_FORMATS` and asserts a file lands on
+  disk — a standing guard against exactly this class of drift. Suite:
+  **307 -> 317 passed**; `scripts/knight_recipe.json` still runs clean.
+
+- **[MAJOR — fixed]** `recipes/executor.py:170-195` — the sibling of the
+  export bug: all three action preconditions (retarget without
+  character/`source_action`, an unresolvable `source_action`, and a
+  procedural kind whose character has no bones) warned, skipped the action,
+  and left `ok=True`. Because `execute()` calls `Session.new_project()`
+  first — which clears `session.actions` — a retarget source can only be an
+  action defined **earlier in the same recipe**, so all three are statically
+  decidable. `validate_recipe` now checks them before anything is built,
+  including forward references to a source defined later in the list. The
+  runtime paths are retained as backstops but set `ok = False` and append to
+  `errors`.
+
+  **Behaviour change:** a recipe that previously "succeeded" with a warning
+  and no animation now fails validation with a `ValueError`. The existing
+  `test_procedural_action_requires_bones` asserted the old silent-success
+  semantics and was rewritten — it had codified the bug. Seven regression
+  tests added, including the legitimate ordering (retarget from an earlier
+  recipe action) and a clean-path guard against over-correcting. Suite:
+  **317 -> 324 passed**; `scripts/knight_recipe.json` still reports
+  `ok=True, actions=['walk','idle'], warnings=[], errors=[]`.
+
+**Open, verified, not yet fixed:**
+
+- **[MAJOR — reproduced]** `core/animation.py:59` — `Channel.add_key` appends
+  and sorts without checking for an existing key at the same time, and Python's
+  stable sort then keeps the *older* key first, so `sample()` returns the
+  superseded value: `add_key(1.0, a); add_key(1.0, b); sample(1.0) -> a`. The
+  later write is unreachable. `Session.insert_keyframe` (`script.py:312`)
+  dedupes correctly, so only callers bypassing that wrapper are exposed —
+  but the invariant belongs on `Channel`.
+- **[MAJOR]** `core/serializer.py:289` — `zip(pts, weights)` truncates to the
+  shorter sequence, so a truncated weights array silently drops control points
+  instead of raising `ProjectFormatError`. Belongs to blocker 8 alongside the
+  already-recorded `KeyError` gap two lines above.
+- **[MAJOR — reproduced]** `recipes/executor.py:98` — `recipe_from_dict` and
+  `validate_recipe` are called *outside* the `try`, so malformed input escapes
+  as whatever the parser raises rather than as an `ExecutionResult`. Passing
+  `"primitive": {...}` where a string is expected gives
+  `TypeError: unhashable type: 'dict'`. The `except` below is commented
+  "surfaced to the LLM"; the parse stage is exactly where structured failure
+  matters most.
+- **[MINOR]** `ui/properties.py:311` — render-settings edits bypass
+  `push_or_apply()`, so they are neither undoable nor dirty-marking; the change
+  is lost on close with no prompt. This is the unfixed remainder of blocker 2
+  and was rediscovered independently by this pass.
+- **[MINOR — reproduced]** `recipes/animation.py:135` — the idle twist term
+  uses half-frequency `sin(w*0.5 + phase)`, so for off-centre limbs `t=0` and
+  `t=duration` are negatives of each other (`+0.02182` -> `-0.02182`, a
+  0.0436 rad snap on every loop). Walk and jump both return to their start
+  values; idle alone does not.
+- **[MINOR]** `core/script.py:391` — `save_action_file` does raw
+  `self.actions[name]`, raising `KeyError` where `get_action`, `delete_action`
+  and `rename_action` all raise `ScriptingError`.
+- **[MINOR]** `recipes/schema.py` — `validate_recipe` rejects duplicate object
+  names but not duplicate material names; the second silently overwrites the
+  first at `executor.py:145`.
+
+**Rejected after verification (recorded so they are not re-raised):**
+
+- `gpu/gbuffer.py:44` "RGBA16F attachment vs `vec3` shader output is a
+  framebuffer format mismatch" — false. Writing `vec3` to an RGBA attachment is
+  legal GL, and `shaders.py:75` samples `.rgb`.
+- `core/rigging.py:189` "missing-rest-transform fallback assumes identity" —
+  unreachable in practice: `viewport3d.py:163` builds `rest` from
+  `fk_pose(bones)` over the same bone list that produced `bone_transforms`, so
+  the keys always match; and "absent rest means identity rest" is a
+  self-consistent convention, not a defect.
+- `core/mathutil.py:50` `sample_range(n=1)` returns 2 samples — a real
+  docstring/behaviour mismatch, but the function has no callers anywhere.
+
+**Structural observation.** The OBJ bug existed twice because `write_obj` and
+`write_obj_into` were copy-pasted. Together with the Lathe/Extrude duplication
+already recorded above and the three copies of the collision-safe naming loop,
+copy-paste divergence is the recurring defect mode in this codebase, not an
+isolated slip. Section 4.4's single-scene-assembly-path requirement should be
+read as the general remedy.
+
 **What's actually left (in priority order):**
-1. Add the two MAJOR serializer gaps above to Phase 2 (7.3) scope explicitly —
-   they are the concrete instances of blocker #8.
+0. Declare Pillow as a runtime dependency and drop the unused `scipy` /
+   optional `numba` declarations (blocker 11) — this is a one-line fix that
+   currently makes a clean checkout fail six tests and would ship a broken
+   packaged build.
+1. Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope explicitly
+   — unenforced limits, the raw `KeyError`, and the `zip()` truncation are the
+   concrete instances of blocker #8.
 2. Reconcile `LatheProfileCommand`/`ExtrudeProfileCommand` with the
    `Session.lathe_spline()`/`extrude_spline()` facade (one code path, one axis
    convention) before Phase 4 export-parity work builds on top of it.
@@ -553,8 +717,9 @@ Correctness and performance/memory lanes reported no issues, spot-verified.
    packaging, test expansion) are unchanged from the original plan — not
    started.
 
-None of the above is committed to git yet — this is all still uncommitted
-working-tree state as of this review.
+The Phase 0/1 work described above landed in commit `5026e2e`. As of the
+2026-08-27 review the only uncommitted changes are the OBJ export fix, its
+regression tests, this plan update, and a `.gitignore` entry for `.venv/`.
 
 ## 14. Agent execution protocol
 

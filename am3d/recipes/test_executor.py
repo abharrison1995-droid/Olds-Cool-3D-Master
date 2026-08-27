@@ -404,3 +404,79 @@ def _load_png(path):
 
 
 import numpy as np  # noqa: E402  (used by the Phase-3D tests above)
+
+# -- export format / dispatch agreement ---------------------------------
+
+
+def _sphere_recipe(fmt, path=os.devnull):
+    return {"name": "t",
+            "objects": [{"name": "o", "primitive": "sphere"}],
+            "exports": [{"format": fmt, "path": path}]}
+
+
+@pytest.mark.parametrize("fmt", ["render", "atlas", "bogus"])
+def test_unwritable_export_format_is_rejected_by_validation(fmt):
+    """A format with no writer must fail loudly, not warn and report ok."""
+    with pytest.raises(ValueError) as excinfo:
+        RecipeExecutor().execute(_sphere_recipe(fmt))
+    assert fmt in str(excinfo.value)
+
+
+@pytest.mark.parametrize("fmt", ["render", "atlas", "bogus"])
+def test_unwritable_export_format_rejected_when_built_directly(fmt):
+    """validate_recipe must catch it too, not just recipe_from_dict."""
+    from am3d.recipes.schema import (ExportRecipe, ObjectRecipe, Recipe,
+                                     validate_recipe)
+    recipe = Recipe(name="t",
+                    objects=[ObjectRecipe(name="o", primitive="sphere")],
+                    exports=[ExportRecipe(format=fmt,
+                                          path=os.devnull)])
+    problems = validate_recipe(recipe)
+    assert any(fmt in p for p in problems), problems
+
+
+@pytest.mark.parametrize("path_key", ["dict", "direct"])
+def test_gltf_alias_is_accepted_on_every_path(path_key, tmp_path):
+    """'gltf' is an accepted spelling of 'glb' and must write a real file."""
+    from am3d.recipes.schema import (ExportRecipe, ObjectRecipe, Recipe,
+                                     validate_recipe)
+    out = str(tmp_path / "aliased")
+    if path_key == "dict":
+        res = RecipeExecutor().execute(_sphere_recipe("gltf", out))
+    else:
+        recipe = Recipe(name="t",
+                        objects=[ObjectRecipe(name="o", primitive="sphere")],
+                        exports=[ExportRecipe(format="gltf", path=out)])
+        assert validate_recipe(recipe) == []
+        res = RecipeExecutor().execute(recipe)
+    assert res.ok, res.errors
+    assert os.path.exists(out + ".glb")
+
+
+def test_every_advertised_export_format_actually_writes(tmp_path):
+    """EXPORT_FORMATS and the executor dispatch must not drift apart."""
+    from am3d.recipes.schema import EXPORT_FORMATS
+    for fmt in sorted(EXPORT_FORMATS):
+        out = tmp_path / f"as_{fmt}"
+        res = RecipeExecutor().execute(_sphere_recipe(fmt, str(out)))
+        assert res.ok, (fmt, res.errors)
+        assert res.exports, f"{fmt} reported ok but produced no export entry"
+        for _, written in res.exports:
+            for one in str(written).split(", "):
+                assert os.path.exists(one), f"{fmt}: {one} not written"
+
+
+def test_executor_backstop_fails_when_dispatch_is_missing(tmp_path):
+    """If validation is bypassed, the executor still must not report ok."""
+    from am3d.recipes.schema import ExportRecipe, ObjectRecipe, Recipe
+    recipe = Recipe(name="t",
+                    objects=[ObjectRecipe(name="o", primitive="sphere")],
+                    exports=[ExportRecipe(format="render",
+                                          path=str(tmp_path / "x"))])
+    ex = RecipeExecutor()
+    ex.session.new_project("t")
+    res = ExecutionResult()
+    ex._build_objects(recipe, res)
+    ex._run_exports(recipe, res)          # bypasses validate_recipe
+    assert res.ok is False
+    assert any("no writer" in e for e in res.errors), res.errors

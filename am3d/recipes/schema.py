@@ -37,8 +37,24 @@ PRIMITIVES = frozenset({
 # Procedural action generators accepted in ActionRecipe.kind.
 ACTION_KINDS = frozenset({"walk", "idle", "jump", "custom", "retarget"})
 
-EXPORT_FORMATS = frozenset({"obj", "glb", "gltf", "spritesheet",
-                            "toon_sheet", "am3d", "atlas", "render"})
+# Only formats ``RecipeExecutor._run_exports`` actually writes belong here.
+# Advertising a format with no writer makes the run report success while
+# producing no file, so this set and that dispatch must stay in step.
+EXPORT_FORMATS = frozenset({"obj", "glb", "spritesheet",
+                            "toon_sheet", "am3d"})
+
+# Accepted spellings that are not writer names in their own right.
+_FORMAT_ALIASES = {"gltf": "glb"}      # we always emit binary glTF
+
+
+def normalize_export_format(fmt) -> str:
+    """Canonical writer name for a user-supplied export format.
+
+    Applied by ``recipe_from_dict``, ``validate_recipe`` and the executor
+    alike, so an alias means the same thing on every path into a run.
+    """
+    fmt = str(fmt).lower()
+    return _FORMAT_ALIASES.get(fmt, fmt)
 
 
 @dataclass
@@ -117,7 +133,7 @@ class ActionRecipe:
 
 @dataclass
 class ExportRecipe:
-    format: str = "obj"                   # obj | glb | gltf | spritesheet | am3d
+    format: str = "obj"                   # see EXPORT_FORMATS
     path: str = "./out"
     params: dict = field(default_factory=dict)
 
@@ -188,9 +204,7 @@ def recipe_from_dict(data: dict) -> Recipe:
 
     for ed in data.get("exports", []) or []:
         ex = _coerce(ed, ExportRecipe)
-        fmt = ex.format.lower()
-        if fmt == "gltf":
-            fmt = "glb"       # we always emit binary glTF
+        fmt = normalize_export_format(ex.format)
         if fmt not in EXPORT_FORMATS:
             raise ValueError(
                 f"unknown export format {ex.format!r} "
@@ -222,4 +236,9 @@ def validate_recipe(recipe: Recipe) -> list:
         if act.character and act.character not in seen_objects:
             problems.append(
                 f"action {act.name!r}: unknown character {act.character!r}")
+    for ex in recipe.exports:
+        if normalize_export_format(ex.format) not in EXPORT_FORMATS:
+            problems.append(
+                f"export {ex.path!r}: unknown format {ex.format!r} "
+                f"(choose from {sorted(EXPORT_FORMATS)})")
     return problems

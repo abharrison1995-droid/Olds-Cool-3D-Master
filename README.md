@@ -87,7 +87,8 @@ The recipe contract (see `scripts/knight_recipe.json`):
 * **primitives**: `sphere`, `box`, `cylinder`, `cone`, `torus`, `plane`,
   `lathe`, `extrude`
 * **action kinds**: `walk`, `idle`, `jump`, or `custom` with explicit keys
-* **exports**: `obj`, `glb`, `spritesheet`, `am3d`
+* **exports**: `obj`, `glb` (`gltf` accepted as an alias), `spritesheet`,
+  `toon_sheet`, `am3d`
 
 Invalid recipes are rejected with human-readable problems before anything
 is written; runtime failures come back as structured errors with exit code 1.

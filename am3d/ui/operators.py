@@ -573,8 +573,32 @@ class InsertKeyCommand(_SessionCommand):
             ch.keys.sort(key=lambda k: k.time)
 
 
+def _discard_identical(keys, target) -> bool:
+    """Remove *target* from *keys* by identity; True if it was there.
+
+    ``Keyframe`` is a dataclass holding an ndarray, so ``==`` (and hence
+    ``list.remove``/``in``) raises on ambiguous array truth. Every list
+    operation on keys must compare by identity.
+    """
+    for i, k in enumerate(keys):
+        if k is target:
+            del keys[i]
+            return True
+    return False
+
+
+def _contains_identical(keys, target) -> bool:
+    return any(k is target for k in keys)
+
+
 class MoveKeyCommand(_SessionCommand):
-    """Move one keyframe to a new time (found by object identity)."""
+    """Move one keyframe to a new time (found by object identity).
+
+    A channel holds at most one key per time, so moving a key onto an
+    occupied time overwrites the key already there. The displaced key is
+    kept so undo restores it, and redo removes it again -- the command
+    stays idempotent under repeated undo/redo.
+    """
 
     def __init__(self, session, action_name, bone, prop, index, after_time):
         super().__init__(session, f"Move key {bone}.{prop}")
@@ -585,17 +609,26 @@ class MoveKeyCommand(_SessionCommand):
         self._key = ch.keys[index]
         self.before = self._key.time
         self.after = float(after_time)
-
-    def _set(self, time):
-        self._key.time = time
-        ch = _channel(self.session, self.action_name, self.bone, self.prop)
-        ch.keys.sort(key=lambda k: k.time)
+        self._displaced = None
 
     def redo(self):
-        self._set(self.after)
+        ch = _channel(self.session, self.action_name, self.bone, self.prop)
+        target = ch.key_at(self.after)
+        if target is not None and target is not self._key:
+            _discard_identical(ch.keys, target)
+            self._displaced = target
+        else:
+            self._displaced = None
+        self._key.time = self.after
+        ch.keys.sort(key=lambda k: k.time)
 
     def undo(self):
-        self._set(self.before)
+        ch = _channel(self.session, self.action_name, self.bone, self.prop)
+        self._key.time = self.before
+        if (self._displaced is not None
+                and not _contains_identical(ch.keys, self._displaced)):
+            ch.keys.append(self._displaced)
+        ch.keys.sort(key=lambda k: k.time)
 
 
 class DeleteKeyCommand(_SessionCommand):

@@ -192,3 +192,74 @@ def test_deform_object_skinned_and_plain():
     obj2 = s2.get_object("hero")
     assert deform_object(obj2, list(s2.project.skeletons["hero"].values()),
                          {}, {}) is obj2
+
+
+# -- dragging a key onto an occupied time overwrites it -----------------
+
+
+def _move_setup():
+    """Session with one action, one channel, keys at 0.0 / 1.0 / 2.0."""
+    s = _hero_session()
+    s.create_action("a")
+    for t in (0.0, 1.0, 2.0):
+        s.insert_keyframe("a", "hip", "rotate", t, [t, 0.0, 0.0])
+    return s, s.get_action("a").get_channel("hip", "rotate")
+
+
+def _move(s, index, to_time):
+    from am3d.ui.operators import MoveKeyCommand
+    cmd = MoveKeyCommand(s, "a", "hip", "rotate", index, to_time)
+    cmd.redo()
+    return cmd
+
+
+def test_drag_onto_occupied_time_overwrites_target():
+    s, ch = _move_setup()
+    _move(s, 0, 1.0)                       # drag key at 0.0 onto 1.0
+    times = [k.time for k in ch.keys]
+    assert times == [1.0, 2.0]             # target gone, no duplicate
+    assert np.isclose(ch.keys[0].value[0], 0.0)   # dragged key's value wins
+    assert np.allclose(ch.sample(1.0), [0.0, 0.0, 0.0])
+
+
+def test_drag_onto_occupied_time_undo_restores_both_keys():
+    s, ch = _move_setup()
+    cmd = _move(s, 0, 1.0)
+    cmd.undo()
+    times = [k.time for k in ch.keys]
+    assert times == [0.0, 1.0, 2.0]
+    assert np.isclose(ch.keys[0].value[0], 0.0)   # moved key back home
+    assert np.isclose(ch.keys[1].value[0], 1.0)   # displaced key restored
+
+
+def test_drag_overwrite_survives_repeated_undo_redo():
+    """The command must be idempotent under undo/redo cycling."""
+    s, ch = _move_setup()
+    cmd = _move(s, 0, 1.0)
+    for _ in range(3):
+        cmd.undo()
+        assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]
+        cmd.redo()
+        assert [k.time for k in ch.keys] == [1.0, 2.0]
+    cmd.undo()
+    assert len(ch.keys) == 3
+    assert np.isclose(ch.keys[1].value[0], 1.0)
+
+
+def test_drag_to_free_time_displaces_nothing():
+    s, ch = _move_setup()
+    cmd = _move(s, 0, 0.5)
+    assert [k.time for k in ch.keys] == [0.5, 1.0, 2.0]
+    assert cmd._displaced is None
+    cmd.undo()
+    assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]
+
+
+def test_drag_onto_own_time_is_a_no_op():
+    """Moving a key to where it already is must not delete it."""
+    s, ch = _move_setup()
+    cmd = _move(s, 1, 1.0)
+    assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]
+    assert cmd._displaced is None
+    cmd.undo()
+    assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]

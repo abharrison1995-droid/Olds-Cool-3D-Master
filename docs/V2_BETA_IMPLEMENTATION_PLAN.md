@@ -677,13 +677,22 @@ in this plan that GPU paths are untested-by-skip does not hold on this host.
   tests; five fail against the previous implementation. Suite:
   **336 -> 344 passed**.
 
-  **Related, still open:** `ui/operators.py:590` (`MoveKeyCommand._set`)
-  mutates `key.time` directly and re-sorts, bypassing `add_key` entirely, so
-  dragging a dopesheet key onto another still produces two keys at one time —
-  verified: three keys at 0/1/2, drag the first onto 1.0, and `sample(1.0)`
-  returns the dragged-over key's value. Fixing it needs a product decision
-  (overwrite the target, refuse the move, or nudge), so it is recorded here
-  rather than decided unilaterally.
+  **Related, also fixed:** `ui/operators.py:590` (`MoveKeyCommand._set`)
+  mutated `key.time` directly and re-sorted, bypassing `add_key` entirely, so
+  dragging a dopesheet key onto another produced two keys at one time. Per
+  product decision, a drag onto an occupied time now **overwrites** the key
+  already there; the displaced key is retained so undo restores it and redo
+  removes it again, keeping the command idempotent under repeated
+  undo/redo cycling.
+
+  Note for anyone touching key lists: `Keyframe` is a dataclass holding an
+  ndarray, so `==` raises "truth value of an array is ambiguous" — and with
+  it `list.remove` and `in`. The new `_discard_identical` /
+  `_contains_identical` helpers compare by identity. `DeleteKeyCommand` was
+  checked and is safe (it indexes and appends, never compares).
+
+  Five further regression tests; four fail against the previous command.
+  Suite: **344 -> 349 passed**.
 - **[MAJOR — reproduced, fixed]** `core/serializer.py:289` —
   `zip(pts, weights)` truncated to the shorter sequence, so a corrupt or
   truncated weights array silently dropped control points instead of raising.

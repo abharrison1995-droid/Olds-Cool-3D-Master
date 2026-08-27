@@ -81,13 +81,12 @@ Section 12 is supported by automated or recorded manual evidence.
    raw `KeyError` instead of `ProjectFormatError` on a malformed file.
 9. Windows build automation has the wrong root and no real workflow smoke test. — still open (Phase 5).
 10. Home and Settings contain dead or decorative controls. — still open (Phase 3).
-11. Pillow is an undeclared runtime dependency. Without it, six
-    `am3d/recipes/test_executor.py` tests fail with
-    `RuntimeError: Pillow required to write PNG`, and a packaged build made
-    from the current `am3d.spec` would ship an app whose image-export paths
-    raise at runtime. Conversely `scipy` is declared but imported nowhere, and
-    `numba` is only a guarded fallback in `am3d/spline/kernel.py` — the full
-    suite passes with neither installed. — still open (Phase 5, section 10.2).
+11. ~~Pillow is an undeclared runtime dependency while `am3d.spec` actively
+    excludes it; `scipy` and `numba` are declared and listed as hidden
+    imports but are unused or optional.~~ **Fixed** (2026-08-27) — see
+    section 13. This closes the "do not exclude a used runtime dependency"
+    half of section 10.2; version pinning and the single-version
+    reconciliation remain open.
 12. ~~Multi-mesh OBJ export emits index references into channels it never
     wrote, producing files that standard importers reject.~~ **Fixed**
     (2026-08-27) — see section 13.
@@ -639,6 +638,28 @@ in this plan that GPU paths are untested-by-skip does not hold on this host.
   **317 -> 324 passed**; `scripts/knight_recipe.json` still reports
   `ok=True, actions=['walk','idle'], warnings=[], errors=[]`.
 
+- **[MAJOR — reproduced, fixed]** Dependency declarations were inverted with
+  respect to actual use. Pillow is required — `renderer/sprite.py:209` and
+  `renderer/materials.py:150` *raise* without it — yet it appeared in neither
+  `requirements.txt` nor `pyproject.toml`, and `am3d.spec` listed it under
+  **`excludes`**. Meanwhile `scipy` was a declared dependency and a spec
+  hidden import despite being imported nowhere in the tree, `numba` (a
+  guarded fallback in `spline/kernel.py`) was declared as required, and
+  `moderngl-window` was declared but unused. A packaged build from that spec
+  would have shipped an app whose PNG export and texture loading raise on
+  first use.
+
+  Corrected to match reality: required = numpy, msgpack, PySide6, Pillow;
+  `moderngl` moved to the `renderer` extra (`ui/app.py:65` and
+  `gpu/context.py:29` both guard it and fall back to the software toon path);
+  `numba` moved to a new `accel` extra; `scipy` and `moderngl-window`
+  dropped. `am3d.spec` no longer excludes PIL and no longer claims scipy or
+  numba as hidden imports.
+
+  Verified by building a fresh venv from `requirements.txt` alone — with
+  neither scipy nor numba present — and running the full suite there:
+  **324 passed**.
+
 **Open, verified, not yet fixed:**
 
 - **[MAJOR — reproduced]** `core/animation.py:59` — `Channel.add_key` appends
@@ -696,10 +717,6 @@ isolated slip. Section 4.4's single-scene-assembly-path requirement should be
 read as the general remedy.
 
 **What's actually left (in priority order):**
-0. Declare Pillow as a runtime dependency and drop the unused `scipy` /
-   optional `numba` declarations (blocker 11) — this is a one-line fix that
-   currently makes a clean checkout fail six tests and would ship a broken
-   packaged build.
 1. Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope explicitly
    — unenforced limits, the raw `KeyError`, and the `zip()` truncation are the
    concrete instances of blocker #8.

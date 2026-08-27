@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import numpy as np
+import pytest
 
 from am3d.core.animation import Action, Interpolation
 from am3d.core import serializer
@@ -266,3 +267,82 @@ def test_session_save_load_project_roundtrip(tmp_path):
     assert "hero" in s2.project.objects
     assert "idle" in s2.actions
     assert s2.get_action("idle").duration == 1.5
+
+# -- malformed spline records are rejected, not silently truncated ------
+
+
+def _spline_project():
+    p = Project("corrupt")
+    obj = p.create_object("o")
+    cps = [ControlPoint(np.array([float(i), 0.0, 0.0])) for i in range(4)]
+    obj.add_spline(Spline(name="s", cps=cps, degree=3))
+    return p
+
+
+def _corrupt(mutate):
+    """Round-trip a project through msgpack, mutating the spline record."""
+    import msgpack
+
+    data = msgpack.unpackb(serializer.dump_project(_spline_project()),
+                           raw=False)
+    mutate(data["objects"]["o"]["splines"]["s"])
+    return msgpack.packb(data, use_bin_type=True)
+
+
+def test_spline_roundtrip_keeps_every_control_point():
+    """Baseline: the honest path must not lose control points."""
+    q = serializer.load_project_bytes(
+        serializer.dump_project(_spline_project()))
+    assert len(q.objects["o"].splines["s"].cps) == 4
+
+
+def test_truncated_weights_are_rejected_not_silently_dropped():
+    """zip() would have yielded 2 control points instead of 4."""
+    payload = _corrupt(lambda s: s.__setitem__(
+        "cps", [s["cps"][0], s["cps"][1][:2]]))
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    msg = str(excinfo.value)
+    assert "4 control point(s) but 2 weight(s)" in msg
+    assert "objects.o.splines.s.cps" in msg      # field path, not a bare error
+
+
+def test_surplus_weights_are_rejected():
+    payload = _corrupt(lambda s: s.__setitem__(
+        "cps", [s["cps"][0], list(s["cps"][1]) + [1.0, 1.0]]))
+    with pytest.raises(serializer.ProjectFormatError):
+        serializer.load_project_bytes(payload)
+
+
+@pytest.mark.parametrize("field", ["cps", "degree", "closed"])
+def test_missing_spline_field_raises_project_format_error(field):
+    """Previously a bare KeyError escaped the loader."""
+    payload = _corrupt(lambda s, f=field: s.pop(f))
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert repr(field) in str(excinfo.value)
+
+
+@pytest.mark.parametrize("bad", [None, "nope", [], [1, 2, 3], {}])
+def test_malformed_cps_container_raises_project_format_error(bad):
+    payload = _corrupt(lambda s, b=bad: s.__setitem__("cps", b))
+    with pytest.raises(serializer.ProjectFormatError):
+        serializer.load_project_bytes(payload)
+
+
+def test_rejected_file_does_not_partially_construct(tmp_path):
+    """A malformed file must fail before it can replace a live session."""
+    from am3d.core.script import Session
+
+    good = tmp_path / "good.am3d"
+    serializer.save_project(_spline_project(), str(good))
+    s = Session()
+    s.load_project(str(good))
+
+    bad = tmp_path / "bad.am3d"
+    bad.write_bytes(_corrupt(lambda sp: sp.__setitem__(
+        "cps", [sp["cps"][0], sp["cps"][1][:1]])))
+    with pytest.raises(serializer.ProjectFormatError):
+        s.load_project(str(bad))
+    # the previously loaded project is still intact
+    assert len(s.project.objects["o"].splines["s"].cps) == 4

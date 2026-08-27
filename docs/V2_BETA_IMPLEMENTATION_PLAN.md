@@ -74,11 +74,14 @@ Section 12 is supported by automated or recorded manual evidence.
    `poses`, `pose_offsets`, `posed_transforms`, `action_assignments`.
 6. Autosave/recovery is non-operational and can delete unrelated recoveries. — still open (Phase 2).
 7. GUI export omits object transforms. — still open (Phase 4).
-8. Serializer hardening declares important limits it does not enforce. — **still open**,
-   re-confirmed by 2026-08-26 swarm review: `_MAX_CONTAINER_DEPTH`,
-   `_MAX_ARRAY_ELEMENTS`, `_ALLOWED_DTYPES` remain declared but unenforced, and
-   spline load (`serializer.py:287`) does unvalidated key access that raises a
-   raw `KeyError` instead of `ProjectFormatError` on a malformed file.
+8. Serializer hardening declares important limits it does not enforce. —
+   **partially fixed** (2026-08-27): the spline load path now validates
+   structure and control-point/weight agreement and raises
+   `ProjectFormatError` with a field path, closing both the silent-truncation
+   and raw-`KeyError` halves. **Still open:** `_MAX_CONTAINER_DEPTH`,
+   `_MAX_ARRAY_ELEMENTS` and `_ALLOWED_DTYPES` remain declared but unenforced,
+   and `format_version` is emitted but never read on load, so there is no
+   migration branch to dispatch on.
 9. Windows build automation has the wrong root and no real workflow smoke test. — still open (Phase 5).
 10. Home and Settings contain dead or decorative controls. — still open (Phase 3).
 11. ~~Pillow is an undeclared runtime dependency while `am3d.spec` actively
@@ -669,10 +672,29 @@ in this plan that GPU paths are untested-by-skip does not hold on this host.
   later write is unreachable. `Session.insert_keyframe` (`script.py:312`)
   dedupes correctly, so only callers bypassing that wrapper are exposed —
   but the invariant belongs on `Channel`.
-- **[MAJOR]** `core/serializer.py:289` — `zip(pts, weights)` truncates to the
-  shorter sequence, so a truncated weights array silently drops control points
-  instead of raising `ProjectFormatError`. Belongs to blocker 8 alongside the
-  already-recorded `KeyError` gap two lines above.
+- **[MAJOR — reproduced, fixed]** `core/serializer.py:289` —
+  `zip(pts, weights)` truncated to the shorter sequence, so a corrupt or
+  truncated weights array silently dropped control points instead of raising.
+  Control points are stored as two parallel arrays (`[points, weights]`), and
+  nothing checked that they agreed.
+
+  Fixed in `validate_project_data`, which already runs before any model is
+  constructed: a new `_validate_spline()` rejects a length mismatch, a missing
+  `cps`/`degree`/`closed` field, and a malformed `cps` container, each with a
+  field path (`objects.<obj>.splines.<spline>.cps`). `_row_count()` reads the
+  packed array's declared shape, so validation does not unpack. The load-site
+  `zip` gained `strict=True` as a backstop should validation ever be bypassed.
+
+  This also closes the adjacent raw-`KeyError` half of blocker 8 recorded in
+  the 2026-08-26 pass — the same four lines were responsible for both, so they
+  could not sensibly be fixed apart. Twelve regression tests; eleven fail
+  against the previous serializer. Verified that `assets/vase_demo.am3d` and
+  `assets/walk.am3a` still load and that a rejected file leaves the previously
+  loaded session intact. Suite: **324 -> 336 passed**.
+
+  Still open in blocker 8: `_MAX_CONTAINER_DEPTH`, `_MAX_ARRAY_ELEMENTS` and
+  `_ALLOWED_DTYPES` remain declared and unenforced, and `format_version` is
+  written but never read on load. Those are Phase 2 (7.3) scope.
 - **[MAJOR — reproduced]** `recipes/executor.py:98` — `recipe_from_dict` and
   `validate_recipe` are called *outside* the `try`, so malformed input escapes
   as whatever the parser raises rather than as an `ExecutionResult`. Passing

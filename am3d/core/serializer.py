@@ -45,6 +45,50 @@ def validate_project_bytes(payload: bytes) -> None:
         raise ProjectFormatError("File too small (truncated?)")
 
 
+def _row_count(obj, path: str) -> int:
+    """Leading-axis length of a packed or plain array, without unpacking."""
+    if isinstance(obj, dict) and obj.get("__nd__"):
+        shape = obj.get("shape")
+        if not isinstance(shape, (list, tuple)) or not shape:
+            raise ProjectFormatError(f"{path}: packed array has no shape")
+        return int(shape[0])
+    if isinstance(obj, np.ndarray):
+        return int(obj.shape[0]) if obj.shape else 0
+    if isinstance(obj, (list, tuple)):
+        return len(obj)
+    raise ProjectFormatError(
+        f"{path}: expected an array, got {type(obj).__name__}")
+
+
+def _validate_spline(sdata, path: str) -> None:
+    """Structural checks for one serialized spline.
+
+    Control points are stored as two parallel arrays, ``[points, weights]``.
+    Zipping them is silently lossy when they disagree in length -- a
+    truncated weights array would drop control points with no error -- so
+    the mismatch is rejected here, before any model is constructed.
+    """
+    if not isinstance(sdata, dict):
+        raise ProjectFormatError(
+            f"{path}: expected a mapping, got {type(sdata).__name__}")
+    for field in ("cps", "degree", "closed"):
+        if field not in sdata:
+            raise ProjectFormatError(f"{path}: missing required field "
+                                     f"{field!r}")
+    cps = sdata["cps"]
+    if not isinstance(cps, (list, tuple)) or len(cps) != 2:
+        n = len(cps) if hasattr(cps, "__len__") else "?"
+        raise ProjectFormatError(
+            f"{path}.cps: expected [points, weights], got "
+            f"{type(cps).__name__} of length {n}")
+    n_pts = _row_count(cps[0], f"{path}.cps[0]")
+    n_weights = _row_count(cps[1], f"{path}.cps[1]")
+    if n_pts != n_weights:
+        raise ProjectFormatError(
+            f"{path}.cps: {n_pts} control point(s) but {n_weights} "
+            f"weight(s); the file is truncated or corrupt")
+
+
 def validate_project_data(data: dict) -> None:
     """Validate deserialized project dict against safety limits."""
     objs = data.get("objects", {})
@@ -52,9 +96,12 @@ def validate_project_data(data: dict) -> None:
         raise ProjectFormatError(
             f"Too many objects: {len(objs)} (max {_MAX_OBJECTS})")
     for oname, odata in objs.items():
-        if len(odata.get("splines", {})) > _MAX_SPLINES:
+        splines = odata.get("splines", {}) or {}
+        if len(splines) > _MAX_SPLINES:
             raise ProjectFormatError(
                 f"Too many splines in {oname!r}")
+        for sname, sdata in splines.items():
+            _validate_spline(sdata, f"objects.{oname}.splines.{sname}")
         if len(odata.get("patches", [])) > _MAX_PATCHES:
             raise ProjectFormatError(
                 f"Too many patches in {oname!r}")
@@ -287,7 +334,7 @@ def load_project_bytes(payload: bytes) -> Project:
             pts = _unpack_ndarray(sdata["cps"][0])
             weights = sdata["cps"][1]
             cps = [_CP(np.asarray(pt, dtype=np.float64), w)
-                   for pt, w in zip(pts, weights)]
+                   for pt, w in zip(pts, weights, strict=True)]
             obj.add_spline(_Spline(name=sname, cps=cps,
                                    degree=sdata["degree"],
                                    closed=sdata["closed"]))

@@ -98,14 +98,20 @@ def test_runtime_error_is_captured_not_raised(tmp_path, executor):
 
 
 def test_procedural_action_requires_bones(tmp_path, executor):
-    res = executor.execute({
-        "name": "solo",
-        "objects": [{"name": "blob", "primitive": "box"}],
-        "actions": [{"name": "walk", "kind": "walk", "character": "blob"}],
-    })
-    assert res.ok
-    assert res.actions == []                     # skipped with warning
-    assert any("needs a character with bones" in w for w in res.warnings)
+    """A character with no bones cannot carry an action -- fail, don't skip.
+
+    This previously returned ok=True with the action silently absent, which
+    let a recipe report success while producing none of the animation it
+    asked for.
+    """
+    with pytest.raises(ValueError) as excinfo:
+        executor.execute({
+            "name": "solo",
+            "objects": [{"name": "blob", "primitive": "box"}],
+            "actions": [{"name": "walk", "kind": "walk",
+                         "character": "blob"}],
+        })
+    assert "declares no bones" in str(excinfo.value)
 
 
 def test_custom_keyframed_action_roundtrip(tmp_path, executor):
@@ -480,3 +486,87 @@ def test_executor_backstop_fails_when_dispatch_is_missing(tmp_path):
     ex._run_exports(recipe, res)          # bypasses validate_recipe
     assert res.ok is False
     assert any("no writer" in e for e in res.errors), res.errors
+
+
+# -- action preconditions are checked, not silently skipped -------------
+
+
+_RIGGED = {"name": "hero", "bones": [
+    {"name": "hip", "head": [0, 0.9, 0], "tail": [0, 1.0, 0]},
+    {"name": "leg", "head": [0, 0.9, 0], "tail": [0, 0.4, 0],
+     "parent": "hip"},
+]}
+
+
+def _action_recipe(actions, objects=None):
+    return {"name": "t", "objects": objects or [dict(_RIGGED)],
+            "actions": actions}
+
+
+def test_retarget_without_source_action_is_rejected():
+    with pytest.raises(ValueError) as excinfo:
+        RecipeExecutor().execute(_action_recipe(
+            [{"name": "r", "kind": "retarget", "character": "hero"}]))
+    assert "source_action" in str(excinfo.value)
+
+
+def test_retarget_without_character_is_rejected():
+    with pytest.raises(ValueError) as excinfo:
+        RecipeExecutor().execute(_action_recipe(
+            [{"name": "r", "kind": "retarget", "source_action": "walk"}]))
+    assert "character" in str(excinfo.value)
+
+
+def test_retarget_from_unknown_source_action_is_rejected():
+    with pytest.raises(ValueError) as excinfo:
+        RecipeExecutor().execute(_action_recipe(
+            [{"name": "r", "kind": "retarget", "character": "hero",
+              "source_action": "nope"}]))
+    assert "'nope'" in str(excinfo.value)
+
+
+def test_retarget_source_must_precede_its_use():
+    """Sources are resolved in order; a forward reference cannot work."""
+    with pytest.raises(ValueError) as excinfo:
+        RecipeExecutor().execute(_action_recipe([
+            {"name": "r", "kind": "retarget", "character": "hero",
+             "source_action": "later"},
+            {"name": "later", "kind": "walk", "character": "hero"},
+        ]))
+    assert "defined earlier" in str(excinfo.value)
+
+
+def test_retarget_from_earlier_recipe_action_is_accepted():
+    """The legitimate ordering must still run and produce both actions."""
+    res = RecipeExecutor().execute(_action_recipe([
+        {"name": "base", "kind": "walk", "character": "hero"},
+        {"name": "copy", "kind": "retarget", "character": "hero",
+         "source_action": "base"},
+    ]))
+    assert res.ok, res.errors
+    assert set(res.actions) == {"base", "copy"}
+
+
+def test_action_backstop_fails_when_validation_is_bypassed():
+    """Direct _build_actions must not report ok after skipping an action."""
+    from am3d.recipes.schema import ActionRecipe, ObjectRecipe, Recipe
+    recipe = Recipe(name="t",
+                    objects=[ObjectRecipe(name="blob", primitive="box")],
+                    actions=[ActionRecipe(name="walk", kind="walk",
+                                          character="blob")])
+    ex = RecipeExecutor()
+    ex.session.new_project("t")
+    res = ExecutionResult()
+    ex._build_objects(recipe, res)
+    ex._build_actions(recipe, res)          # bypasses validate_recipe
+    assert res.ok is False
+    assert res.actions == []
+    assert any("not created" in e for e in res.errors), res.errors
+
+
+def test_successful_recipe_reports_no_errors_and_real_actions():
+    """Guard against over-correcting: the good path must stay clean."""
+    res = RecipeExecutor().execute(_action_recipe(
+        [{"name": "w", "kind": "walk", "character": "hero"}]))
+    assert res.ok and res.errors == []
+    assert res.actions == ["w"]

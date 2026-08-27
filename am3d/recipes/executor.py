@@ -168,15 +168,18 @@ class RecipeExecutor:
                         f"{b.name}->{b.parent or 'root'}" for b in bones)
             elif spec.kind == "retarget":
                 if not bones or not spec.source_action:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: retarget needs character + "
-                        "source_action; skipped")
+                        "source_action; action not created")
                     continue
                 src = s.actions.get(spec.source_action)
                 if src is None:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: source action "
-                        f"{spec.source_action!r} not found; skipped")
+                        f"{spec.source_action!r} not found; action not "
+                        f"created")
                     continue
                 from am3d.core.retarget import retarget_action
                 act = retarget_action(src, bones, bones,
@@ -186,9 +189,11 @@ class RecipeExecutor:
                 s.actions[act.name] = act
             else:
                 if not bones:
-                    res.warnings.append(
+                    res.ok = False
+                    res.errors.append(
                         f"action {spec.name!r}: procedural kind "
-                        f"{spec.kind!r} needs a character with bones; skipped")
+                        f"{spec.kind!r} needs a character with bones; "
+                        f"action not created")
                     continue
                 act = generate_action(spec.kind, bones, name=spec.name,
                                       duration=spec.duration,

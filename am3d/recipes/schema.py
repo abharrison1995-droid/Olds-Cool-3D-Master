@@ -232,10 +232,38 @@ def validate_recipe(recipe: Recipe) -> list:
                 problems.append(
                     f"object {obj.name!r}: bone {bone.name!r} references "
                     f"unknown parent {bone.parent!r}")
+    # ``RecipeExecutor.execute`` calls ``Session.new_project`` first, which
+    # clears ``session.actions`` -- so a retarget source can only be an
+    # action defined earlier in this same recipe. That makes every
+    # action precondition checkable here, before anything is built.
+    object_bones = {o.name: list(o.bones or []) for o in recipe.objects}
+    defined_actions = set()
     for act in recipe.actions:
         if act.character and act.character not in seen_objects:
             problems.append(
                 f"action {act.name!r}: unknown character {act.character!r}")
+        elif act.character and not object_bones.get(act.character):
+            problems.append(
+                f"action {act.name!r}: character {act.character!r} declares "
+                f"no bones, so the action cannot be applied to it")
+
+        if act.kind == "retarget":
+            if not act.character:
+                problems.append(
+                    f"action {act.name!r}: retarget needs a character")
+            if not act.source_action:
+                problems.append(
+                    f"action {act.name!r}: retarget needs source_action")
+            elif act.source_action not in defined_actions:
+                problems.append(
+                    f"action {act.name!r}: source_action "
+                    f"{act.source_action!r} is not defined earlier in this "
+                    f"recipe (sources must precede the actions that use them)")
+        elif act.kind != "custom" and not act.character:
+            problems.append(
+                f"action {act.name!r}: procedural kind {act.kind!r} needs a "
+                f"character with bones")
+        defined_actions.add(act.name)
     for ex in recipe.exports:
         if normalize_export_format(ex.format) not in EXPORT_FORMATS:
             problems.append(

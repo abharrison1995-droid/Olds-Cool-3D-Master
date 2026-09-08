@@ -593,6 +593,28 @@ def test_recover_project_resets_document_ui_state(tmp_path):
         win.close()
 
 
+def test_reset_document_ui_state_cancels_inflight_viewport_interaction():
+    """_reset_document_ui_state must abandon an in-progress CP drag / gizmo
+    drag / modal grab, not just the object selection -- those hold direct
+    references into the document being replaced, and surviving into the
+    next document risks a stale-reference crash or writing transform/pose
+    data onto a coincidentally-named object in the new project."""
+    win = _make_main_window()
+    try:
+        win.viewport._drag = {"kind": "test", "obj": object()}
+        win.viewport._modal = {"kind": "translate", "obj": object()}
+        win.viewport._selected_cp = ("spline", 0)
+
+        win._reset_document_ui_state()
+
+        assert win.viewport._drag is None
+        assert win.viewport._modal is None
+        assert win.viewport._selected_cp is None
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
 def test_recover_project_reports_failure_and_preserves_active_document(monkeypatch, tmp_path):
     """recover_from() reports a corrupt/unreadable snapshot by returning
     False rather than raising. _recover_project must check that return

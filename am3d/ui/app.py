@@ -549,8 +549,10 @@ class MainWindow(QMainWindow):
         """Reset viewport, selection, panels, and playback after doc replacement."""
         # Stop playback
         self.timeline_dock.play_button.setChecked(False)
-        # Clear selections
+        # Clear selections and abandon any in-progress drag/modal transform --
+        # those hold direct references into the document being replaced.
         self.viewport.set_selected(None)
+        self.viewport.cancel_interactions()
         self.current_context = ("", "", "")
         # Clear properties and outliner
         self.properties_dock.set_context("", "", "")

@@ -110,6 +110,25 @@ class Viewport(QWidget):
         self._timer.start(33)
 
     # -- selection --------------------------------------------------------
+
+    def cancel_interactions(self):
+        """Abandon any in-progress CP drag / gizmo drag / modal grab.
+
+        These hold direct references into the *current* document's session
+        and objects (see _drag/_modal/_selected_cp above). On a document
+        replacement (New/Open/Recover) the old references must not survive
+        into the new document -- the next mouse move would otherwise try to
+        keep dragging/transforming an object that either no longer exists
+        or, worse, coincidentally shares a name with something in the new
+        project. Discards the interaction outright rather than trying to
+        commit or roll it back, since the document it applied to is gone.
+        """
+        self._drag = None
+        self._modal = None
+        self._selected_cp = None
+        self._last_mouse = None
+        self.setCursor(Qt.ArrowCursor)
+
     @property
     def selected(self):
         """Currently selected ``(object_name, index)`` or None."""

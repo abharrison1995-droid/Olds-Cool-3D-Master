@@ -18,7 +18,8 @@ def _face_token(v: int, vt: int | None, vn: int | None) -> str:
     return f"{v}"
 
 
-def _write_meshes(fh, meshes: dict, name_prefix: str = "") -> None:
+def _write_meshes(fh, meshes: dict, name_prefix: str = "",
+                  materials: dict | None = None, mtl_filename: str | None = None) -> None:
     """Write ``{name: MeshData}`` as OBJ groups into an open text handle.
 
     ``v``, ``vt`` and ``vn`` occupy *independent* 1-based index spaces in the
@@ -27,13 +28,33 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "") -> None:
     lacks UVs (or its normals do not match its vertex count) the channels
     drift apart and the emitted faces reference elements that were never
     written.
+
+    Parameters
+    ----------
+    materials:
+        Optional ``{object_name: (r, g, b, a)}`` flat-colour overrides. When
+        supplied the OBJ file references a MTL sidecar and emits ``usemtl``
+        directives.
+    mtl_filename:
+        Base filename (no directory) of the MTL sidecar to reference in the
+        ``mtllib`` directive.  Required when *materials* is not empty.
     """
+    if materials and mtl_filename:
+        fh.write(f"mtllib {mtl_filename}\n")
+
     v_base = vt_base = vn_base = 1
     for name, mesh in meshes.items():
         verts = np.asarray(mesh.vertices, dtype=np.float64)
         if len(verts) == 0:
             continue
         fh.write(f"o {name_prefix}{name}\n")
+
+        # Emit usemtl directive if we have a material for this object
+        mat_name = None
+        if materials and name in materials:
+            mat_name = f"mat_{name}"
+            fh.write(f"usemtl {mat_name}\n")
+
         for x, y, z in verts:
             fh.write(f"v {x:.6f} {y:.6f} {z:.6f}\n")
 
@@ -65,11 +86,42 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "") -> None:
             vn_base += len(verts)
 
 
-def write_obj(path: str, meshes: dict) -> str:
-    """Write ``{name: MeshData}`` to *path* as a single OBJ file."""
+def _write_mtl(path: str, materials: dict) -> None:
+    """Write a .mtl sidecar file for the given ``{name: (r,g,b,a)}`` map."""
+    with open(path, "w", encoding="utf-8") as fh:
+        fh.write("# MTL exported by 3D MASTER:2005\n")
+        for name, rgba in materials.items():
+            r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
+            fh.write(f"\nnewmtl mat_{name}\n")
+            fh.write(f"Kd {r:.6f} {g:.6f} {b:.6f}\n")
+            fh.write("Ka 0.000000 0.000000 0.000000\n")
+            fh.write("Ks 0.000000 0.000000 0.000000\n")
+            if len(rgba) >= 4:
+                fh.write(f"d {float(rgba[3]):.6f}\n")
+
+
+def write_obj(path: str, meshes: dict, *,
+              materials: dict | None = None) -> str:
+    """Write ``{name: MeshData}`` to *path* as a single OBJ file.
+
+    Parameters
+    ----------
+    materials:
+        Optional ``{object_name: (r, g, b, a)}`` flat-colour map. When
+        provided, a ``.mtl`` sidecar is written alongside the OBJ and
+        referenced via ``mtllib``.
+    """
+    os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    mtl_filename = None
+    if materials:
+        stem = os.path.splitext(os.path.basename(path))[0]
+        mtl_filename = stem + ".mtl"
+        mtl_path = os.path.join(os.path.dirname(os.path.abspath(path)), mtl_filename)
+        _write_mtl(mtl_path, materials)
+
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# Exported by 3D MASTER:2005\n")
-        _write_meshes(fh, meshes)
+        _write_meshes(fh, meshes, materials=materials, mtl_filename=mtl_filename)
     return path
 
 

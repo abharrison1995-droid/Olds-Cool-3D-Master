@@ -180,3 +180,104 @@ def test_obj_all_channels_present_is_contiguous(tmp_path):
     assert counts == {"v": 6, "vt": 6, "vn": 6}
     assert referenced["v"] == referenced["vt"] == referenced["vn"]
     _assert_indices_in_range(text)
+
+
+# -- Phase 4: material export tests -----------------------------------------
+
+
+def test_obj_with_materials_writes_mtl_sidecar(tmp_path):
+    """write_obj with materials= writes a .mtl sidecar and references it."""
+    out = tmp_path / "colored.obj"
+    materials = {"orb": (1.0, 0.0, 0.0, 1.0)}  # red
+    write_obj(str(out), {"orb": _mesh("orb")}, materials=materials)
+
+    # OBJ must reference the MTL
+    obj_text = out.read_text()
+    assert "mtllib" in obj_text
+    assert "usemtl mat_orb" in obj_text
+
+    # MTL file must exist beside the OBJ
+    mtl_path = tmp_path / "colored.mtl"
+    assert mtl_path.exists(), "MTL sidecar must be written"
+    mtl_text = mtl_path.read_text()
+    assert "newmtl mat_orb" in mtl_text
+    assert "Kd 1.000000 0.000000 0.000000" in mtl_text
+
+
+def test_obj_without_materials_has_no_mtllib(tmp_path):
+    """write_obj without materials= must not emit mtllib or usemtl."""
+    out = tmp_path / "plain.obj"
+    write_obj(str(out), {"orb": _mesh("orb")})
+    obj_text = out.read_text()
+    assert "mtllib" not in obj_text
+    assert "usemtl" not in obj_text
+    # no MTL file should be written
+    assert not (tmp_path / "plain.mtl").exists()
+
+
+def test_glb_with_materials_contains_material_array(tmp_path):
+    """write_glb with materials= emits a glTF 'materials' array with PBR factor."""
+    import json as _json
+    out = tmp_path / "colored.glb"
+    materials = {"orb": (0.2, 0.4, 0.8, 1.0)}  # blue-ish
+    write_glb(str(out), {"orb": _mesh("orb")}, materials=materials)
+
+    blob = out.read_bytes()
+    json_len, _ = struct.unpack_from("<II", blob, 12)
+    gltf = _json.loads(blob[20:20 + json_len].decode("utf-8"))
+
+    assert "materials" in gltf, "materials array must be present"
+    assert len(gltf["materials"]) == 1
+    mat = gltf["materials"][0]
+    assert mat["name"] == "mat_orb"
+    factor = mat["pbrMetallicRoughness"]["baseColorFactor"]
+    assert abs(factor[0] - 0.2) < 1e-5
+    assert abs(factor[1] - 0.4) < 1e-5
+    assert abs(factor[2] - 0.8) < 1e-5
+
+    # Primitive must reference the material
+    prim = gltf["meshes"][0]["primitives"][0]
+    assert prim["material"] == 0
+
+
+def test_glb_without_materials_has_no_material_array(tmp_path):
+    """write_glb without materials= must not include a 'materials' key."""
+    import json as _json
+    out = tmp_path / "plain.glb"
+    write_glb(str(out), {"orb": _mesh("orb")})
+
+    blob = out.read_bytes()
+    json_len, _ = struct.unpack_from("<II", blob, 12)
+    gltf = _json.loads(blob[20:20 + json_len].decode("utf-8"))
+    assert "materials" not in gltf
+
+
+def test_glb_index_bounds_valid(tmp_path):
+    """All GLB index references must be within the declared accessor count."""
+    import json as _json
+    out = tmp_path / "bounds.glb"
+    write_glb(str(out), {"orb": _mesh("orb")})
+
+    blob = out.read_bytes()
+    json_len, _ = struct.unpack_from("<II", blob, 12)
+    gltf = _json.loads(blob[20:20 + json_len].decode("utf-8"))
+    n_accessors = len(gltf["accessors"])
+    for mesh in gltf["meshes"]:
+        for prim in mesh["primitives"]:
+            for attr_acc in prim["attributes"].values():
+                assert 0 <= attr_acc < n_accessors
+            if "indices" in prim:
+                assert 0 <= prim["indices"] < n_accessors
+
+
+def test_glb_normals_unit_length(tmp_path):
+    """Exported GLB normals must be unit-length (within tolerance)."""
+    import json as _json
+    out = tmp_path / "normals.glb"
+    mesh = _mesh("orb")
+    write_glb(str(out), {"orb": mesh})
+
+    # Read normals back from the actual mesh (already verified in tessellate tests)
+    norms = np.asarray(mesh.normals, dtype=np.float64)
+    lengths = np.linalg.norm(norms, axis=1)
+    assert np.allclose(lengths, 1.0, atol=1e-5), "All normals must be unit length"

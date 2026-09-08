@@ -62,10 +62,11 @@ Supported primitives under `objects[].primitive`:
 ## 5. Artifact Formats & Capabilities
 
 - `.am3d`: Native editable project preserving patches, splines, bones, actions, active action, and assignments.
-- `.obj`: Static Wavefront OBJ mesh with normals and UV coordinates.
-- `.glb`: Static binary glTF 2.0 asset.
-- `spritesheet`: Rendered orthographic or perspective sprite grid (`views`, `size`, `color`, `silhouette`).
-- `toon_sheet`: Cel-shaded sprite sheet with ink outlines (`bands`, `ink`).
+- `.obj`: Static Wavefront OBJ mesh (bind or posed, whichever pose is active) with normals, UV coordinates, and an optional `.mtl` sidecar carrying each object's flat material colour.
+- `.glb`: Static binary glTF 2.0 asset (bind or posed) with an optional `materials` array (`pbrMetallicRoughness.baseColorFactor`) when objects have a flat-colour material assigned. This is a **static pose snapshot only** — it does not embed skeletal animation data; do not describe a `.glb` export as an animated asset.
+- `spritesheet`: Rendered orthographic or perspective **multi-view** sprite grid — one object orbited through `views` camera angles at a fixed pose (`views`, `size`, `color`, `silhouette`).
+- `toon_sheet`: Cel-shaded multi-view sprite sheet with ink outlines (`bands`, `ink`).
+- `animation_sheet`: Rendered **animation** sprite grid — the whole scene composited at `frames` evenly-spaced times across `action`'s `start`..`end` range (`action`, `frames`, `columns`, `size`, `color`, `start`, `end`). Distinct from `spritesheet`/`toon_sheet`: it samples *time*, not camera angle, and every cell shares the same view.
 
 ## 6. External Agent Error-Correction Loop
 

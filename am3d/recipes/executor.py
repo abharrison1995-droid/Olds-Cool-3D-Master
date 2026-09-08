@@ -111,6 +111,29 @@ def _apply_object_transform(mesh, transform):
     return mesh
 
 
+def _collect_material_colors(session) -> dict:
+    """Build ``{object_name: (r, g, b, a)}`` from session material bindings.
+
+    Returns a dict of flat colours for every object that has a bound material
+    with an explicit colour.  Objects without a material binding are omitted.
+    """
+    project = session.project
+    result = {}
+    for obj_name, obj in project.objects.items():
+        mat_name = getattr(obj, "material", None)
+        if not mat_name:
+            continue
+        mat = project.materials.get(mat_name)
+        if mat is None:
+            continue
+        color = getattr(mat, "color", None)
+        if color is not None and len(color) >= 3:
+            r, g, b = float(color[0]), float(color[1]), float(color[2])
+            a = float(color[3]) if len(color) >= 4 else 1.0
+            result[obj_name] = (r, g, b, a)
+    return result
+
+
 class RecipeExecutor:
     """Applies a validated :class:`Recipe` to a scripting session."""
 
@@ -526,14 +549,23 @@ class RecipeExecutor:
 
                 scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
                 meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
+                mat_colors = _collect_material_colors(self.session)
 
                 if fmt == "obj":
                     from am3d.export.obj import write_obj
                     final_path = _with_ext(base, ".obj")
-                    staged_path = os.path.join(stage_dir, f"export_{index}.obj")
+                    # Named after the final basename (not "export_{index}"):
+                    # write_obj derives the sidecar filename and the OBJ's
+                    # `mtllib` reference from this path's stem, and both
+                    # must match what actually lands next to final_path.
+                    staged_path = os.path.join(stage_dir, os.path.basename(final_path))
                     try:
-                        write_obj(staged_path, meshes)
+                        write_obj(staged_path, meshes, materials=mat_colors or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "obj", "mesh_count": len(meshes)}))
+                        if mat_colors:
+                            mtl_staged = os.path.splitext(staged_path)[0] + ".mtl"
+                            mtl_final = os.path.splitext(final_path)[0] + ".mtl"
+                            staged_items.append((mtl_staged, mtl_final, "mtl", {"format": "mtl", "sidecar_of": final_path}))
                     except Exception as exc:
                         res.add_error(
                             f"failed to write OBJ: {exc}",
@@ -544,7 +576,7 @@ class RecipeExecutor:
                     final_path = _with_ext(base, ".glb")
                     staged_path = os.path.join(stage_dir, f"export_{index}.glb")
                     try:
-                        write_glb(staged_path, meshes)
+                        write_glb(staged_path, meshes, materials=mat_colors or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "glb", "mesh_count": len(meshes)}))
                     except Exception as exc:
                         res.add_error(
@@ -589,6 +621,70 @@ class RecipeExecutor:
                                 f"failed to generate {fmt} for {oname!r}: {exc}",
                                 code="render_error", stage="write",
                                 path=f"recipe.exports[{index}].path")
+                    continue
+                elif fmt == "animation_sheet":
+                    # Time-stepped animation frame rendering — distinct from orbit-view spritesheets
+                    if not meshes:
+                        res.add_error(
+                            f"cannot export 'animation_sheet': no renderable geometry",
+                            code="missing_geometry", stage="write",
+                            path=f"recipe.exports[{index}].format",
+                            hint="Add geometry (primitives or splines) to objects.")
+                        continue
+                    p = dict(spec.params)
+                    action_name = p.get("action") or self.session.active_action
+                    n_frames = int(p.get("frames", 8))
+                    size = int(p.get("size", 256))
+                    color = tuple(p.get("color", (0.72, 0.74, 0.82)))
+                    # Determine time range from action duration or explicit start/end
+                    duration = 1.0
+                    if action_name and action_name in self.session.actions:
+                        duration = self.session.actions[action_name].duration or 1.0
+                    t_start = float(p.get("start", 0.0))
+                    t_end = float(p.get("end", duration))
+                    from am3d.renderer.sprite import render_view
+                    import math as _math
+                    cols = int(p.get("columns", n_frames))
+                    rows = int(_math.ceil(n_frames / cols))
+                    try:
+                        import numpy as _np
+                        sheet = _np.zeros((rows * size, cols * size, 4), dtype=_np.uint8)
+                        for fi in range(n_frames):
+                            t = t_start + (t_end - t_start) * fi / max(n_frames - 1, 1)
+                            frame_scene = self.session.evaluate_scene(
+                                action_name=action_name, time=t,
+                                apply_transforms=True, visible_only=True)
+                            # Composite all meshes into one frame
+                            frame_img = _np.zeros((size, size, 4), dtype=_np.float32)
+                            for mname, fmesh in frame_scene.meshes.items():
+                                if len(fmesh.vertices) == 0:
+                                    continue
+                                frame_img = _np.maximum(frame_img,
+                                    render_view(fmesh, size=size, color=color))
+                            r_idx, c_idx = divmod(fi, cols)
+                            sheet[r_idx * size:(r_idx + 1) * size,
+                                  c_idx * size:(c_idx + 1) * size] = (
+                                _np.clip(frame_img, 0.0, 1.0) * 255).astype(_np.uint8)
+
+                        from PIL import Image as _PIL_Image
+                        pil_sheet = _PIL_Image.fromarray(sheet, "RGBA")
+                        # One composited whole-scene sheet per export spec —
+                        # unlike spritesheet/toon_sheet (per-object orbit
+                        # views), an animation sheet is a single character's
+                        # posed frames over time, so all visible meshes are
+                        # flattened into each frame rather than split by name.
+                        final_path = _with_ext(base, ".png")
+                        staged_path = os.path.join(stage_dir, f"export_{index}_anim.png")
+                        pil_sheet.save(staged_path, format="PNG")
+                        meta = {"format": "animation_sheet", "frames": n_frames,
+                                "columns": cols, "rows": rows, "size": size,
+                                "action": action_name, "start": t_start, "end": t_end}
+                        staged_items.append((staged_path, final_path, fmt, meta))
+                    except Exception as exc:
+                        res.add_error(
+                            f"failed to render animation_sheet: {exc}",
+                            code="render_error", stage="write",
+                            path=f"recipe.exports[{index}].path")
                     continue
                 else:
                     res.add_error(

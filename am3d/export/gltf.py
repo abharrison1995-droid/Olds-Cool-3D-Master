@@ -24,13 +24,40 @@ def _pad(data: bytearray, alignment: int = 4, fill: int = 0) -> None:
         data.append(fill)
 
 
-def write_glb(path: str, meshes: dict) -> str:
-    """Write ``{name: MeshData}`` to *path* as a single binary glTF file."""
+def write_glb(path: str, meshes: dict, *,
+              materials: dict | None = None) -> str:
+    """Write ``{name: MeshData}`` to *path* as a single binary glTF file.
+
+    Parameters
+    ----------
+    materials:
+        Optional ``{object_name: (r, g, b, a)}`` flat-colour map.  When
+        provided each mesh primitive is assigned a glTF material entry with
+        ``pbrMetallicRoughness.baseColorFactor``.  Alpha defaults to 1.0 if
+        omitted from the colour tuple.
+    """
     bin_buf = bytearray()
     buffer_views: list = []
     accessors: list = []
     meshes_json: list = []
     nodes: list = []
+    gltf_materials: list = []
+    mat_index_map: dict = {}   # object_name -> index into gltf_materials
+
+    # Build material entries up-front so primitives can reference them
+    if materials:
+        for obj_name, rgba in materials.items():
+            r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
+            a = float(rgba[3]) if len(rgba) >= 4 else 1.0
+            mat_index_map[obj_name] = len(gltf_materials)
+            gltf_materials.append({
+                "name": f"mat_{obj_name}",
+                "pbrMetallicRoughness": {
+                    "baseColorFactor": [r, g, b, a],
+                    "metallicFactor": 0.0,
+                    "roughnessFactor": 0.8,
+                },
+            })
 
     def add_view(data: bytes) -> int:
         _pad(bin_buf)
@@ -92,6 +119,10 @@ def write_glb(path: str, meshes: dict) -> str:
         })
         prim["indices"] = len(accessors) - 1
 
+        # Assign material if available
+        if name in mat_index_map:
+            prim["material"] = mat_index_map[name]
+
         meshes_json.append({"name": name, "primitives": [prim]})
         nodes.append({"mesh": len(meshes_json) - 1, "name": name})
 
@@ -105,6 +136,8 @@ def write_glb(path: str, meshes: dict) -> str:
         "bufferViews": buffer_views,
         "buffers": [{"byteLength": len(bin_buf)}],
     }
+    if gltf_materials:
+        gltf["materials"] = gltf_materials
 
     json_bytes = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
     json_pad = (4 - len(json_bytes) % 4) % 4
@@ -119,4 +152,4 @@ def write_glb(path: str, meshes: dict) -> str:
         fh.write(json_bytes)
         fh.write(struct.pack("<II", len(bin_bytes), _CHUNK_BIN))
         fh.write(bin_bytes)
-    return path
+    return path

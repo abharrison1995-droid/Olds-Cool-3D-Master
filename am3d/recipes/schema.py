@@ -97,7 +97,7 @@ ACTION_KINDS = frozenset({"walk", "idle", "jump", "custom", "retarget"})
 # Advertising a format with no writer makes the run report success while
 # producing no file, so this set and that dispatch must stay in step.
 EXPORT_FORMATS = frozenset({"obj", "glb", "spritesheet",
-                            "toon_sheet", "am3d"})
+                            "toon_sheet", "am3d", "animation_sheet"})
 
 # Accepted spellings that are not writer names in their own right.
 _FORMAT_ALIASES = {"gltf": "glb"}      # we always emit binary glTF

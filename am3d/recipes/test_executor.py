@@ -288,6 +288,89 @@ def test_toon_sheet_export_writes_png(tmp_path, executor):
         assert dark.any(), "toon sheet should contain ink lines"
 
 
+def test_animation_sheet_export_renders_distinct_frames(tmp_path):
+    """animation_sheet composites the whole posed character into one grid
+    PNG, one cell per sampled time, and successive frames actually differ
+    as the walk action deforms the bound geometry."""
+    recipe = {
+        "name": "walking_knight_sheet",
+        "objects": [
+            {
+                "name": "knight",
+                "primitive": "cylinder",
+                "params": {"radius": 0.3, "height": 2.0, "sections": 8},
+                "bones": [
+                    {"name": "hip", "head": [0.0, 0.0, 0.0], "tail": [0.0, 1.0, 0.0]},
+                    {"name": "spine", "head": [0.0, 1.0, 0.0], "tail": [0.0, 2.0, 0.0], "parent": "hip"},
+                ],
+            }
+        ],
+        "actions": [
+            {"name": "walk", "kind": "walk", "duration": 1.0, "character": "knight"},
+        ],
+        "exports": [{
+            "format": "animation_sheet", "path": "anim/knight",
+            "params": {"action": "walk", "frames": 4, "size": 48, "columns": 4},
+        }],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    paths = [p for f, p in res.exports if f == "animation_sheet"]
+    assert len(paths) == 1
+    sheet = _load_png(paths[0])
+    assert sheet.shape == (48, 4 * 48, 4)   # 1 row x 4 columns of 48px cells
+
+    cells = [sheet[:, i * 48:(i + 1) * 48, :3] for i in range(4)]
+    assert any(not np.array_equal(cells[0], cell) for cell in cells[1:]), \
+        "walk cycle frames must not all be identical"
+
+
+def test_animation_sheet_on_empty_scene_fails_loudly(tmp_path, executor):
+    res = executor.execute({
+        "name": "empty_anim",
+        "objects": [],
+        "exports": [{"format": "animation_sheet", "path": str(tmp_path / "anim")}],
+    })
+    assert not res.ok
+    assert any(rec.get("code") == "missing_geometry" for rec in res.error_records)
+
+
+def test_recipe_material_color_carries_into_obj_and_glb(tmp_path):
+    """A flat-colour material assigned to an object reaches the OBJ .mtl
+    sidecar and the GLB materials array, not just the writer unit tests."""
+    recipe = {
+        "name": "colored_ball",
+        "objects": [{"name": "orb", "primitive": "sphere",
+                     "params": {"sections": 10, "rings": 6}}],
+        "materials": [{"name": "red", "color": [1.0, 0.0, 0.0], "objects": ["orb"]}],
+        "exports": [
+            {"format": "obj", "path": "orb"},
+            {"format": "glb", "path": "orb"},
+        ],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    obj_path = [p for f, p in res.exports if f == "obj"][0]
+    mtl_path = os.path.splitext(obj_path)[0] + ".mtl"
+    assert os.path.exists(mtl_path)
+    obj_text = open(obj_path).read()
+    assert "mtllib" in obj_text and "usemtl mat_orb" in obj_text
+    mtl_text = open(mtl_path).read()
+    assert "Kd 1.000000 0.000000 0.000000" in mtl_text
+
+    glb_path = [p for f, p in res.exports if f == "glb"][0]
+    blob = open(glb_path, "rb").read()
+    json_len, _ = struct.unpack_from("<II", blob, 12)
+    gltf = json.loads(blob[20:20 + json_len].decode("utf-8"))
+    assert len(gltf["materials"]) == 1
+    factor = gltf["materials"][0]["pbrMetallicRoughness"]["baseColorFactor"]
+    assert factor[:3] == pytest.approx([1.0, 0.0, 0.0])
+
+
 def test_unpatterned_material_does_not_bake(tmp_path, executor):
     res = executor.execute({
         "name": "plain",

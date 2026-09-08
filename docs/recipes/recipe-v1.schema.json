@@ -122,7 +122,7 @@
       "additionalProperties": false,
       "required": ["format", "path"],
       "properties": {
-        "format": { "enum": ["obj", "glb", "gltf", "spritesheet", "toon_sheet", "am3d"] },
+        "format": { "enum": ["obj", "glb", "gltf", "spritesheet", "toon_sheet", "am3d", "animation_sheet"] },
         "path": { "type": "string", "minLength": 1 },
         "params": { "type": "object" }
       }

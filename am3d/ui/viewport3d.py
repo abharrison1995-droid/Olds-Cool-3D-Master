@@ -76,6 +76,9 @@ class Viewport(QWidget):
         self.camera = Camera(yaw=0.0, pitch=15.0, distance=3.5)
         self.show_grid = True
         self.show_wireframe = False
+        # Settings "Render backend: Software only" preference — when True,
+        # skip the GPU pipeline even if it's importable/available.
+        self.force_software = False
         self._selected = None          # (name, index) or None
 
         # Phase 4 tool state
@@ -369,7 +372,7 @@ class Viewport(QWidget):
                 return
 
             view = self.camera.view_matrix()
-            gpu_render = _get_gpu_render()
+            gpu_render = None if self.force_software else _get_gpu_render()
             rgba = None
             if gpu_render is not None:
                 try:

@@ -56,10 +56,6 @@ class SettingsDialog(QDialog):
         self.render_backend.addItems(["Auto (GPU preferred)", "Software only"])
         form2.addRow("Render backend", self.render_backend)
 
-        self.tessellation_preset = QComboBox()
-        self.tessellation_preset.addItems(["Classic", "Chunky", "Smooth"])
-        form2.addRow("Tessellation preset", self.tessellation_preset)
-
         self.show_grid = QCheckBox("Show grid in viewport")
         self.show_grid.setChecked(True)
         form2.addRow(self.show_grid)
@@ -97,8 +93,6 @@ class SettingsDialog(QDialog):
         self.autosave_interval.setValue(int(s.value("autosaveInterval", 5)))
         self.render_backend.setCurrentText(
             s.value("renderBackend", "Auto (GPU preferred)"))
-        self.tessellation_preset.setCurrentText(
-            s.value("tessellationPreset", "Classic"))
         self.show_grid.setChecked(
             s.value("showGrid", True, type=bool))
         self.default_fps.setValue(float(s.value("defaultFps", 30.0)))
@@ -111,7 +105,6 @@ class SettingsDialog(QDialog):
         s.setValue("undoDepth", self.undo_depth.value())
         s.setValue("autosaveInterval", self.autosave_interval.value())
         s.setValue("renderBackend", self.render_backend.currentText())
-        s.setValue("tessellationPreset", self.tessellation_preset.currentText())
         s.setValue("showGrid", self.show_grid.isChecked())
         s.setValue("defaultFps", self.default_fps.value())
         s.setValue("defaultFrameEnd", self.default_frame_end.value())

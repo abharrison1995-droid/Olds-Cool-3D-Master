@@ -88,9 +88,29 @@ class DocumentController:
     def do_new(self) -> None:
         """Reset to a blank project.  Caller must have checked maybe_abandon()."""
         self.session.new_project()
+        self._apply_project_defaults()
         self._path = None
         self._untitled_id = uuid.uuid4().hex[:10]
         self._mark_clean()
+
+    def _apply_project_defaults(self) -> None:
+        """Apply the Settings dialog's default FPS / frame-end preference to
+        a freshly created project, instead of Project's own hardcoded
+        30fps/120-frame values."""
+        from PySide6.QtCore import QSettings
+        s = QSettings("3DMASTER2005", "app")
+        try:
+            fps = float(s.value("defaultFps", 30.0))
+        except (TypeError, ValueError):
+            fps = 30.0
+        try:
+            frame_end = int(s.value("defaultFrameEnd", 120))
+        except (TypeError, ValueError):
+            frame_end = 120
+        project = self.session.project
+        project.fps = fps
+        project.animation_settings["fps"] = fps
+        project.animation_settings["frame_end"] = frame_end
 
     def do_open(self, path: str) -> None:
         """Load *path*, replacing the current session."""

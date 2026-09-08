@@ -169,6 +169,35 @@ def test_autosave_exists_and_lists_the_written_file(doc_ctrl):
     assert doc_ctrl.autosave_path() in doc_ctrl.list_autosave_files()
 
 
+def test_do_new_applies_default_fps_and_frame_end_from_settings(doc_ctrl, monkeypatch):
+    """File->New should build the new project with the persisted
+    Settings defaults (default FPS / default frame end), not Project's
+    own hardcoded 30fps/120-frame values."""
+    from PySide6.QtCore import QSettings
+    s = QSettings("3DMASTER2005", "app")
+    s.setValue("defaultFps", 24.0)
+    s.setValue("defaultFrameEnd", 240)
+    try:
+        doc_ctrl.do_new()
+        assert doc_ctrl.session.project.fps == 24.0
+        assert doc_ctrl.session.project.animation_settings["fps"] == 24.0
+        assert doc_ctrl.session.project.animation_settings["frame_end"] == 240
+    finally:
+        s.remove("defaultFps")
+        s.remove("defaultFrameEnd")
+
+
+def test_do_new_falls_back_on_corrupt_settings_values(doc_ctrl, monkeypatch):
+    """A hand-edited/corrupted QSettings store must not crash File->New."""
+    from PySide6.QtCore import QSettings
+    monkeypatch.setattr(
+        QSettings, "value",
+        lambda self, key, default=None: "not-a-number")
+    doc_ctrl.do_new()  # must not raise
+    assert doc_ctrl.session.project.fps == 30.0
+    assert doc_ctrl.session.project.animation_settings["frame_end"] == 120
+
+
 def os_path_exists(path: str) -> bool:
     import os
     return os.path.exists(path)

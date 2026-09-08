@@ -578,3 +578,85 @@ def test_apply_autosave_interval_reads_settings_in_minutes(monkeypatch):
         win._autosave_timer.stop()
         win.viewport._timer.stop()
         win.close()
+
+
+def test_apply_settings_wires_grid_and_render_backend(monkeypatch):
+    """The Settings 'Show grid' and 'Render backend' controls must reach
+    live viewport state, not sit disconnected (previously dead controls)."""
+    from PySide6.QtCore import QSettings
+    win = _make_main_window()
+    try:
+        s = QSettings("3DMASTER2005", "app")
+        s.setValue("showGrid", False)
+        s.setValue("renderBackend", "Software only")
+        try:
+            win._apply_settings()
+            assert win.viewport.show_grid is False
+            assert win.viewport.force_software is True
+        finally:
+            s.remove("showGrid")
+            s.remove("renderBackend")
+
+        s.setValue("showGrid", True)
+        s.setValue("renderBackend", "Auto (GPU preferred)")
+        try:
+            win._apply_settings()
+            assert win.viewport.show_grid is True
+            assert win.viewport.force_software is False
+        finally:
+            s.remove("showGrid")
+            s.remove("renderBackend")
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_apply_settings_sets_undo_limit_only_while_stack_empty(monkeypatch):
+    """QUndoStack silently refuses to change its limit once any command has
+    been pushed (Qt would have to discard history to shrink it) — verified
+    empirically: calling setUndoLimit() on a non-empty stack is a no-op.
+    _apply_settings() must only apply the new limit while the stack is
+    still empty, and must not raise or silently claim success otherwise."""
+    from PySide6.QtCore import QSettings
+    win = _make_main_window()
+    try:
+        s = QSettings("3DMASTER2005", "app")
+        s.setValue("undoDepth", 42)
+        try:
+            assert win.undo_stack.count() == 0
+            win._apply_settings()
+            assert win.undo_stack.undoLimit() == 42
+        finally:
+            s.remove("undoDepth")
+
+        # Once a command has been pushed, changing the limit must not
+        # silently appear to succeed nor crash.
+        win._do_primitive("sphere", dict(radius=0.8, sections=12, rings=8))
+        assert win.undo_stack.count() > 0
+        s.setValue("undoDepth", 7)
+        try:
+            win._apply_settings()  # must not raise
+            assert win.undo_stack.undoLimit() == 42  # unchanged, not 7
+        finally:
+            s.remove("undoDepth")
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_apply_settings_falls_back_on_corrupt_undo_depth(monkeypatch):
+    """A non-numeric undoDepth value must not crash Settings-apply."""
+    from PySide6.QtCore import QSettings
+    win = _make_main_window()
+    try:
+        monkeypatch.setattr(
+            QSettings, "value",
+            lambda self, key, default=None, **kw: "not-a-number")
+        win._apply_settings()  # must not raise
+        assert win.undo_stack.undoLimit() == 100
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()

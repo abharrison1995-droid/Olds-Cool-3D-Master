@@ -113,6 +113,7 @@ class MainWindow(QMainWindow):
         self.stack.addWidget(self.home)         # index 0
         self.stack.addWidget(self.editor_widget) # index 1
         self.setCentralWidget(self.stack)
+        self._apply_settings()
         self.show_home()
 
     # -- session shortcut (backward compat for panels) -----------------------
@@ -731,6 +732,32 @@ class MainWindow(QMainWindow):
         dlg = SettingsDialog(self)
         if dlg.exec():
             self._apply_autosave_interval()
+            self._apply_settings()
+
+    def _apply_settings(self):
+        """Apply the undo-depth, grid-visibility, and render-backend
+        Settings preferences to live state. Read fresh from QSettings each
+        call (at startup and whenever Settings is accepted) rather than
+        cached, so a mid-session change always takes effect immediately."""
+        from PySide6.QtCore import QSettings
+        s = QSettings("3DMASTER2005", "app")
+
+        try:
+            undo_depth = int(s.value("undoDepth", 100))
+        except (TypeError, ValueError):
+            undo_depth = 100
+        # Qt silently refuses to change QUndoStack's limit once any command
+        # has been pushed (it would have to discard history to shrink it) —
+        # only apply it while the stack is still empty. The new value is
+        # already persisted, so it takes effect on the next New/Open, which
+        # starts with a fresh stack.
+        if self.undo_stack.count() == 0:
+            self.undo_stack.setUndoLimit(max(1, undo_depth))
+
+        self.viewport.show_grid = s.value("showGrid", True, type=bool)
+        self.viewport.force_software = (
+            s.value("renderBackend", "Auto (GPU preferred)") == "Software only")
+        self.viewport.update()
 
     def _apply_autosave_interval(self):
         """(Re)schedule the lifecycle-owned autosave timer from the Settings

@@ -138,6 +138,37 @@ def _rasterize(view_verts, view_normals, tri_indices, size, ss, color,
     return img
 
 
+def merge_meshes(meshes):
+    """Combine several :class:`MeshData` into one shared-index mesh.
+
+    Concatenating vertices/normals and offsetting each mesh's triangle
+    indices lets a single call to :func:`render_view` z-buffer every
+    input mesh against the others in one pass — the "shared depth
+    handling" the viewport, software fallback, and any headless render
+    comparison all need to agree on which surface occludes which.
+    Empty meshes are skipped; returns ``None`` if nothing remains.
+    """
+    from .tessellate import MeshData
+
+    verts, normals, indices = [], [], []
+    offset = 0
+    for m in meshes:
+        v = np.asarray(m.vertices, dtype=np.float64)
+        idx = np.asarray(m.indices, dtype=np.int64)
+        if len(v) == 0 or len(idx) == 0:
+            continue
+        n = np.asarray(m.normals, dtype=np.float64)
+        if len(n) != len(v):
+            n = np.zeros_like(v)
+        verts.append(v)
+        normals.append(n)
+        indices.append(idx + offset)
+        offset += len(v)
+    if not verts:
+        return None
+    return MeshData(np.vstack(verts), np.vstack(indices), np.vstack(normals))
+
+
 def render_view(mesh, yaw_deg: float = 0.0, pitch_deg: float = 0.0,
                 size: int = 256, color=(0.72, 0.74, 0.82),
                 silhouette: bool = False, supersample: int = 2) -> np.ndarray:
@@ -173,6 +204,27 @@ def render_view(mesh, yaw_deg: float = 0.0, pitch_deg: float = 0.0,
         # Block-mean downsample when PIL is unavailable.
         img = img.reshape(size, ss, size, ss, 4).mean(axis=(1, 3))
     return (img[:size, :size] / 255.0).astype(np.float32)
+
+
+def render_scene(meshes, yaw_deg: float = 0.0, pitch_deg: float = 0.0,
+                 size: int = 256, color=(0.72, 0.74, 0.82),
+                 silhouette: bool = False, supersample: int = 2) -> np.ndarray:
+    """Render every mesh in *meshes* (an iterable or ``{name: MeshData}``)
+    as one ``(size, size, 4)`` float image, sharing a single z-buffer.
+
+    This is the scene-level counterpart to :func:`render_view`: it merges
+    the inputs with :func:`merge_meshes` first, so two occluding objects
+    resolve correctly instead of each being drawn independently. An empty
+    scene renders as fully transparent, same as :func:`render_view` on an
+    empty mesh.
+    """
+    if isinstance(meshes, dict):
+        meshes = list(meshes.values())
+    merged = merge_meshes(meshes)
+    if merged is None:
+        return np.zeros((size, size, 4), dtype=np.float32)
+    return render_view(merged, yaw_deg=yaw_deg, pitch_deg=pitch_deg, size=size,
+                       color=color, silhouette=silhouette, supersample=supersample)
 
 
 def render_sprite_sheet(mesh, views: int = 8, size: int = 256,

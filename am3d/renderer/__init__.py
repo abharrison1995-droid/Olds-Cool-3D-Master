@@ -10,6 +10,8 @@ from __future__ import annotations
 
 from . import sprite, uv_mapping  # noqa: F401
 from .sprite import (  # noqa: F401
+    merge_meshes,
+    render_scene,
     render_sprite_sheet,
     render_view,
     save_sprite_sheet,
@@ -29,5 +31,6 @@ from .uv_mapping import (  # noqa: F401
 __all__ = [
     "MeshData", "tessellate_object", "tessellate_project", "tessellate_splines",
     "atlas_grid_layout", "grid_atlas_uvs", "patch_uvs", "uv_mapping",
-    "render_sprite_sheet", "render_view", "save_sprite_sheet", "sprite",
+    "merge_meshes", "render_scene", "render_sprite_sheet", "render_view",
+    "save_sprite_sheet", "sprite",
 ]

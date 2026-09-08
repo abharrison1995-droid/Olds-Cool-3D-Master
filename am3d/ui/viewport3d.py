@@ -426,28 +426,16 @@ class Viewport(QWidget):
 
     @staticmethod
     def _merge_meshes(meshes):
-        """Combine multiple MeshData into one so all meshes are rendered."""
+        """Combine multiple MeshData into one so all meshes are rendered.
+
+        Delegates to :func:`am3d.renderer.sprite.merge_meshes` — the same
+        merge the headless render-comparison tooling uses, so the viewport
+        and any offscreen scene render agree on occlusion.
+        """
         if len(meshes) == 1:
             return meshes[0]
-        from am3d.renderer.tessellate import MeshData
-        verts, normals, indices = [], [], []
-        offset = 0
-        for m in meshes:
-            v = np.asarray(m.vertices, dtype=np.float64)
-            idx = np.asarray(m.indices, dtype=np.int64)
-            if len(v) == 0 or len(idx) == 0:
-                continue
-            n = np.asarray(m.normals, dtype=np.float64)
-            if len(n) != len(v):
-                n = np.zeros_like(v)
-            verts.append(v)
-            normals.append(n)
-            indices.append(idx + offset)
-            offset += len(v)
-        if not verts:
-            return None
-        return MeshData(np.vstack(verts), np.vstack(indices),
-                        np.vstack(normals))
+        from am3d.renderer.sprite import merge_meshes
+        return merge_meshes(meshes)
 
     # -- interaction ---------------------------------------------------------
     def _push(self, command):

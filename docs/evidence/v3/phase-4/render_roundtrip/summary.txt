@@ -1,0 +1,7 @@
+scenario, status, max_abs_diff, png_mean_diff
+empty, OK, 0, 0
+occluding_two_objects, OK, 0, 0
+invisible_object, OK, 0, 0
+translated, OK, 0, 0
+rotated, OK, 0, 0
+non_uniformly_scaled, OK, 0, 0

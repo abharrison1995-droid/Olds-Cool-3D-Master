@@ -168,7 +168,8 @@ def save_image(texture: np.ndarray, path: str) -> str:
 
 def resolve_albedo(material, size: int = 256, seed: int = 7,
                    pattern: str | None = None,
-                   params: dict | None = None) -> np.ndarray:
+                   params: dict | None = None,
+                   base_dir: str | None = None) -> np.ndarray:
     """The material's albedo RGBA map.
 
     Resolution order: a node ``graph`` attribute, an explicit *pattern*
@@ -189,7 +190,9 @@ def resolve_albedo(material, size: int = 256, seed: int = 7,
     texture_path = getattr(material, "texture", None)
 
     if texture_path:
-        return load_image(texture_path, size=size)
+        from ..core.serializer import resolve_resource_path
+        resolved_path = resolve_resource_path(texture_path, base_dir=base_dir)
+        return load_image(resolved_path, size=size)
     if isinstance(pattern, str):
         key = pattern.lower()
         if key not in PATTERNS:
@@ -212,8 +215,9 @@ def resolve_albedo(material, size: int = 256, seed: int = 7,
     return solid(color, size=size)
 
 
-def bake_atlas(mesh, materials_by_patch: dict, cell_size: int = 256,
-               seed: int = 7, columns: int | None = None) -> np.ndarray:
+def bake_atlas(mesh, materials_by_patch: dict | list, cell_size: int = 256,
+               seed: int = 7, columns: int | None = None,
+               base_dir: str | None = None) -> np.ndarray:
     """Bake per-patch albedo maps into one atlas matching the mesh's UVs.
 
     Uses :func:`am3d.renderer.uv_mapping.atlas_grid_layout` with the same
@@ -222,20 +226,25 @@ def bake_atlas(mesh, materials_by_patch: dict, cell_size: int = 256,
     """
     from .uv_mapping import atlas_grid_layout
 
-    names = list(materials_by_patch)
-    if not names:
+    if isinstance(materials_by_patch, (list, tuple)):
+        mat_list = list(materials_by_patch)
+    elif isinstance(materials_by_patch, dict):
+        mat_list = list(materials_by_patch.values())
+    else:
+        mat_list = []
+
+    if not mat_list:
         return solid((0.8, 0.8, 0.8), size=cell_size)
 
     cols = columns if columns and columns > 0 else \
-        max(int(np.ceil(np.sqrt(len(names)))), 1)
-    rows = max(int(np.ceil(len(names) / cols)), 1)
+        max(int(np.ceil(np.sqrt(len(mat_list)))), 1)
+    rows = max(int(np.ceil(len(mat_list) / cols)), 1)
     atlas = np.ones((rows * cell_size, cols * cell_size, 4),
                     dtype=np.float64)
-    cells = atlas_grid_layout(len(names), columns=cols)
+    cells = atlas_grid_layout(len(mat_list), columns=cols)
 
-    for name, (ou, ov, su, sv) in zip(names, cells):
-        mat = materials_by_patch[name]
-        tile = resolve_albedo(mat, size=cell_size, seed=seed)
+    for mat, (ou, ov, su, sv) in zip(mat_list, cells):
+        tile = resolve_albedo(mat, size=cell_size, seed=seed, base_dir=base_dir)
         r0 = int(round(ov * rows * cell_size))
         c0 = int(round(ou * cols * cell_size))
         rh = max(int(round(sv * rows * cell_size)), 1)

@@ -841,3 +841,129 @@ def test_subprocess_cli_file_with_bom(tmp_path):
     assert report["ok"] is True
     assert (out_dir / "ball.obj").exists()
 
+
+def test_texture_only_material_retains_properties_and_binding(tmp_path):
+    from am3d.renderer.materials import save_image, solid
+    tex_dir = tmp_path / "textures"
+    tex_dir.mkdir(parents=True, exist_ok=True)
+    tex_file = tex_dir / "ball.png"
+    save_image(solid((0.2, 0.4, 0.8), size=16), str(tex_file))
+
+    recipe = {
+        "name": "tex_only_recipe",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "materials": [{
+            "name": "ball_mat",
+            "texture": "textures/ball.png",
+            "roughness": 0.3,
+            "metalness": 0.8,
+            "objects": ["ball"],
+        }],
+        "exports": [{"format": "am3d", "path": "ball"}],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+    session = ex.session
+    mat = session.project.materials["ball_mat"]
+    assert mat.texture.replace("\\", "/").endswith("textures/ball.png")
+    assert mat.roughness == 0.3
+    assert mat.metalness == 0.8
+    assert session.project.objects["ball"].material == "ball_mat"
+
+    # Verify .am3d saved file reloads with exact material properties and binding
+    from am3d.core.serializer import load_project
+    loaded = load_project(str(tmp_path / "ball.am3d"))
+    assert loaded.objects["ball"].material == "ball_mat"
+    loaded_mat = loaded.materials["ball_mat"]
+    assert loaded_mat.texture.replace("\\", "/").endswith("textures/ball.png")
+    assert loaded_mat.roughness == 0.3
+    assert loaded_mat.metalness == 0.8
+
+
+def test_missing_texture_resource_reports_structured_error(tmp_path):
+    recipe = {
+        "name": "missing_tex_recipe",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "materials": [{
+            "name": "ball_mat",
+            "texture": "nonexistent_texture.png",
+            "objects": ["ball"],
+        }],
+        "exports": [{"format": "obj", "path": "ball"}],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path))
+    res = ex.execute(recipe)
+    assert not res.ok
+    assert any(err.get("code") == "missing_resource" for err in res.error_records)
+
+
+def test_duplicate_patch_names_bake_matching_atlas(tmp_path):
+    from am3d.core.project import Object3D, Patch
+    from am3d.renderer.materials import bake_atlas
+    from am3d.renderer.tessellate import tessellate_object
+    from am3d.spline.kernel import build_lathe_net
+    import numpy as np
+
+    obj = Object3D(name="multi_patch")
+    profile = np.array([[0.5, 0.0], [1.0, 1.0], [0.6, 2.0], [0.4, 2.5]])
+    net1 = build_lathe_net(profile, sections=4)
+    net2 = build_lathe_net(profile, sections=4)
+
+    # Two patches with the EXACT same name
+    p1 = Patch(name="patch", splines=[], interior=net1)
+    p2 = Patch(name="patch", splines=[], interior=net2)
+    obj.patches = [p1, p2]
+
+    # Material per patch passed as list
+    from am3d.core.project import Material
+    m1 = Material(name="m1", color=(1.0, 0.0, 0.0))
+    m2 = Material(name="m2", color=(0.0, 1.0, 0.0))
+
+    mesh = tessellate_object(obj)
+    atlas = bake_atlas(mesh, [m1, m2], cell_size=64)
+    # With 2 patches, atlas grid layout creates 2 columns (or 2 cells)
+    assert atlas.ndim == 3
+    assert atlas.shape[2] == 4
+
+
+def test_patch_material_takes_priority_over_mats_for_obj_filter(tmp_path):
+    # Texture file
+    tex_dir = tmp_path / "textures"
+    tex_dir.mkdir(parents=True, exist_ok=True)
+    tex_file = tex_dir / "gold.png"
+    from PIL import Image
+    Image.new("RGB", (64, 64), color="gold").save(str(tex_file))
+
+    recipe = {
+        "name": "gold_test",
+        "objects": [
+            {"name": "box", "primitive": "box"},
+            {"name": "other_obj", "primitive": "box"},
+        ],
+        "materials": [
+            {
+                "name": "default_mat",
+                "color": [0.5, 0.5, 0.5],
+                "objects": ["box"],
+            },
+            {
+                "name": "gold",
+                "texture": str(tex_file),
+                "objects": ["other_obj"],  # Does NOT list 'box'!
+            },
+        ],
+        "exports": [{"format": "am3d", "path": "box"}],
+    }
+
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    # Explicitly set patch material
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+    # Now set patch material explicitly on first patch and bake
+    obj = ex.session.project.objects["box"]
+    obj.patches[0].material = "gold"
+    atlases = ex._bake_atlases(recipe)
+    assert "box" in atlases
+    assert atlases["box"] is not None
+

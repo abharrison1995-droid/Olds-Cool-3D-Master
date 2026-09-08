@@ -85,19 +85,6 @@ def _with_ext(path: str, ext: str) -> str:
     return path if current.lower() == ext.lower() else root + ext
 
 
-def _mat_kwargs(mat):
-    """Extract the fields a MaterialRecipe copy needs from a live recipe."""
-    return {
-        "color": list(mat.color),
-        "roughness": mat.roughness,
-        "metalness": mat.metalness,
-        "texture": mat.texture,
-        "pattern": mat.pattern,
-        "params": dict(mat.params),
-        "objects": list(mat.objects),
-    }
-
-
 def _atlas_outdir(export_specs) -> str:
     """Where to write baked atlases: the first export's directory."""
     for spec in export_specs:
@@ -252,6 +239,12 @@ class RecipeExecutor:
             if isinstance(exc, RecipeValidationError):
                 result.add_error(str(exc), code=exc.code, stage=exc.stage,
                                  path=exc.path, hint=exc.hint)
+            elif isinstance(exc, FileNotFoundError):
+                target_file = exc.filename or str(exc)
+                result.add_error(f"resource file not found: {target_file}",
+                                 code="missing_resource", stage="resource",
+                                 path="recipe.materials",
+                                 hint="Check that all texture or image resource paths exist relative to base_dir or project root.")
             else:
                 result.add_error(f"{type(exc).__name__}: {exc}")
         finally:
@@ -285,17 +278,28 @@ class RecipeExecutor:
             res.objects.append(spec.name)
 
     def _build_materials(self, recipe: Recipe, res: ExecutionResult) -> None:
+        from am3d.core.serializer import resolve_resource_path
         s = self.session
         for mat in recipe.materials:
             material = s.create_material(mat.name, color=tuple(mat.color))
-            # Carry the procedural pattern / graph through for the bake stage.
-            if mat.pattern or mat.graph:
-                material.pattern = mat.pattern
-                material.params = dict(mat.params)
-
-                material.texture = mat.texture
-                material.graph = list(mat.graph)
-                material.objects = list(mat.objects)
+            material.roughness = float(mat.roughness)
+            material.metalness = float(mat.metalness)
+            tex_path = mat.texture
+            if tex_path:
+                resolved = resolve_resource_path(tex_path, self.base_dir)
+                if not os.path.exists(resolved):
+                    raise FileNotFoundError(tex_path)
+            material.texture = tex_path
+            material.pattern = mat.pattern
+            material.params = dict(mat.params or {})
+            material.graph = list(mat.graph or [])
+            material.objects = list(mat.objects or [])
+            if mat.objects:
+                for oname in mat.objects:
+                    if oname in s.project.objects:
+                        obj = s.project.objects[oname]
+                        if obj.material is None:
+                            obj.material = mat.name
             res.materials.append(mat.name)
 
     def _build_actions(self, recipe: Recipe, res: ExecutionResult) -> None:
@@ -353,46 +357,76 @@ class RecipeExecutor:
                 s.set_active_action(act.name)
             res.actions.append(act.name)
 
-    def _bake_atlases(self, recipe: Recipe):
+    def _bake_atlases(self, recipe):
         """Per-object baked texture atlases from the recipe materials.
 
         Returns ``{object_name: atlas}`` for every geometry object that has
         patches; objects without a matching material get no entry.
         """
+        from .schema import Recipe, recipe_from_dict
         from am3d.renderer.materials import bake_atlas
         from am3d.renderer.tessellate import tessellate_object
 
-        textured = [m for m in recipe.materials
-                    if m.pattern or m.texture or m.graph]
+        if not isinstance(recipe, Recipe):
+            recipe = recipe_from_dict(recipe)
+
+        session_mats = list(self.session.project.materials.values())
+        textured = [m for m in session_mats
+                    if getattr(m, "pattern", None) or getattr(m, "texture", None) or getattr(m, "graph", None)]
+        textured_by_name = {m.name: m for m in textured}
         if not textured:
             return {}
 
         def matches(mat, obj_name):
-            return not mat.objects or obj_name in mat.objects
+            objs = getattr(mat, "objects", None)
+            return not objs or obj_name in objs
 
         atlases = {}
         for spec in recipe.objects:
             mats_for_obj = {m.name: m for m in textured
                             if matches(m, spec.name)}
-            if not mats_for_obj:
-                continue
             obj = self.session.get_object(spec.name)
             if not obj or not obj.patches:
                 continue
-            patches = obj.patches
-            fallback = next(iter(mats_for_obj.values()))
-            patch_mats = {}
-            for pname in (p.name for p in patches):
-                mat = mats_for_obj.get(pname)
+
+            active_patches = [p for p in obj.patches if p.interior is not None]
+            if not active_patches:
+                continue
+
+            obj_mat_name = getattr(obj, "material", None)
+            has_textured_patch = any(
+                getattr(p, "material", None) in textured_by_name for p in active_patches)
+            has_obj_mat = obj_mat_name in textured_by_name
+            if not (has_textured_patch or has_obj_mat or mats_for_obj):
+                continue
+
+            fallback = (
+                textured_by_name.get(obj_mat_name)
+                or (next(iter(mats_for_obj.values())) if mats_for_obj else next(iter(textured)))
+            )
+
+            patch_mats = []
+            for patch in active_patches:
+                pname = patch.name
+                mat = None
+                p_mat = getattr(patch, "material", None)
+                if p_mat and p_mat in textured_by_name:
+                    mat = textured_by_name[p_mat]
+                elif obj_mat_name and obj_mat_name in textured_by_name:
+                    mat = textured_by_name[obj_mat_name]
+                if mat is None:
+                    mat = mats_for_obj.get(pname)
                 if mat is None:
                     for mname, candidate in mats_for_obj.items():
                         if pname.endswith(f"_{mname}"):
                             mat = candidate
                             break
-                patch_mats[pname] = mat if mat is not None else fallback
+                patch_mats.append(mat if mat is not None else fallback)
+
             mesh = tessellate_object(obj)
             atlases[spec.name] = bake_atlas(mesh, patch_mats,
-                                            cell_size=256)
+                                            cell_size=256,
+                                            base_dir=self.base_dir)
         return atlases
 
     def _run_exports(self, recipe: Recipe, res: ExecutionResult) -> None:
@@ -417,7 +451,7 @@ class RecipeExecutor:
                     staged_path = os.path.join(stage_dir, f"export_{index}.am3d")
                     try:
                         self.session.save_project(staged_path)
-                        staged_items.append((staged_path, final_path, fmt, {"format": "am3d", "version": 1}))
+                        staged_items.append((staged_path, final_path, fmt, {"format": "am3d", "version": 2}))
                     except Exception as exc:
                         res.add_error(
                             f"failed to export .am3d project: {exc}",

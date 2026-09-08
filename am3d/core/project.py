@@ -70,6 +70,7 @@ class Patch:
     splines: list = field(default_factory=list)
     # (optionally loosened to a full interior control grid)
     interior: Optional[np.ndarray] = None
+    material: Optional[str] = None
 
 
 @dataclass
@@ -83,6 +84,7 @@ class Object3D:
     transform: np.ndarray = field(
         default_factory=lambda: np.eye(4, dtype=np.float64))
     visible: bool = True
+    material: Optional[str] = None
 
     def add_spline(self, spline: Spline):
         self.splines[spline.name] = spline
@@ -110,6 +112,13 @@ class Material:
 
     name: str = "material"
     color: tuple = (0.8, 0.8, 0.8)
+    roughness: float = 0.5
+    metalness: float = 0.0
+    texture: Optional[str] = None
+    pattern: Optional[str] = None
+    params: dict = field(default_factory=dict)
+    graph: list = field(default_factory=list)
+    objects: list = field(default_factory=list)
     bump_map: Optional[str] = None
     transparency_map: Optional[str] = None
     specular_map: Optional[str] = None
@@ -135,6 +144,9 @@ class Project:
         # Session-level state persisted in format_version >= 2
         self.active_action: str | None = None
         self.action_assignments: dict = {}
+        # Authored bone pose rotations and offsets (object_name -> {bone_name -> ...})
+        self.poses: dict = {}
+        self.pose_offsets: dict = {}
 
     # ---- object management -------------------------------------------------
     def create_object(self, name: str) -> Object3D:
@@ -147,6 +159,10 @@ class Project:
 
     def remove_object(self, name: str):
         self.objects.pop(name, None)
+        self.skeletons.pop(name, None)
+        self.poses.pop(name, None)
+        self.pose_offsets.pop(name, None)
+        self.action_assignments.pop(name, None)
 
     def rename_object(self, name: str, new_name: str):
         """Rename an object, preserving dict order and its skeleton key."""
@@ -162,7 +178,25 @@ class Project:
         }
         self.objects[new_name].name = new_name
         if name in self.skeletons:
-            self.skeletons[new_name] = self.skeletons.pop(name)
+            self.skeletons = {
+                (new_name if k == name else k): v
+                for k, v in self.skeletons.items()
+            }
+        if name in self.poses:
+            self.poses = {
+                (new_name if k == name else k): v
+                for k, v in self.poses.items()
+            }
+        if name in self.pose_offsets:
+            self.pose_offsets = {
+                (new_name if k == name else k): v
+                for k, v in self.pose_offsets.items()
+            }
+        if name in self.action_assignments:
+            self.action_assignments = {
+                (new_name if k == name else k): v
+                for k, v in self.action_assignments.items()
+            }
 
     # ---- convenience spline creation --------------------------------------
     def add_spline(self, object_name: str, spline: Spline):

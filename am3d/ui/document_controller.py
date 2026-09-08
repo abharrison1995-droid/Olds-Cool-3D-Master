@@ -16,7 +16,6 @@ from pathlib import Path
 from PySide6.QtWidgets import QMessageBox, QWidget
 
 from am3d.core.script import Session
-from am3d.core.serializer import dump_project
 
 
 class DocumentController:
@@ -76,19 +75,8 @@ class DocumentController:
 # -- document transitions ------------------------------------------------
 
     def _ensure_atomic_save(self, path: str) -> None:
-        """Save session atomically (write tmp, rename over target)."""
-        data = dump_project(self.session.project, actions=self.session.actions)
-        dst = Path(path)
-        tmp = dst.with_suffix(".am3d.tmp") if dst.suffix == ".am3d" else dst.with_name(dst.name + ".tmp")
-        try:
-            tmp.write_bytes(data)
-            tmp.replace(dst)
-        except OSError:
-            try:
-                tmp.unlink(missing_ok=True)
-            except OSError:
-                pass
-            raise
+        """Save session atomically (delegating to Session.save_project)."""
+        self.session.save_project(path)
 
     def do_new(self) -> None:
         """Reset to a blank project.  Caller must have checked maybe_abandon()."""

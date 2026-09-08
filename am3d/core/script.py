@@ -68,20 +68,46 @@ class Session:
         # Sync session state to project before serializing
         self.project.active_action = self.active_action
         self.project.action_assignments = dict(self.action_assignments)
+        self.project.poses = {k: dict(v) for k, v in self.poses.items()}
+        self.project.pose_offsets = {k: dict(v) for k, v in self.pose_offsets.items()}
+        self.project.actions = dict(self.actions)
         save_project(self.project, path, actions=self.actions)
 
     def load_project(self, path: str) -> Project:
         """Load a .am3d file, replacing project and session actions."""
         from .serializer import load_project
-        self.project = load_project(path)
-        self.actions = getattr(self.project, "actions", {})
-        self.poses = {}
-        self.pose_offsets = {}
-        self.posed_transforms = {}
-        self.active_action = getattr(self.project, "active_action", next(iter(self.actions), None))
-        self.action_assignments = getattr(self.project, "action_assignments", {})
-        if not isinstance(self.action_assignments, dict):
-            self.action_assignments = {}
+        cand = load_project(path)
+        cand_actions = getattr(cand, "actions", {})
+        cand_assignments = getattr(cand, "action_assignments", {})
+        if not isinstance(cand_assignments, dict):
+            cand_assignments = {}
+        cand_poses = getattr(cand, "poses", {})
+        if not isinstance(cand_poses, dict):
+            cand_poses = {}
+        cand_offsets = getattr(cand, "pose_offsets", {})
+        if not isinstance(cand_offsets, dict):
+            cand_offsets = {}
+        # Preserve active_action: if explicitly None in saved project, preserve None
+        cand_active = getattr(cand, "active_action", None)
+
+        # Verify candidate completely on isolated instance before committing to self
+        test_session = Session(cand)
+        test_session.actions = dict(cand_actions)
+        test_session.poses = {k: dict(v) for k, v in cand_poses.items()}
+        test_session.pose_offsets = {k: dict(v) for k, v in cand_offsets.items()}
+        test_session.active_action = cand_active
+        test_session.action_assignments = dict(cand_assignments)
+        if cand.skeletons or test_session.poses or test_session.pose_offsets:
+            test_session.apply_pose()
+
+        # Commit to self only after candidate verification succeeds
+        self.project = cand
+        self.actions = test_session.actions
+        self.poses = test_session.poses
+        self.pose_offsets = test_session.pose_offsets
+        self.posed_transforms = test_session.posed_transforms
+        self.active_action = test_session.active_action
+        self.action_assignments = test_session.action_assignments
         return self.project
 
     # -- object mode --------------------------------------------------------
@@ -102,12 +128,26 @@ class Session:
         new_name = (new_name or "").strip()
         if not new_name:
             raise ScriptingError("object name must not be empty")
-        if new_name != name and new_name in self.project.objects:
+        if new_name == name:
+            return self.project.objects[name]
+        if new_name in self.project.objects:
             raise ScriptingError(f"object {new_name!r} already exists")
-        for d in (self.poses, self.pose_offsets, self.posed_transforms,
-                   self.action_assignments):
-            if name in d:
-                d[new_name] = d.pop(name)
+        self.poses = {
+            (new_name if k == name else k): v
+            for k, v in self.poses.items()
+        }
+        self.pose_offsets = {
+            (new_name if k == name else k): v
+            for k, v in self.pose_offsets.items()
+        }
+        self.posed_transforms = {
+            (new_name if k == name else k): v
+            for k, v in self.posed_transforms.items()
+        }
+        self.action_assignments = {
+            (new_name if k == name else k): v
+            for k, v in self.action_assignments.items()
+        }
         self.project.rename_object(name, new_name)
         return self.project.objects[new_name]
 
@@ -278,9 +318,12 @@ class Session:
             raise ScriptingError(f"action {new_name!r} already exists")
         if new_name == name:
             return self.actions[name]
-        act = self.actions.pop(name)
+        act = self.actions[name]
         act.name = new_name
-        self.actions[new_name] = act
+        self.actions = {
+            (new_name if k == name else k): a
+            for k, a in self.actions.items()
+        }
         if self.active_action == name:
             self.active_action = new_name
         self.action_assignments = {
@@ -389,6 +432,8 @@ class Session:
 
     def save_action_file(self, name: str, path: str):
         from .serializer import save_action
+        if name not in self.actions:
+            raise ScriptingError(f"no such action: {name!r}")
         save_action(self.actions[name], path)
 
     def load_action_file(self, path: str) -> Action:

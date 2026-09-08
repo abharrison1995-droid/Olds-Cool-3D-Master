@@ -200,7 +200,7 @@ legacy `.am3d`/`.am3a` samples migrate; flat/procedural/graph/image materials an
 bindings round-trip; malformed or failed I/O does not alter active state or the
 last good save. Visual material parity becomes a final gate in Phase 4.
 
-Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 3.
+Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 3. Status: PASS (Verified 2026-09-08, see docs/evidence/v3/phase-2/gate_evidence.md).
 
 ## 7. Phase 3 — Connected geometry, rigging, animation, and scene evaluation
 

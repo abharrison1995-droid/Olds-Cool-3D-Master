@@ -62,7 +62,7 @@ class RenameObjectCommand(_SessionCommand):
 
 
 class DeleteObjectCommand(_SessionCommand):
-    """Delete an object (deep snapshot restores it, incl. its skeleton)."""
+    """Delete an object (deep snapshot restores it, incl. skeleton and poses)."""
 
     def __init__(self, session, name):
         super().__init__(session, f"Delete object {name}")
@@ -71,6 +71,9 @@ class DeleteObjectCommand(_SessionCommand):
         self._skeleton = copy.deepcopy(
             session.project.skeletons.get(name))
         self._index = list(session.project.objects).index(name)
+        self._poses = copy.deepcopy(session.poses.get(name))
+        self._pose_offsets = copy.deepcopy(session.pose_offsets.get(name))
+        self._assignment = session.action_assignments.get(name)
 
     def redo(self):
         self.session.delete_object(self.name)
@@ -83,6 +86,16 @@ class DeleteObjectCommand(_SessionCommand):
         proj.objects = dict(items)
         if self._skeleton is not None:
             proj.skeletons[self.name] = copy.deepcopy(self._skeleton)
+        if self._poses is not None:
+            self.session.poses[self.name] = copy.deepcopy(self._poses)
+            proj.poses[self.name] = copy.deepcopy(self._poses)
+        if self._pose_offsets is not None:
+            self.session.pose_offsets[self.name] = copy.deepcopy(self._pose_offsets)
+        if self._assignment is not None:
+            self.session.action_assignments[self.name] = self._assignment
+            proj.action_assignments[self.name] = self._assignment
+        if self._skeleton is not None or self.session.poses or self.session.pose_offsets:
+            self.session.apply_pose(self.name)
 
 
 class CreateSplineProfileCommand(_SessionCommand):
@@ -375,9 +388,11 @@ class SetBoneEndpointsCommand(_SessionCommand):
 
     def redo(self):
         self._apply(self.after)
+        self.session.apply_pose(self.object_name)
 
     def undo(self):
         self._apply(self.before)
+        self.session.apply_pose(self.object_name)
 
 
 class PoseBoneCommand(_SessionCommand):
@@ -471,6 +486,7 @@ class CreateActionCommand(_SessionCommand):
         super().__init__(session, f"Add action {name}")
         self.name = name
         self.duration = float(duration)
+        self._prev_active = session.active_action
 
     def redo(self):
         if self.name in self.session.actions:      # idempotent redo
@@ -479,10 +495,11 @@ class CreateActionCommand(_SessionCommand):
 
     def undo(self):
         self.session.delete_action(self.name)
+        self.session.set_active_action(self._prev_active)
 
 
 class DeleteActionCommand(_SessionCommand):
-    """Delete an action (deep snapshot restores it)."""
+    """Delete an action (deep snapshot restores it, preserving dict order)."""
 
     def __init__(self, session, name):
         super().__init__(session, f"Delete action {name}")
@@ -490,14 +507,20 @@ class DeleteActionCommand(_SessionCommand):
         self._action = copy.deepcopy(session.actions[name])
         self._assignments = dict(session.action_assignments)
         self._active_action = session.active_action
+        self._index = list(session.actions).index(name)
 
     def redo(self):
         self.session.delete_action(self.name)
 
     def undo(self):
-        self.session.actions[self.name] = copy.deepcopy(self._action)
+        items = list(self.session.actions.items())
+        items.insert(min(self._index, len(items)),
+                     (self.name, copy.deepcopy(self._action)))
+        self.session.actions = dict(items)
         self.session.action_assignments = dict(self._assignments)
         self.session.set_active_action(self._active_action)
+        self.session.project.active_action = self._active_action
+        self.session.project.action_assignments = dict(self._assignments)
 
 
 class RenameActionCommand(_SessionCommand):

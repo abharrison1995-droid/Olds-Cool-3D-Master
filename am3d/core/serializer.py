@@ -87,6 +87,14 @@ def _validate_spline(sdata, path: str) -> None:
         raise ProjectFormatError(
             f"{path}.cps: {n_pts} control point(s) but {n_weights} "
             f"weight(s); the file is truncated or corrupt")
+    degree = sdata["degree"]
+    if isinstance(degree, bool) or not isinstance(degree, int) or degree < 1:
+        raise ProjectFormatError(
+            f"{path}.degree: expected an int >= 1, got {degree!r}")
+    if not isinstance(sdata["closed"], bool):
+        raise ProjectFormatError(
+            f"{path}.closed: expected a bool, got "
+            f"{type(sdata['closed']).__name__}")
 
 
 def validate_project_data(data: dict) -> None:
@@ -331,10 +339,19 @@ def load_project_bytes(payload: bytes) -> Project:
         if odata.get("transform") is not None:
             obj.transform = _unpack_ndarray(odata["transform"]).reshape(4, 4)
         for sname, sdata in odata.get("splines", {}).items():
-            pts = _unpack_ndarray(sdata["cps"][0])
-            weights = sdata["cps"][1]
-            cps = [_CP(np.asarray(pt, dtype=np.float64), w)
-                   for pt, w in zip(pts, weights, strict=True)]
+            try:
+                pts = _unpack_ndarray(sdata["cps"][0])
+                weights = sdata["cps"][1]
+                cps = [_CP(np.asarray(pt, dtype=np.float64), w)
+                       for pt, w in zip(pts, weights, strict=True)]
+            except ValueError as exc:
+                # Backstop only -- validate_project_data() already checked
+                # points/weights agree in length. Surfaced as the same
+                # structured error type as every other load-time failure,
+                # in case that check is ever bypassed or has a gap.
+                raise ProjectFormatError(
+                    f"objects.{oname}.splines.{sname}.cps: malformed "
+                    f"control point data") from exc
             obj.add_spline(_Spline(name=sname, cps=cps,
                                    degree=sdata["degree"],
                                    closed=sdata["closed"]))

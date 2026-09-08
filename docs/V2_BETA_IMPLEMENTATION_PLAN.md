@@ -781,6 +781,70 @@ The Phase 0/1 work described above landed in commit `5026e2e`. As of the
 2026-08-27 review the only uncommitted changes are the OBJ export fix, its
 regression tests, this plan update, and a `.gitignore` entry for `.venv/`.
 
+### 2026-09-08 — 6-way Haiku swarm review of commits `afcc69d`/`24fb626`/`7ec87c5`
+
+A prior agent session was interrupted (usage limit) after landing the three
+commits above (malformed-spline rejection, `Channel.add_key` dedupe,
+`MoveKeyCommand` drag-overwrite) but before starting the next backlog item.
+Before resuming, those three commits were reviewed by 6 parallel Haiku
+reviewers (Correctness, Security/Data-Integrity, Performance, Architecture,
+Edge Cases, Style) and every severe finding re-verified against the code by
+hand. Correctness, memory-safety, and dead-code lanes came back clean; the
+core bug fixes and their regression tests were confirmed sound. Four real
+gaps survived verification and are now fixed:
+
+- **[MAJOR — fixed]** `am3d/ui/operators.py` — `InsertKeyCommand` still had
+  its own hardcoded `abs(k.time - t) < 1e-9` duplicate-detection scan,
+  never migrated onto `Channel.key_at()`/`KEY_TIME_EPS` despite
+  `Session.insert_keyframe` and `MoveKeyCommand` being consolidated onto it
+  in the same two commits — so "one owner of the invariant" wasn't actually
+  true. `redo()`/`undo()` now call `ch.key_at()` and the existing
+  `_discard_identical()` helper instead of reimplementing the scan. Three
+  new regression tests (`test_insert_key_command_*`) — this class had no
+  dedicated tests before.
+- **[MINOR — fixed]** `am3d/core/serializer.py:349` — the `zip(pts, weights,
+  strict=True)` backstop (and `_unpack_ndarray`'s `.reshape()`, which can
+  fail the same way on a lying declared shape) could raise a raw
+  `ValueError` instead of `ProjectFormatError` if ever reached. Wrapped in
+  try/except; one new regression test corrupts a declared array shape so
+  it passes length validation but fails at reshape, and asserts the
+  structured error. In practice this was never a crash — `ui/app.py:620`
+  already catches `Exception` broadly around `do_open` — only a
+  worse-quality error message; still worth being consistent with every
+  other load-time failure.
+- **[MINOR — fixed]** `am3d/core/serializer.py` — `_validate_spline`
+  checked `degree`/`closed` for presence but not type or value; a
+  `degree: 0` or `degree: -1` file loaded unchecked and only surfaced (or
+  silently mis-rendered) later in `renderer/tessellate.py`'s
+  `max(spl.degree, 1)` clamp. Now rejects non-`bool` `closed` and
+  non-positive-`int` `degree` at load time. **Considered and rejected:**
+  also requiring `n_pts >= degree + 1` (matching `tools_spline.py`'s
+  `can_remove_cp` invariant) — reverted after it broke
+  `test_project_roundtrip[_splines_only]`, which legitimately loads a
+  3-point spline at the default `degree=3`. `tessellate.py` already
+  degrades gracefully (`deg = min(..., len(pts)-1)`, and skips entirely
+  under 3 points), so under-provisioned control points are intentionally
+  tolerated, not a defect.
+- **[MINOR — fixed]** `am3d/core/animation.py` — `Channel.key_at()` and
+  `add_key()` did a linear scan plus a full re-sort on every call, O(n²)
+  over bulk insertion (e.g. `recipes/animation.py`'s procedural sampling).
+  Both now use `bisect` (`keys` is already sorted by time) — O(log n)
+  lookup, `bisect.insort` instead of append+sort. New test inserts 200 keys
+  out of order and checks both ordering and dedupe still hold at that
+  scale, plus a `KEY_TIME_EPS`-boundary test (kept comfortably off the
+  exact float boundary — `1.0 + 1e-9` isn't representable precisely enough
+  at that magnitude for an exact-boundary assertion to be meaningful).
+
+Full suite: **349 -> 364 passed**. Work is on local branch
+`fix/export-and-recipe-silent-failures` (tracking
+`origin/fix/export-and-recipe-silent-failures`), not yet committed as of
+this writing. The **"What's actually left"** list above is unchanged by
+this pass — it is still the correct place to resume: item 1 (serializer
+`_MAX_CONTAINER_DEPTH`/`_MAX_ARRAY_ELEMENTS`/`_ALLOWED_DTYPES`/
+`format_version` enforcement, and the `recipes/executor.py:98`
+parse-outside-try bug) is the most natural next step since it's the same
+file this pass was already working in.
+
 ## 14. Agent execution protocol
 
 1. Read this entire V2 plan before editing.

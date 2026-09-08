@@ -330,6 +330,40 @@ def test_malformed_cps_container_raises_project_format_error(bad):
         serializer.load_project_bytes(payload)
 
 
+@pytest.mark.parametrize("bad_degree", [0, -1, 1.5, "3", True])
+def test_invalid_spline_degree_is_rejected(bad_degree):
+    """degree must be an int >= 1 -- 0/negative/non-int previously loaded
+    unchecked and only surfaced as a crash later, in tessellation."""
+    payload = _corrupt(lambda s, d=bad_degree: s.__setitem__("degree", d))
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "degree" in str(excinfo.value)
+
+
+@pytest.mark.parametrize("bad_closed", [0, 1, "yes", None])
+def test_non_bool_closed_is_rejected(bad_closed):
+    payload = _corrupt(lambda s, c=bad_closed: s.__setitem__("closed", c))
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "closed" in str(excinfo.value)
+
+
+def test_corrupt_declared_shape_surfaces_as_project_format_error():
+    """A points/weights count that agrees (so passes length validation)
+    but whose declared array shape lies about the actual packed byte count
+    must still fail structured, not as a raw numpy ValueError from
+    reshape() escaping the loader."""
+    def mutate(s):
+        pts = s["cps"][0]
+        pts["shape"] = [pts["shape"][0] + 1, *pts["shape"][1:]]
+        s["cps"] = [pts, list(s["cps"][1]) + [1.0]]
+
+    payload = _corrupt(mutate)
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "objects.o.splines.s.cps" in str(excinfo.value)
+
+
 def test_rejected_file_does_not_partially_construct(tmp_path):
     """A malformed file must fail before it can replace a live session."""
     from am3d.core.script import Session

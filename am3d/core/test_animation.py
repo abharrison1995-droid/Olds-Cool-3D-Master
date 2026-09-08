@@ -202,6 +202,33 @@ def test_key_at_finds_and_misses():
     assert ch.key_at(1.5) is None
 
 
+def test_key_at_respects_key_time_eps_boundary():
+    """Comfortably within KEY_TIME_EPS matches; clearly past it does not."""
+    from am3d.core.animation import KEY_TIME_EPS
+
+    ch = _ch()
+    ch.add_key(1.0, [1, 1, 1])
+    assert ch.key_at(1.0 + KEY_TIME_EPS / 2) is ch.keys[0]
+    assert ch.key_at(1.0 + KEY_TIME_EPS * 1000) is None
+
+
+def test_add_key_binary_search_finds_correct_slot_at_scale():
+    """add_key/key_at use bisect on the sorted list; verify with many keys
+    that every key is still found and duplicates still replace, not just
+    with the handful of keys the other tests use."""
+    ch = _ch()
+    times = list(range(200, 0, -1))
+    for t in times:
+        ch.add_key(float(t), [t, 0, 0])
+    assert [k.time for k in ch.keys] == sorted(float(t) for t in times)
+    for t in (1.0, 50.0, 100.0, 200.0):
+        assert ch.key_at(t) is not None
+        assert ch.key_at(t).time == t
+    replaced = ch.add_key(100.0, [999, 0, 0])
+    assert replaced is ch.key_at(100.0)
+    assert len(ch.keys) == 200
+
+
 def test_session_insert_keyframe_still_replaces_after_delegation():
     """insert_keyframe now delegates to add_key; behaviour must not change."""
     from am3d.core.project import Project

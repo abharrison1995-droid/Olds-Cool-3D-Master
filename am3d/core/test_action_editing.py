@@ -263,3 +263,44 @@ def test_drag_onto_own_time_is_a_no_op():
     assert cmd._displaced is None
     cmd.undo()
     assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]
+
+
+# -- InsertKeyCommand shares Channel.key_at's replace-detection ---------
+#
+# InsertKeyCommand used to scan for a same-time key with its own hardcoded
+# `abs(k.time - t) < 1e-9`, duplicating (with a slightly different
+# boundary) the invariant Channel.key_at now owns. It has been switched to
+# call key_at() directly; these guard that switch didn't change behaviour.
+
+
+def _insert(s, time, value):
+    from am3d.ui.operators import InsertKeyCommand
+    cmd = InsertKeyCommand(s, "a", "hip", "rotate", time, value)
+    cmd.redo()
+    return cmd
+
+
+def test_insert_key_command_replaces_existing_key_via_key_at():
+    s, ch = _move_setup()
+    cmd = _insert(s, 1.0, [9.0, 0.0, 0.0])
+    assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]
+    assert np.isclose(ch.keys[1].value[0], 9.0)
+    assert cmd._replaced is not None
+
+
+def test_insert_key_command_undo_restores_replaced_key():
+    s, ch = _move_setup()
+    cmd = _insert(s, 1.0, [9.0, 0.0, 0.0])
+    cmd.undo()
+    times = [k.time for k in ch.keys]
+    assert times == [0.0, 1.0, 2.0]
+    assert np.isclose(ch.keys[1].value[0], 1.0)   # original value back
+
+
+def test_insert_key_command_at_new_time_has_nothing_to_restore():
+    s, ch = _move_setup()
+    cmd = _insert(s, 0.5, [5.0, 0.0, 0.0])
+    assert [k.time for k in ch.keys] == [0.0, 0.5, 1.0, 2.0]
+    assert cmd._replaced is None
+    cmd.undo()
+    assert [k.time for k in ch.keys] == [0.0, 1.0, 2.0]

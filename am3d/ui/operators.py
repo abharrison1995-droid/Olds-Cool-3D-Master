@@ -554,9 +554,9 @@ class InsertKeyCommand(_SessionCommand):
         self._replaced = None
         ch = _channel(self.session, self.action_name, self.bone, self.prop)
         if ch is not None:
-            for k in ch.keys:
-                if abs(k.time - self.time) < 1e-9:
-                    self._replaced = copy.deepcopy(k)
+            existing = ch.key_at(self.time)
+            if existing is not None:
+                self._replaced = copy.deepcopy(existing)
         self.session.insert_keyframe(self.action_name, self.bone, self.prop,
                                      self.time, self.value, self.interp)
 
@@ -564,10 +564,9 @@ class InsertKeyCommand(_SessionCommand):
         ch = _channel(self.session, self.action_name, self.bone, self.prop)
         if ch is None:
             return
-        for i, k in enumerate(ch.keys):
-            if abs(k.time - self.time) < 1e-9:
-                del ch.keys[i]
-                break
+        existing = ch.key_at(self.time)
+        if existing is not None:
+            _discard_identical(ch.keys, existing)
         if self._replaced is not None:
             ch.keys.append(self._replaced)
             ch.keys.sort(key=lambda k: k.time)

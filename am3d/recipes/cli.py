@@ -14,6 +14,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import os
 import sys
 
 
@@ -33,19 +34,59 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
+def _error_record(exc, *, code="input_error", stage="parse", path="recipe"):
+    record = {
+        "code": getattr(exc, "code", code),
+        "stage": getattr(exc, "stage", stage),
+        "path": getattr(exc, "path", path),
+        "message": str(exc),
+    }
+    hint = getattr(exc, "hint", None)
+    if hint:
+        record["hint"] = hint
+    return record
+
+
+def _emit_failure(record, *, records=None, diagnostic=None) -> int:
+    all_records = list(records) if records else [record]
+    report = {
+        "ok": False,
+        "objects": [],
+        "materials": [],
+        "actions": [],
+        "exports": [],
+        "warnings": [],
+        "errors": [r["message"] for r in all_records],
+        "error_records": all_records,
+        "manifest": [],
+        "partial_publication": False,
+    }
+    print(json.dumps(report, indent=2))
+    print(f"error: {diagnostic or record['message']}", file=sys.stderr)
+    return 1
+
+
 def main(argv=None) -> int:
     args = _build_parser().parse_args(argv)
 
     try:
         if args.recipe == "-":
-            data = json.load(sys.stdin)
+            if hasattr(sys.stdin, "buffer"):
+                raw = sys.stdin.buffer.read()
+                data = json.loads(raw.decode("utf-8-sig"))
+            else:
+                text = sys.stdin.read()
+                if text.startswith("\ufeff"):
+                    text = text[1:]
+                data = json.loads(text)
         else:
             # utf-8-sig transparently strips a BOM if one is present.
             with open(args.recipe, "r", encoding="utf-8-sig") as fh:
                 data = json.load(fh)
     except Exception as exc:
-        print(f"error reading recipe: {exc}", file=sys.stderr)
-        return 1
+        return _emit_failure(
+            _error_record(exc, code="recipe_read_error", stage="parse"),
+            diagnostic=f"error reading recipe: {exc}")
 
     from .executor import RecipeExecutor
     from .schema import recipe_from_dict, validate_recipe
@@ -54,22 +95,35 @@ def main(argv=None) -> int:
         recipe = recipe_from_dict(data)
         problems = validate_recipe(recipe)
     except Exception as exc:
-        print(f"invalid recipe: {exc}", file=sys.stderr)
-        return 1
+        return _emit_failure(_error_record(exc, code="schema_error",
+                                           stage="schema"),
+                             diagnostic=f"invalid recipe: {exc}")
     if problems:
+        records = []
         for problem in problems:
-            print(f"invalid recipe: {problem}", file=sys.stderr)
-        return 1
+            if hasattr(problem, "to_record"):
+                records.append(problem.to_record())
+            else:
+                records.append({
+                    "code": getattr(problem, "code", "validation_error"),
+                    "stage": getattr(problem, "stage", "schema"),
+                    "path": getattr(problem, "path", "recipe"),
+                    "message": str(problem),
+                    "hint": getattr(problem, "hint", "Correct the listed fields and retry."),
+                })
+        return _emit_failure(records[0], records=records,
+                             diagnostic="invalid recipe: " +
+                             "; ".join(str(p) for p in problems))
     if args.validate_only:
-        report = {"ok": True, "validated": True, "name": recipe.name}
+        report = {"ok": True, "validated": True, "name": recipe.name,
+                  "version": recipe.version, "error_records": []}
         print(json.dumps(report))
         return 0
 
-    if args.out:
-        for export in recipe.exports:
-            export.path = args.out.rstrip("/\\") + "/" + export.path
-
-    result = RecipeExecutor().execute(recipe)
+    recipe_dir = None if args.recipe == "-" else os.path.dirname(
+        os.path.abspath(args.recipe))
+    result = RecipeExecutor(output_root=args.out, base_dir=recipe_dir).execute(
+        recipe)
 
     if args.verbose:
         for obj in result.objects:
@@ -91,6 +145,9 @@ def main(argv=None) -> int:
         "exports": [{"format": f, "path": p} for f, p in result.exports],
         "warnings": result.warnings,
         "errors": result.errors,
+        "error_records": result.error_records,
+        "manifest": result.manifest,
+        "partial_publication": result.partial_publication,
     }
     print(json.dumps(report, indent=2))
 

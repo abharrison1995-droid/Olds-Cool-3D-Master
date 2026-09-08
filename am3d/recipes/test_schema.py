@@ -65,14 +65,18 @@ def test_validation_catches_bad_parent_and_character():
     assert any("unknown character" in p for p in problems)
 
 
-def test_extra_keys_are_ignored_not_fatal():
-    # LLMs add stray keys; the coercer must tolerate them.
-    r = recipe_from_dict({
-        "objects": [{"name": "b", "primitive": "box", "colour": "red",
-                     "notes": "make it shiny"}],
-    })
-    assert r.objects[0].params == {}
-    assert validate_recipe(r) == []
+def test_unknown_fields_are_rejected_with_a_path():
+    with pytest.raises(ValueError, match="unknown field 'colour'") as excinfo:
+        recipe_from_dict({
+            "objects": [{"name": "b", "primitive": "box",
+                         "colour": "red"}],
+        })
+    assert excinfo.value.path == "recipe.objects[0].colour"
+
+
+def test_unsupported_version_is_rejected():
+    with pytest.raises(ValueError, match="unsupported recipe version"):
+        recipe_from_dict({"version": 99})
 
 
 def test_object_without_geometry_flagged():
@@ -90,3 +94,90 @@ def test_rig_only_object_is_valid():
 def test_root_must_be_dict():
     with pytest.raises(ValueError, match="JSON object"):
         recipe_from_dict([1, 2, 3])
+
+
+def test_bone_hierarchy_cycle_is_rejected():
+    r = recipe_from_dict({
+        "objects": [{
+            "name": "cyclical",
+            "bones": [
+                {"name": "a", "head": [0, 0, 0], "tail": [0, 1, 0], "parent": "b"},
+                {"name": "b", "head": [0, 1, 0], "tail": [0, 2, 0], "parent": "a"},
+            ]
+        }]
+    })
+    problems = validate_recipe(r)
+    assert any("cyclic bone hierarchy" in p for p in problems)
+    issue = next(p for p in problems if "cyclic bone hierarchy" in p)
+    assert issue.code == "cyclic_bone_hierarchy"
+
+
+def test_numeric_ranges_and_finite_checks():
+    # Roughness out of range
+    with pytest.raises(ValueError, match="roughness"):
+        recipe_from_dict({
+            "materials": [{"name": "m", "roughness": 1.5}]
+        })
+
+    # Duration <= 0
+    with pytest.raises(ValueError, match="duration"):
+        recipe_from_dict({
+            "actions": [{"name": "a", "kind": "walk", "duration": 0}]
+        })
+
+
+def test_custom_action_unknown_bone_is_rejected():
+    r = recipe_from_dict({
+        "objects": [{"name": "hero", "bones": [
+            {"name": "hip", "head": [0, 0, 0], "tail": [0, 1, 0]}
+        ]}],
+        "actions": [{
+            "name": "wave",
+            "kind": "custom",
+            "character": "hero",
+            "channels": [{"bone": "nonexistent_bone", "keys": [{"time": 0, "value": [0, 0, 0]}]}],
+        }],
+    })
+    problems = validate_recipe(r)
+    assert any("references unknown bone" in p for p in problems)
+    issue = next(p for p in problems if "references unknown bone" in p)
+    assert issue.code == "unknown_bone"
+
+
+def test_container_type_validation():
+    with pytest.raises(ValueError, match="must be a list"):
+        recipe_from_dict({"objects": 123})
+
+    with pytest.raises(ValueError, match="must be a list"):
+        recipe_from_dict({"materials": "none"})
+
+
+def test_schema_json_conformance():
+    import jsonschema
+    from pathlib import Path
+    from am3d.recipes.schema import PRIMITIVES, ACTION_KINDS
+
+    schema_path = Path(__file__).parent.parent.parent / "docs" / "recipes" / "recipe-v1.schema.json"
+    assert schema_path.exists()
+    schema = json.loads(schema_path.read_text(encoding="utf-8"))
+
+    # Assert enum parity
+    schema_prims = set(schema["$defs"]["object"]["properties"]["primitive"]["enum"]) - {None}
+    assert schema_prims == PRIMITIVES
+
+    schema_actions = set(schema["$defs"]["action"]["properties"]["kind"]["enum"])
+    assert schema_actions == ACTION_KINDS
+
+    # Validate minimal and full recipes against json schema
+    valid_sample = {
+        "version": 1,
+        "name": "valid_knight",
+        "objects": [
+            {"name": "body", "primitive": "sphere", "params": {"radius": 0.5}},
+            {"name": "hero", "bones": [{"name": "hip", "head": [0, 0, 0], "tail": [0, 1, 0]}]}
+        ],
+        "materials": [{"name": "iron", "roughness": 0.4, "metalness": 0.8}],
+        "actions": [{"name": "walk", "kind": "walk", "duration": 1.0, "character": "hero"}],
+        "exports": [{"format": "obj", "path": "out/knight"}],
+    }
+    jsonschema.validate(instance=valid_sample, schema=schema)

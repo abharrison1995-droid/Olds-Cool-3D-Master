@@ -81,8 +81,10 @@ def test_invalid_recipe_raises_before_touching_disk(tmp_path, executor):
         "objects": [{"name": "a", "primitive": "sphere"}],
         "actions": [{"name": "w", "kind": "walk", "character": "ghost"}],
     }
-    with pytest.raises(ValueError, match="invalid recipe"):
-        executor.execute(bad)
+    res = executor.execute(bad)
+    assert not res.ok
+    assert res.error_records[0]["stage"] == "schema"
+    assert executor.session.project.objects == {}
 
 
 def test_runtime_error_is_captured_not_raised(tmp_path, executor):
@@ -104,14 +106,14 @@ def test_procedural_action_requires_bones(tmp_path, executor):
     let a recipe report success while producing none of the animation it
     asked for.
     """
-    with pytest.raises(ValueError) as excinfo:
-        executor.execute({
-            "name": "solo",
-            "objects": [{"name": "blob", "primitive": "box"}],
-            "actions": [{"name": "walk", "kind": "walk",
-                         "character": "blob"}],
-        })
-    assert "declares no bones" in str(excinfo.value)
+    res = executor.execute({
+        "name": "solo",
+        "objects": [{"name": "blob", "primitive": "box"}],
+        "actions": [{"name": "walk", "kind": "walk",
+                     "character": "blob"}],
+    })
+    assert not res.ok
+    assert "declares no bones" in res.errors[0]
 
 
 def test_custom_keyframed_action_roundtrip(tmp_path, executor):
@@ -187,6 +189,29 @@ def test_cli_rejects_invalid_recipe_with_exit_1(tmp_path, capsys):
     assert code == 1
     err = capsys.readouterr().err
     assert "unknown primitive" in err
+
+
+def test_cli_invalid_recipe_is_structured_json(tmp_path, capsys):
+    p = tmp_path / "bad.json"
+    p.write_text('{"version": 99}', encoding="utf-8")
+    code = _run_cli(["--recipe", str(p)])
+    captured = capsys.readouterr()
+    assert code == 1
+    report = json.loads(captured.out)
+    assert report["ok"] is False
+    assert report["error_records"][0]["code"] == "unsupported_version"
+    assert report["error_records"][0]["path"] == "recipe.version"
+
+
+def test_cli_malformed_json_is_structured_json(monkeypatch, capsys):
+    import io
+    monkeypatch.setattr("sys.stdin", io.StringIO('{"name":'))
+    code = _run_cli(["--recipe", "-"])
+    captured = capsys.readouterr()
+    assert code == 1
+    report = json.loads(captured.out)
+    assert report["error_records"][0]["code"] == "recipe_read_error"
+    assert report["error_records"][0]["stage"] == "parse"
 
 
 def test_cli_validate_only_makes_no_files(tmp_path, capsys):
@@ -423,9 +448,9 @@ def _sphere_recipe(fmt, path=os.devnull):
 @pytest.mark.parametrize("fmt", ["render", "atlas", "bogus"])
 def test_unwritable_export_format_is_rejected_by_validation(fmt):
     """A format with no writer must fail loudly, not warn and report ok."""
-    with pytest.raises(ValueError) as excinfo:
-        RecipeExecutor().execute(_sphere_recipe(fmt))
-    assert fmt in str(excinfo.value)
+    res = RecipeExecutor().execute(_sphere_recipe(fmt))
+    assert not res.ok
+    assert fmt in res.errors[0]
 
 
 @pytest.mark.parametrize("fmt", ["render", "atlas", "bogus"])
@@ -504,36 +529,36 @@ def _action_recipe(actions, objects=None):
 
 
 def test_retarget_without_source_action_is_rejected():
-    with pytest.raises(ValueError) as excinfo:
-        RecipeExecutor().execute(_action_recipe(
-            [{"name": "r", "kind": "retarget", "character": "hero"}]))
-    assert "source_action" in str(excinfo.value)
+    res = RecipeExecutor().execute(_action_recipe(
+        [{"name": "r", "kind": "retarget", "character": "hero"}]))
+    assert not res.ok
+    assert "source_action" in res.errors[0]
 
 
 def test_retarget_without_character_is_rejected():
-    with pytest.raises(ValueError) as excinfo:
-        RecipeExecutor().execute(_action_recipe(
-            [{"name": "r", "kind": "retarget", "source_action": "walk"}]))
-    assert "character" in str(excinfo.value)
+    res = RecipeExecutor().execute(_action_recipe(
+        [{"name": "r", "kind": "retarget", "source_action": "walk"}]))
+    assert not res.ok
+    assert "character" in res.errors[0]
 
 
 def test_retarget_from_unknown_source_action_is_rejected():
-    with pytest.raises(ValueError) as excinfo:
-        RecipeExecutor().execute(_action_recipe(
-            [{"name": "r", "kind": "retarget", "character": "hero",
-              "source_action": "nope"}]))
-    assert "'nope'" in str(excinfo.value)
+    res = RecipeExecutor().execute(_action_recipe(
+        [{"name": "r", "kind": "retarget", "character": "hero",
+          "source_action": "nope"}]))
+    assert not res.ok
+    assert "'nope'" in res.errors[0]
 
 
 def test_retarget_source_must_precede_its_use():
     """Sources are resolved in order; a forward reference cannot work."""
-    with pytest.raises(ValueError) as excinfo:
-        RecipeExecutor().execute(_action_recipe([
-            {"name": "r", "kind": "retarget", "character": "hero",
-             "source_action": "later"},
-            {"name": "later", "kind": "walk", "character": "hero"},
-        ]))
-    assert "defined earlier" in str(excinfo.value)
+    res = RecipeExecutor().execute(_action_recipe([
+        {"name": "r", "kind": "retarget", "character": "hero",
+         "source_action": "later"},
+        {"name": "later", "kind": "walk", "character": "hero"},
+    ]))
+    assert not res.ok
+    assert "defined earlier" in res.errors[0]
 
 
 def test_retarget_from_earlier_recipe_action_is_accepted():
@@ -570,3 +595,249 @@ def test_successful_recipe_reports_no_errors_and_real_actions():
         [{"name": "w", "kind": "walk", "character": "hero"}]))
     assert res.ok and res.errors == []
     assert res.actions == ["w"]
+
+
+def test_explicit_output_root_rejects_escape_without_writing(tmp_path):
+    root = tmp_path / "root"
+    outside = tmp_path / "outside"
+    res = RecipeExecutor(output_root=str(root)).execute({
+        "name": "escape",
+        "objects": [{"name": "o", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": "../outside/asset"}],
+    })
+    assert not res.ok
+    assert res.error_records[0]["code"] == "output_path_escape"
+    assert not outside.exists()
+
+
+def test_path_escape_dot_is_rejected(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    res = RecipeExecutor(output_root=str(root)).execute({
+        "name": "escape",
+        "objects": [{"name": "o", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": "."}],
+    })
+    assert not res.ok
+    assert res.error_records[0]["code"] == "output_path_escape"
+
+
+def test_path_escape_drive_is_rejected(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    res = RecipeExecutor(output_root=str(root)).execute({
+        "name": "escape",
+        "objects": [{"name": "o", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": "D:outside_file"}],
+    })
+    assert not res.ok
+    assert res.error_records[0]["code"] == "output_path_escape"
+
+
+def test_failed_recipe_preserves_existing_session(tmp_path):
+    session = Session()
+    session.new_project("existing")
+    session.create_object("keep")
+    res = RecipeExecutor(session).execute({
+        "name": "bad",
+        "objects": [{"name": "bad", "primitive": "sphere",
+                     "params": {"radius": "huge"}}],
+    })
+    assert not res.ok
+    assert set(session.project.objects) == {"keep"}
+    assert session.project.name == "existing"
+
+
+def test_recipe_am3d_export_round_trips_action_state(tmp_path):
+    executor = RecipeExecutor(Session())
+    res = executor.execute(_action_recipe(
+        [{"name": "walk", "kind": "walk", "character": "hero"}],
+        objects=[dict(_RIGGED)],
+    ) | {"exports": [{"format": "am3d",
+                       "path": str(tmp_path / "animated")} ]})
+    assert res.ok, res.error_records
+    loaded = Session()
+    loaded.load_project(str(tmp_path / "animated.am3d"))
+    assert set(loaded.actions) == {"walk"}
+    assert loaded.active_action == "walk"
+    assert loaded.action_assignments == {"hero": "walk"}
+
+
+def test_manifest_has_one_entry_per_written_artifact(tmp_path):
+    res = RecipeExecutor().execute({
+        "name": "manifest",
+        "objects": [{"name": "orb", "primitive": "sphere"}],
+        "exports": [{"format": "spritesheet",
+                     "path": str(tmp_path / "orb"),
+                     "params": {"views": 2, "size": 24}}],
+    })
+    assert res.ok, res.error_records
+    assert len(res.manifest) == 1
+    assert res.manifest[0]["format"] == "spritesheet"
+    assert res.manifest[0]["status"] == "written"
+    assert res.manifest[0]["size_bytes"] > 0
+
+
+def test_staging_preserves_existing_files_on_failure(tmp_path):
+    out_dir = tmp_path / "out"
+    out_dir.mkdir()
+    existing_obj = out_dir / "target.obj"
+    existing_obj.write_text("pre-existing content", encoding="utf-8")
+
+    recipe = {
+        "name": "multi_fail",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [
+            {"format": "obj", "path": str(existing_obj.with_suffix(""))},
+            {"format": "render", "path": str(out_dir / "bad")},
+        ],
+    }
+    res = RecipeExecutor().execute(recipe)
+    assert not res.ok
+    assert existing_obj.read_text(encoding="utf-8") == "pre-existing content"
+
+
+def test_spritesheet_on_rig_only_fails_loudly(tmp_path):
+    res = RecipeExecutor().execute({
+        "name": "rig_only",
+        "objects": [{"name": "hero", "bones": [
+            {"name": "root", "head": [0, 0, 0], "tail": [0, 1, 0]}
+        ]}],
+        "exports": [{"format": "spritesheet", "path": str(tmp_path / "hero")}],
+    })
+    assert not res.ok
+    assert any(e["code"] == "missing_geometry" for e in res.error_records)
+    assert res.manifest == []
+
+
+def test_manifest_includes_metadata(tmp_path):
+    res = RecipeExecutor().execute({
+        "name": "meta",
+        "objects": [{"name": "orb", "primitive": "sphere"}],
+        "exports": [
+            {"format": "spritesheet", "path": str(tmp_path / "orb"),
+             "params": {"views": 4, "size": 32}},
+            {"format": "obj", "path": str(tmp_path / "orb_mesh")},
+        ],
+    })
+    assert res.ok, res.error_records
+    sheet_entry = next(e for e in res.manifest if e["format"] == "spritesheet")
+    assert sheet_entry["views"] == 4
+    assert sheet_entry["size"] == 32
+    assert sheet_entry["status"] == "written"
+
+    obj_entry = next(e for e in res.manifest if e["format"] == "obj")
+    assert obj_entry["mesh_count"] == 1
+    assert obj_entry["status"] == "written"
+
+
+def test_subprocess_cli_valid_file(tmp_path):
+    import subprocess
+    import sys
+    recipe_file = tmp_path / "recipe.json"
+    out_dir = tmp_path / "out"
+    recipe = {
+        "name": "sub_test",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "ball"}],
+    }
+    recipe_file.write_text(json.dumps(recipe), encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", str(recipe_file), "--out", str(out_dir)],
+        capture_output=True, text=True)
+    assert proc.returncode == 0
+    report = json.loads(proc.stdout)
+    assert report["ok"] is True
+    assert len(report["manifest"]) == 1
+    assert (out_dir / "ball.obj").exists()
+
+
+def test_subprocess_cli_stdin_with_and_without_bom(tmp_path):
+    import subprocess
+    import sys
+    out_dir = tmp_path / "out_stdin"
+    recipe_json = json.dumps({
+        "name": "stdin_test",
+        "objects": [{"name": "box", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": "box"}],
+    })
+    # Without BOM
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", "-", "--out", str(out_dir)],
+        input=recipe_json, capture_output=True, text=True)
+    assert proc.returncode == 0
+    report = json.loads(proc.stdout)
+    assert report["ok"] is True
+
+    # With BOM
+    proc_bom = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", "-", "--out", str(out_dir)],
+        input=("\ufeff" + recipe_json).encode("utf-8"),
+        capture_output=True)
+    assert proc_bom.returncode == 0
+    report_bom = json.loads(proc_bom.stdout.decode("utf-8"))
+    assert report_bom["ok"] is True
+
+
+def test_subprocess_cli_missing_file():
+    import subprocess
+    import sys
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", "nonexistent_recipe_12345.json"],
+        capture_output=True, text=True)
+    assert proc.returncode == 1
+    report = json.loads(proc.stdout)
+    assert report["ok"] is False
+    assert report["error_records"][0]["code"] == "recipe_read_error"
+
+
+def test_subprocess_cli_validate_only(tmp_path):
+    import subprocess
+    import sys
+    recipe_file = tmp_path / "validate.json"
+    recipe = {
+        "name": "val_test",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "ball"}],
+    }
+    recipe_file.write_text(json.dumps(recipe), encoding="utf-8")
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", str(recipe_file), "--validate-only"],
+        capture_output=True, text=True)
+    assert proc.returncode == 0
+    report = json.loads(proc.stdout)
+    assert report["ok"] is True
+    assert report["validated"] is True
+
+
+def test_subprocess_cli_invalid_json():
+    import subprocess
+    import sys
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", "-"],
+        input='{"name": "broken', capture_output=True, text=True)
+    assert proc.returncode == 1
+    report = json.loads(proc.stdout)
+    assert report["ok"] is False
+    assert report["error_records"][0]["code"] == "recipe_read_error"
+
+
+def test_subprocess_cli_file_with_bom(tmp_path):
+    import subprocess
+    import sys
+    recipe_file = tmp_path / "bom_recipe.json"
+    out_dir = tmp_path / "out_bom"
+    recipe = {
+        "name": "sub_bom",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "ball"}],
+    }
+    recipe_file.write_bytes(b"\xef\xbb\xbf" + json.dumps(recipe).encode("utf-8"))
+    proc = subprocess.run(
+        [sys.executable, "-m", "am3d.recipes", "--recipe", str(recipe_file), "--out", str(out_dir)],
+        capture_output=True, text=True)
+    assert proc.returncode == 0
+    report = json.loads(proc.stdout)
+    assert report["ok"] is True
+    assert (out_dir / "ball.obj").exists()
+

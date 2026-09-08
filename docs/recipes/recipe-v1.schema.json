@@ -1,0 +1,116 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3d-master-2005.local/recipe/v1",
+  "title": "3D MASTER:2005 external recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "objects": { "type": "array", "items": { "$ref": "#/$defs/object" } },
+    "materials": { "type": "array", "items": { "$ref": "#/$defs/material" } },
+    "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } },
+    "exports": { "type": "array", "items": { "$ref": "#/$defs/export" } }
+  },
+  "$defs": {
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "primitive": {
+          "type": ["string", "null"],
+          "enum": ["sphere", "box", "cylinder", "cone", "torus", "plane", "lathe", "extrude", null]
+        },
+        "params": { "type": "object" },
+        "splines": { "type": "array", "items": { "$ref": "#/$defs/spline" } },
+        "bones": { "type": "array", "items": { "$ref": "#/$defs/bone" } }
+      }
+    },
+    "spline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points"],
+      "properties": {
+        "points": { "type": "array", "items": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } } },
+        "name": { "type": "string" },
+        "degree": { "type": "integer", "minimum": 1 },
+        "closed": { "type": "boolean" }
+      }
+    },
+    "bone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "head", "tail"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "head": { "$ref": "#/$defs/vec3" },
+        "tail": { "$ref": "#/$defs/vec3" },
+        "parent": { "type": ["string", "null"] }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "color": { "$ref": "#/$defs/color" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "texture": { "type": ["string", "null"] },
+        "pattern": { "type": ["string", "null"] },
+        "params": { "type": "object" },
+        "graph": { "type": "array", "items": { "type": "object" } },
+        "objects": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["walk", "idle", "jump", "custom", "retarget"] },
+        "duration": { "type": "number", "exclusiveMinimum": 0 },
+        "character": { "type": ["string", "null"] },
+        "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
+        "params": { "type": "object" },
+        "source_action": { "type": ["string", "null"] }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bone"],
+      "properties": {
+        "bone": { "type": "string", "minLength": 1 },
+        "property": { "type": "string" },
+        "keys": { "type": "array", "items": { "$ref": "#/$defs/key" } }
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time", "value"],
+      "properties": {
+        "time": { "type": "number" },
+        "value": { "type": "array", "items": { "type": "number" } },
+        "interp": { "type": "string" }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "path"],
+      "properties": {
+        "format": { "enum": ["obj", "glb", "gltf", "spritesheet", "toon_sheet", "am3d"] },
+        "path": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      }
+    },
+    "vec3": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+    "color": { "type": "array", "minItems": 3, "maxItems": 4, "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+  }
+}

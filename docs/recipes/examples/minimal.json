@@ -1,0 +1,21 @@
+{
+  "version": 1,
+  "name": "minimal_cube",
+  "objects": [
+    {
+      "name": "cube",
+      "primitive": "box",
+      "params": {
+        "width": 1.0,
+        "height": 1.0,
+        "depth": 1.0
+      }
+    }
+  ],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "cube"
+    }
+  ]
+}

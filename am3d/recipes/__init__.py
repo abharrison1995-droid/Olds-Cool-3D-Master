@@ -10,6 +10,7 @@ from .schema import (  # noqa: F401
     ACTION_KINDS,
     EXPORT_FORMATS,
     PRIMITIVES,
+    CURRENT_RECIPE_VERSION,
     ActionRecipe,
     BoneRecipe,
     ChannelRecipe,
@@ -19,15 +20,17 @@ from .schema import (  # noqa: F401
     ObjectRecipe,
     Recipe,
     SplineRecipe,
+    RecipeValidationError,
     recipe_from_dict,
     validate_recipe,
 )
 
 __all__ = [
-    "ACTION_KINDS", "EXPORT_FORMATS", "PRIMITIVES",
+    "ACTION_KINDS", "EXPORT_FORMATS", "PRIMITIVES", "CURRENT_RECIPE_VERSION",
     "ActionRecipe", "BoneRecipe", "ChannelRecipe", "ExportRecipe",
     "KeyframeRecipe", "MaterialRecipe", "ObjectRecipe", "Recipe",
-    "SplineRecipe", "recipe_from_dict", "validate_recipe",
+    "SplineRecipe", "RecipeValidationError", "recipe_from_dict",
+    "validate_recipe",
 ]
 
 

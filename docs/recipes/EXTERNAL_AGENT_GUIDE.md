@@ -1,0 +1,100 @@
+# External recipe agent guide — schema version 1
+
+Emit one JSON object matching [`recipe-v1.schema.json`](recipe-v1.schema.json).
+The `version` field is optional for backwards compatibility and defaults to
+`1`; any other version is rejected. Unknown fields are rejected with a stable
+error record instead of being silently ignored.
+
+## 1. Invocation & Machine Interface
+
+Invoke the shipped source entry point with:
+
+```text
+python -m am3d.recipes --recipe recipe.json --out output-directory
+```
+
+Stdin execution is also supported:
+
+```text
+cat recipe.json | python -m am3d.recipes --recipe - --out output-directory
+```
+
+Machine mode prints exactly one JSON result to `stdout`. Diagnostics are also
+written to `stderr`. A successful result has `ok: true`, an artifact `manifest`,
+and one manifest entry per physical file. A failure has `ok: false` and
+`error_records` containing `code`, `stage`, `path`, `message`, and an optional
+`hint`. Exit code `0` means success; exit code `1` means parse, validation,
+runtime, resource, or write failure.
+
+Use `--validate-only` to check a recipe without creating a Session or any
+output. With `--out`, every export path must be relative and must resolve
+inside that directory; absolute paths, drive letters, and traversal escapes are rejected.
+Without `--out`, relative exports resolve next to the recipe file.
+
+## 2. Coordinate, Angle, and Time Conventions
+
+- **Coordinate System**: Right-handed, $Y$-up, $X$-right, $Z$-forward.
+- **Units**: 1.0 unit $\approx$ 1.0 meter.
+- **Rotations**: Expressed as Euler angles in radians or quaternion `[x, y, z, w]`.
+- **Time**: All durations and keyframe times are floating-point seconds ($> 0$).
+- **Colors**: `[r, g, b]` or `[r, g, b, a]` normalized in the range $[0.0, 1.0]$.
+- **PBR Roughness / Metalness**: Normalized in the range $[0.0, 1.0]$.
+
+## 3. Supported Primitives & Parameters
+
+Supported primitives under `objects[].primitive`:
+- `sphere`: `radius` (float), `sections` (int, longitude divisions), `rings` (int, latitude divisions).
+- `box`: `width` (float), `height` (float), `depth` (float).
+- `cylinder`: `radius` (float), `height` (float), `sections` (int).
+- `cone`: `radius` (float), `height` (float), `sections` (int).
+- `torus`: `major_radius` (float), `minor_radius` (float), `sections` (int), `rings` (int).
+- `plane`: `width` (float), `depth` (float).
+- `lathe`: revolves a profile spline around the Y-axis (`sections`, `angle`).
+- `extrude`: sweeps a 2D spline along the Z-axis (`depth`, `cap_start`, `cap_end`).
+
+## 4. Rigging & Bone Rules
+
+- Bone definitions must supply `name`, `head: [x, y, z]`, `tail: [x, y, z]`.
+- `parent` references must refer to an earlier or co-defined bone in the same object.
+- **Acyclic Hierarchy**: Bone parenting must form an acyclic tree. Circular references (`A -> B -> A` or self-parenting) are rejected.
+- Procedural actions (`walk`, `idle`, `jump`) require a rigged character with bones.
+
+## 5. Artifact Formats & Capabilities
+
+- `.am3d`: Native editable project preserving patches, splines, bones, actions, active action, and assignments.
+- `.obj`: Static Wavefront OBJ mesh with normals and UV coordinates.
+- `.glb`: Static binary glTF 2.0 asset.
+- `spritesheet`: Rendered orthographic or perspective sprite grid (`views`, `size`, `color`, `silhouette`).
+- `toon_sheet`: Cel-shaded sprite sheet with ink outlines (`bands`, `ink`).
+
+## 6. External Agent Error-Correction Loop
+
+When a recipe is rejected, inspect `error_records` in the JSON stdout response:
+
+```json
+{
+  "ok": false,
+  "errors": ["object 'hero': duplicate bone name 'arm'"],
+  "error_records": [
+    {
+      "code": "duplicate_bone_name",
+      "stage": "schema",
+      "path": "recipe.objects[1].bones[2].name",
+      "message": "object 'hero': duplicate bone name 'arm'",
+      "hint": "Ensure each bone name within an object is unique."
+    }
+  ]
+}
+```
+
+Correction workflow:
+1. Locate the exact JSON path specified in `record.path` (e.g. `recipe.objects[1].bones[2].name`).
+2. Read the error code and correction hint.
+3. Fix the offending field in your JSON model output.
+4. Retry execution with the updated recipe.
+
+## 7. Examples
+
+- [Minimal Cube Recipe](examples/minimal.json)
+- [Fully Rigged Knight Recipe](examples/knight_full.json)
+

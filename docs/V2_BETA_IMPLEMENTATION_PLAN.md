@@ -1,5 +1,9 @@
 # 3D MASTER:2005 — V2 Beta Implementation Plan
 
+> Superseded on 2026-09-08 by [V3 Functional Application and External LLM Pipeline Plan](V3_FUNCTIONAL_IMPLEMENTATION_PLAN.md).
+> Retained as historical review evidence. Completion labels and test counts below
+> are historical claims, not current release acceptance. Use V3 for future work.
+
 Status: remediation and completion roadmap after post-implementation review
 Target: evidence-backed Windows V1 beta candidate
 Last updated: 2026-08-27

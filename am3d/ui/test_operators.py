@@ -495,6 +495,47 @@ def test_recover_project_resets_document_ui_state(tmp_path):
         win.close()
 
 
+def test_recover_project_reports_failure_and_preserves_active_document(monkeypatch, tmp_path):
+    """recover_from() reports a corrupt/unreadable snapshot by returning
+    False rather than raising. _recover_project must check that return
+    value: silently falling through to _reset_document_ui_state() would
+    drop the user into a blank editor with no error and no indication that
+    nothing was actually recovered, while the active document must be
+    preserved untouched (Phase 5 acceptance: "cancelled or failed
+    replacement preserves the active document")."""
+    win = _make_main_window()
+    try:
+        win.properties_dock.set_context("object", "sphere", "")
+        win.current_context = ("object", "sphere", "")
+
+        monkeypatch.setattr(win.doc_ctrl, "recover_from", lambda path: False)
+        win._recover_project(str(tmp_path / "corrupt.autosave.am3d"))
+
+        # Active document and UI context must be untouched.
+        assert "sphere" in win.session.project.objects
+        assert win.current_context == ("object", "sphere", "")
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_apply_autosave_interval_falls_back_on_corrupt_settings_value(monkeypatch):
+    """A hand-edited/corrupted QSettings store (non-numeric autosaveInterval)
+    must not crash MainWindow startup — _apply_autosave_interval() runs from
+    __init__, so any uncaught exception there would make the app unlaunchable."""
+    from PySide6.QtCore import QSettings
+    win = _make_main_window()
+    try:
+        monkeypatch.setattr(QSettings, "value",
+                             lambda self, key, default=None: "not-a-number")
+        win._apply_autosave_interval()  # must not raise
+        assert win._autosave_timer.interval() == 5 * 60_000
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+
+
 def test_autosave_timer_fires_only_when_dirty(monkeypatch):
     """The lifecycle-owned autosave timer must call do_autosave() when the
     document is dirty, and must never mark the document clean itself —
@@ -536,5 +577,4 @@ def test_apply_autosave_interval_reads_settings_in_minutes(monkeypatch):
     finally:
         win._autosave_timer.stop()
         win.viewport._timer.stop()
-        win.close()
         win.close()

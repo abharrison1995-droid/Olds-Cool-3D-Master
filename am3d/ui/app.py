@@ -617,7 +617,17 @@ class MainWindow(QMainWindow):
         if not self.doc_ctrl.maybe_abandon_document():
             return
         try:
-            self.doc_ctrl.recover_from(path)
+            # recover_from() reports failure (corrupt/unreadable snapshot) by
+            # returning False rather than raising, so it must be checked
+            # explicitly — otherwise a failed recovery would fall through to
+            # resetting the UI and entering the editor with nothing loaded,
+            # and the user would never see an error.
+            if not self.doc_ctrl.recover_from(path):
+                from PySide6.QtWidgets import QMessageBox
+                QMessageBox.critical(
+                    self, "Recovery failed",
+                    f"Could not recover project from:\n{path}")
+                return
             self._reset_document_ui_state()
             self._refresh_all()
             self.show_editor()
@@ -728,7 +738,14 @@ class MainWindow(QMainWindow):
         recreating it, so a mid-session Settings change takes effect without
         disturbing the timer's identity or its connected signal."""
         from PySide6.QtCore import QSettings
-        minutes = int(QSettings("3DMASTER2005", "app").value("autosaveInterval", 5))
+        raw = QSettings("3DMASTER2005", "app").value("autosaveInterval", 5)
+        try:
+            minutes = int(raw)
+        except (TypeError, ValueError):
+            # A hand-edited or corrupted settings store must not be able to
+            # crash startup (this runs from MainWindow.__init__) — fall back
+            # to the dialog's own default rather than propagating.
+            minutes = 5
         self._autosave_timer.setInterval(max(1, minutes) * 60_000)
 
     def _on_autosave_timeout(self):

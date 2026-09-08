@@ -327,6 +327,57 @@ def test_animation_sheet_export_renders_distinct_frames(tmp_path):
         "walk cycle frames must not all be identical"
 
 
+def test_animation_sheet_respects_shared_depth_when_meshes_overlap(tmp_path):
+    """Two overlapping planes: a near, dark (grazing-lit) one and a far,
+    bright (face-lit) one. A correct shared z-buffer must show the
+    nearer plane's darker shading at the overlap, never the farther
+    plane's brighter one — a per-mesh max-blend composite gets this
+    backwards, since it keeps whichever pixel is numerically brighter
+    regardless of which surface is actually in front."""
+    import math
+
+    def rot_x(deg, tz):
+        a = math.radians(deg)
+        c, s = math.cos(a), math.sin(a)
+        m = [[1, 0, 0, 0],
+             [0, c, -s, 0],
+             [0, s, c, tz],
+             [0, 0, 0, 1]]
+        return [v for row in m for v in row]
+
+    recipe = {
+        "name": "occluding_planes",
+        "objects": [
+            {"name": "near_dark", "primitive": "plane",
+             "params": {"width": 1.5, "height": 1.5},
+             "transform": rot_x(36.2, -1.0)},
+            {"name": "far_bright", "primitive": "plane",
+             "params": {"width": 1.5, "height": 1.5},
+             "transform": rot_x(0.0, 1.0)},
+        ],
+        "exports": [{
+            "format": "animation_sheet", "path": "anim/occlude",
+            "params": {"frames": 1, "size": 32, "columns": 1,
+                       "color": [1.0, 1.0, 1.0]},
+        }],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    path = [p for f, p in res.exports if f == "animation_sheet"][0]
+    sheet = _load_png(path)
+    center = sheet[16, 16, :3].astype(np.float64) / 255.0
+
+    # near_dark alone renders ~0.30 (grazing light); far_bright alone
+    # renders ~0.67 (face-lit). The composited frame must match the
+    # nearer, darker plane, not the farther, brighter one.
+    assert center.mean() < 0.45, (
+        f"animation_sheet showed the farther/brighter plane at an "
+        f"occluded pixel (got {center.mean():.3f}); shared z-buffer "
+        f"occlusion regressed to a per-mesh max-blend composite")
+
+
 def test_animation_sheet_on_empty_scene_fails_loudly(tmp_path, executor):
     res = executor.execute({
         "name": "empty_anim",

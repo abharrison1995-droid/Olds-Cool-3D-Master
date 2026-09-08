@@ -620,7 +620,7 @@ class RecipeExecutor:
                         duration = self.session.actions[action_name].duration or 1.0
                     t_start = float(p.get("start", 0.0))
                     t_end = float(p.get("end", duration))
-                    from am3d.renderer.sprite import render_view
+                    from am3d.renderer.sprite import render_scene
                     import math as _math
                     cols = int(p.get("columns", n_frames))
                     rows = int(_math.ceil(n_frames / cols))
@@ -632,13 +632,15 @@ class RecipeExecutor:
                             frame_scene = self.session.evaluate_scene(
                                 action_name=action_name, time=t,
                                 apply_transforms=True, visible_only=True)
-                            # Composite all meshes into one frame
-                            frame_img = _np.zeros((size, size, 4), dtype=_np.float32)
-                            for mname, fmesh in frame_scene.meshes.items():
-                                if len(fmesh.vertices) == 0:
-                                    continue
-                                frame_img = _np.maximum(frame_img,
-                                    render_view(fmesh, size=size, color=color))
+                            # Merge every visible mesh through one shared
+                            # z-buffer (render_scene) rather than rendering
+                            # each independently and taking a per-pixel max —
+                            # the max-blend composite lost real occlusion:
+                            # a nearer but darker surface could be overwritten
+                            # by a farther but brighter one.
+                            live_meshes = {n: m for n, m in frame_scene.meshes.items()
+                                          if len(m.vertices)}
+                            frame_img = render_scene(live_meshes, size=size, color=color)
                             r_idx, c_idx = divmod(fi, cols)
                             sheet[r_idx * size:(r_idx + 1) * size,
                                   c_idx * size:(c_idx + 1) * size] = (

@@ -32,6 +32,7 @@ __all__ = [
     "AssignActionCommand", "InsertKeyCommand", "MoveKeyCommand",
     "DeleteKeyCommand", "SetAnimationSettingsCommand",
     "SetRenderSettingsCommand", "ImportActionCommand", "ClearPoseCommand",
+    "SetActiveActionCommand",
     "CreatePrimitiveCommand",
     "CreateSplineProfileCommand",
     "LatheProfileCommand",
@@ -671,11 +672,10 @@ class SetRenderSettingsCommand(_SessionCommand):
         self.after = dict(after)
 
     def _apply(self, settings):
-        proj = self.session.project
-        current = getattr(proj, "render_settings", None)
-        if current is None:
-            current = proj.render_settings = {}
-        current.update(settings)
+        # Replace (not update) so undo can also remove keys that redo added
+        # -- e.g. when the project had no render_settings at all before the
+        # first edit, `before` is `{}` and a merge would never clear it back.
+        self.session.project.render_settings = dict(settings)
 
     def redo(self):
         self._apply(self.after)
@@ -732,6 +732,26 @@ class ClearPoseCommand(_SessionCommand):
         if self._before_offsets:
             self.session.pose_offsets[self.object_name] = dict(self._before_offsets)
         self.session.apply_pose(self.object_name)
+
+
+class SetActiveActionCommand(_SessionCommand):
+    """Switch the project's active action (Timeline dropdown / Outliner).
+
+    active_action is persisted (see serializer.save_project/load_project),
+    so picking a different action is document content, not view-only state,
+    and needs the same undo/dirty coverage as any other edit.
+    """
+
+    def __init__(self, session, before, after):
+        super().__init__(session, "Set active action")
+        self.before = before
+        self.after = after
+
+    def redo(self):
+        self.session.set_active_action(self.after)
+
+    def undo(self):
+        self.session.set_active_action(self.before)
 
 
 def push_or_apply(main, command, emit=None):

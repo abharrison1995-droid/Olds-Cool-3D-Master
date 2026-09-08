@@ -17,7 +17,8 @@ from am3d.ui.operators import (
     AddMaterialCommand, AddObjectCommand, ClearPoseCommand,
     DeleteMaterialCommand, DeleteObjectCommand, ImportActionCommand,
     InsertCPCommand, MoveCPCommand, PoseBoneCommand,
-    RemoveCPCommand, RenameObjectCommand, SetBoneEndpointsCommand,
+    RemoveCPCommand, RenameObjectCommand, SetActiveActionCommand,
+    SetBoneEndpointsCommand,
     SetMaterialColorCommand, SetMaterialMapsCommand,
     SetObjectTransformCommand, SetObjectVisibleCommand,
     SetRenderSettingsCommand, QUndoStack,
@@ -190,6 +191,18 @@ def test_render_settings_command_undo_redo(session, stack):
     assert session.project.render_settings["toon"] is True
 
 
+def test_render_settings_command_undo_restores_empty_before_state(session, stack):
+    """A project that never had render_settings before the first edit must
+    undo back to nothing -- not retain the edited keys via a dict merge."""
+    session.project.render_settings = None
+    before = {}
+    after = {"supersample": 4, "toon": False}
+    stack.push(SetRenderSettingsCommand(session, before, after))
+    assert session.project.render_settings == after
+    stack.undo()
+    assert session.project.render_settings == {}
+
+
 def test_import_action_command_undo_redo_new_name(session, stack):
     act = Action(name="walk", duration=2.0)
     assert "walk" not in session.actions
@@ -226,6 +239,24 @@ def test_import_action_command_undo_redo_overwrites_existing(session, stack):
     assert session.actions["walk"] is not new
     assert session.actions["walk"].duration == old.duration
     assert session.active_action == "walk"
+
+
+def test_set_active_action_command_undo_redo(session, stack):
+    session.actions["walk"] = Action(name="walk", duration=1.0)
+    session.actions["run"] = Action(name="run", duration=1.0)
+    session.active_action = "walk"
+    session.project.active_action = "walk"
+
+    stack.push(SetActiveActionCommand(session, "walk", "run"))
+    assert session.active_action == "run"
+    assert session.project.active_action == "run"
+
+    stack.undo()
+    assert session.active_action == "walk"
+    assert session.project.active_action == "walk"
+
+    stack.redo()
+    assert session.active_action == "run"
 
 
 def test_undo_stack_clean_state(session, stack):
@@ -816,6 +847,34 @@ def test_clear_pose_is_undoable_and_dirty():
         win.close()
 
 
+def test_switching_active_action_is_undoable_and_dirty():
+    """Picking a different action from the Timeline dropdown must be
+    undoable and mark the document dirty -- previously it called
+    Session.set_active_action() directly, bypassing both, even though
+    active_action is persisted document state (see serializer.py)."""
+    win = _make_main_window()
+    try:
+        win.session.actions["walk"] = Action(name="walk", duration=1.0)
+        win.session.actions["run"] = Action(name="run", duration=1.0)
+        win.session.set_active_action("walk")
+        win.doc_ctrl._mark_clean()
+
+        assert win.doc_ctrl.dirty is False
+        count0 = win.undo_stack.count()
+
+        win.timeline_dock._on_action_changed("run")
+
+        assert win.session.active_action == "run"
+        assert win.doc_ctrl.dirty is True
+        assert win.undo_stack.count() == count0 + 1
+
+        win.undo_stack.undo()
+        assert win.session.active_action == "walk"
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
 def test_file_new_clears_undo_history():
     """File->New must not let Ctrl+Z reach into the previous document's
     edits -- previously the undo stack was never cleared on New, only
@@ -846,7 +905,7 @@ def test_file_open_clears_undo_history(tmp_path, monkeypatch):
         path = str(tmp_path / "other.am3d")
         other.save_project(path)
 
-        win._do_primitive("sphere2", dict(radius=0.8, sections=12, rings=8))
+        win._do_primitive("sphere", dict(radius=0.8, sections=12, rings=8))
         assert win.undo_stack.count() > 0
 
         monkeypatch.setattr(

@@ -147,7 +147,13 @@ class ObjectDock(QWidget):
                 finally:
                     self._syncing = False
         elif kind == "action":
-            self.main.session.set_active_action(iname or None)
+            from .operators import SetActiveActionCommand, push_or_apply
+            s = self.main.session
+            after = iname or None
+            if after != s.active_action:
+                push_or_apply(self.main,
+                              SetActiveActionCommand(s, s.active_action, after),
+                              emit=self.data_changed)
             QTimer.singleShot(0, self.data_changed.emit)
         self.context_changed.emit(kind, oname, iname)
 

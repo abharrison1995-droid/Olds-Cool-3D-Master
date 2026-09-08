@@ -365,7 +365,14 @@ class TimelineDock(QWidget):
     def _on_action_changed(self, name):
         if self._syncing:
             return
-        self.main.session.set_active_action(name or None)
+        from .operators import SetActiveActionCommand, push_or_apply
+        s = self.main.session
+        after = name or None
+        if after == s.active_action:
+            return
+        push_or_apply(self.main,
+                      SetActiveActionCommand(s, s.active_action, after),
+                      emit=self.data_changed)
         self.sheet.selected = set()
         self.sheet.update()
 

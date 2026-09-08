@@ -1,14 +1,22 @@
+# Pinned (not >=) so the packaged Windows build in build_windows.ps1 is
+# reproducible: `pip install -r requirements.txt` always resolves to the
+# same versions instead of drifting with whatever is newest on the day of
+# the build. Bump deliberately, not incidentally.
+
 # Runtime requirements. Pillow is NOT optional: the PNG export and texture
 # loading paths raise without it (am3d/renderer/sprite.py, materials.py).
-numpy>=1.24
-msgpack>=1.0
-PySide6>=6.5
-Pillow>=10.0
+numpy==2.4.6
+msgpack==1.2.1
+PySide6==6.11.2
+Pillow==12.3.0
 
 # Optional GPU renderer. am3d falls back to the software toon path when
 # this is absent, so it is not required to run the app.
-moderngl>=5.11
+moderngl==5.12.0
+
+# Build-time only (produces the packaged .exe in build_windows.ps1); not a
+# runtime import of am3d itself.
+pyinstaller==6.22.2
 
 # Tests
-pytest>=7.0
-hypothesis>=6.0
+pytest==9.1.1

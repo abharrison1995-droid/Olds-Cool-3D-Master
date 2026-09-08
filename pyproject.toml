@@ -17,7 +17,7 @@ dependencies = [
 ]
 
 [project.optional-dependencies]
-test = ["pytest>=7.0", "hypothesis>=6.0"]
+test = ["pytest>=7.0"]
 renderer = ["moderngl>=5.11"]
 accel = ["numba>=0.58"]
 

@@ -19,6 +19,18 @@ a = Analysis(
     binaries=[],
     datas=[
         ("am3d/ui/theme_am2005.qss", "am3d/ui"),
+        # MainWindow._example_projects() (am3d/ui/app.py) resolves the
+        # bundled Examples via Path(__file__).resolve().parents[2] / "assets"
+        # -- in a frozen build that's <dist>/_internal/assets, not the repo's
+        # top-level assets/. Without this, the packaged app silently shows
+        # "(No examples installed)" even though build_windows.ps1 separately
+        # copies assets/ into the release folder for human browsing.
+        ("assets", "assets"),
+        # Recipe schema/agent guide referenced by docs/recipes/ -- bundled
+        # for reference alongside the packaged app, per Phase 6's "bundle
+        # ... recipe schema/agent guide" requirement.
+        ("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
+        ("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
     ],
     hiddenimports=[
         "PySide6.QtCore",

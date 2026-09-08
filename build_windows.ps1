@@ -7,8 +7,26 @@
 #>
 
 $ErrorActionPreference = "Stop"
-$RepoRoot = Split-Path -Parent $PSScriptRoot
+# This script lives at the repo root itself (not a subdirectory like
+# scripts/), so the repo root IS $PSScriptRoot -- walking up a level here
+# would build from the wrong directory (and clean up the wrong "dist"/
+# "release" folders) whenever invoked from outside the repo.
+$RepoRoot = $PSScriptRoot
 Set-Location $RepoRoot
+
+# Run a native command (pip/pytest/PyInstaller) without $ErrorActionPreference
+# = "Stop" turning its own stderr output into a fatal error. PowerShell 5.1
+# wraps ANY stderr line from a native exe in a terminating NativeCommandError
+# under "Stop" -- e.g. pip's harmless "new version available" notice would
+# abort the whole build even though the install succeeded. $LASTEXITCODE,
+# checked by the caller right after, is the real signal; this only relaxes
+# the wrapper around the call itself, not the rest of the script.
+function Invoke-Native {
+    param([ScriptBlock]$Command)
+    $prev = $ErrorActionPreference
+    $ErrorActionPreference = "Continue"
+    try { & $Command } finally { $ErrorActionPreference = $prev }
+}
 
 Write-Host "=== 3D MASTER:2005 Windows Build ===" -ForegroundColor Cyan
 Write-Host ""
@@ -24,23 +42,22 @@ try {
     exit 1
 }
 
-# Check for required packages
-Write-Host "Step 2: Checking dependencies..." -ForegroundColor Yellow
-$required = @("PySide6", "numpy", "msgpack", "scipy", "pyinstaller")
-foreach ($pkg in $required) {
-    try {
-        & $py -c "import $pkg" 2>$null
-        Write-Host "  $pkg: OK" -ForegroundColor Green
-    } catch {
-        Write-Host "  $pkg: MISSING (will install)" -ForegroundColor Yellow
-        & $py -m pip install $pkg 2>&1 | Out-Null
-    }
+# Install pinned dependencies from requirements.txt -- the single source of
+# truth for reproducible versions, instead of an unpinned per-package list
+# that can silently drift (or, as before, reference packages am3d no
+# longer uses at all).
+Write-Host "Step 2: Installing pinned dependencies from requirements.txt..." -ForegroundColor Yellow
+$reqPath = Join-Path $RepoRoot "requirements.txt"
+Invoke-Native { & $py -m pip install -r $reqPath }
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Dependency installation failed!"
+    exit 1
 }
 
 # ---- 2. Run tests ----
 Write-Host ""
 Write-Host "Step 3: Running all tests..." -ForegroundColor Yellow
-& $py -m pytest am3d/ -q --tb=short 2>&1
+Invoke-Native { & $py -m pytest am3d/ -q --tb=short }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Tests failed! Aborting build."
     exit 1
@@ -55,7 +72,7 @@ if (Test-Path $buildDir) {
     Remove-Item -Recurse -Force $buildDir
 }
 
-& $py -m PyInstaller --clean am3d.spec 2>&1
+Invoke-Native { & $py -m PyInstaller --clean am3d.spec }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyInstaller build failed!"
     exit 1
@@ -98,7 +115,7 @@ This software uses:
 - PySide6 (LGPL-3.0)
 - NumPy (BSD-3-Clause)
 - msgpack (Apache-2.0)
-- SciPy (BSD-3-Clause)
+- Pillow (MIT-CMU)
 - ModernGL (MIT)
 - Numba (BSD-2-Clause)
 

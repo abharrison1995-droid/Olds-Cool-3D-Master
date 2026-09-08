@@ -288,7 +288,7 @@ Acceptance: normal modelling/animation workflows are undoable and durable;
 crash recovery is demonstrated; no visible dead controls; fresh users can open
 an externally generated project, play it, edit it, save it, and export it.
 
-Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 6.
+Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 6. Status: PASS (Verified 2026-09-08, see docs/evidence/v3/phase-5/gate_evidence.md). Note: this review swarm ran on Haiku rather than Luna at explicit user direction; see gate evidence for the caveat.
 
 ## 10. Phase 6 — Reproducible Windows distribution
 

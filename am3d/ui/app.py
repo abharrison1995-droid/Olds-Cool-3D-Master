@@ -14,6 +14,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
     QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox,
@@ -78,6 +79,16 @@ class MainWindow(QMainWindow):
 
         # Document controller owns the session, dirty state, and file ops.
         self.doc_ctrl = DocumentController(self)
+
+        # One lifecycle-owned autosave timer, created once and reused for
+        # the life of the window; only its interval changes when the user
+        # edits the Settings preference. It never marks the main document
+        # clean — do_autosave() writes to a separate app-data snapshot file
+        # and leaves self.doc_ctrl.dirty untouched either way.
+        self._autosave_timer = QTimer(self)
+        self._autosave_timer.timeout.connect(self._on_autosave_timeout)
+        self._apply_autosave_interval()
+        self._autosave_timer.start()
 
         self.undo_stack = QUndoStack(self)
         self.undo_stack.cleanChanged.connect(self._on_clean_changed)
@@ -594,6 +605,8 @@ class MainWindow(QMainWindow):
         try:
             self.doc_ctrl.do_open(path)
             self.doc_ctrl.add_recent(path)
+            self._reset_document_ui_state()
+            self._refresh_all()
             self.show_editor()
         except Exception as exc:
             from PySide6.QtWidgets import QMessageBox
@@ -605,6 +618,8 @@ class MainWindow(QMainWindow):
             return
         try:
             self.doc_ctrl.recover_from(path)
+            self._reset_document_ui_state()
+            self._refresh_all()
             self.show_editor()
         except Exception as exc:
             from PySide6.QtWidgets import QMessageBox
@@ -704,7 +719,24 @@ class MainWindow(QMainWindow):
         """Open the Settings dialog."""
         from .settings import SettingsDialog
         dlg = SettingsDialog(self)
-        dlg.exec()
+        if dlg.exec():
+            self._apply_autosave_interval()
+
+    def _apply_autosave_interval(self):
+        """(Re)schedule the lifecycle-owned autosave timer from the Settings
+        preference, in minutes. Reschedules the existing timer rather than
+        recreating it, so a mid-session Settings change takes effect without
+        disturbing the timer's identity or its connected signal."""
+        from PySide6.QtCore import QSettings
+        minutes = int(QSettings("3DMASTER2005", "app").value("autosaveInterval", 5))
+        self._autosave_timer.setInterval(max(1, minutes) * 60_000)
+
+    def _on_autosave_timeout(self):
+        """Write an autosave snapshot if the document has unsaved changes.
+        Never touches doc_ctrl.dirty — autosave is a recovery safety net,
+        not a save, so the document must still prompt on Close/Quit/New."""
+        if self.doc_ctrl.dirty:
+            self.doc_ctrl.do_autosave()
 
     def _about(self):
         QMessageBox.about(

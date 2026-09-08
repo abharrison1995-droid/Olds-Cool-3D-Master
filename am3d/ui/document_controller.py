@@ -10,7 +10,9 @@ rename over the destination.  On failure the original file remains intact.
 
 from __future__ import annotations
 
+import hashlib
 import os
+import uuid
 from pathlib import Path
 
 from PySide6.QtWidgets import QMessageBox, QWidget
@@ -28,6 +30,11 @@ class DocumentController:
         self._dirty = False
         self._undo_blocked = False
         self._testing_discard = False  # When True, maybe_abandon_document auto-discards
+        # Identity for an untitled/never-saved document's autosave slot —
+        # regenerated whenever a *new* untitled document replaces this one
+        # (do_new, recover_from), so two distinct blank documents never
+        # share an autosave file just because neither has a path yet.
+        self._untitled_id = uuid.uuid4().hex[:10]
 
     # -- properties ----------------------------------------------------------
 
@@ -82,6 +89,7 @@ class DocumentController:
         """Reset to a blank project.  Caller must have checked maybe_abandon()."""
         self.session.new_project()
         self._path = None
+        self._untitled_id = uuid.uuid4().hex[:10]
         self._mark_clean()
 
     def do_open(self, path: str) -> None:
@@ -109,9 +117,20 @@ class DocumentController:
             return None
         if not path.endswith(".am3d"):
             path += ".am3d"
+        stale_autosave = self.autosave_path()
         self._ensure_atomic_save(path)
         self._path = path
         self._mark_clean()
+        # The document's identity (and so its autosave slot) just changed —
+        # the content is now safely at *path*, so the previous slot is an
+        # orphan. Clean it up rather than leaving a stale snapshot behind
+        # that a future startup-recovery scan would offer for a document
+        # that no longer exists in that form.
+        if stale_autosave != self.autosave_path():
+            try:
+                Path(stale_autosave).unlink(missing_ok=True)
+            except OSError:
+                pass
         return path
 
     def maybe_abandon_document(self) -> bool:
@@ -180,14 +199,30 @@ class DocumentController:
 
     # -- autosave ------------------------------------------------------------
 
+    def _document_identity(self) -> str:
+        """Stable id for this document's autosave slot.
+
+        Derived from the resolved save path when one exists, so reopening
+        the same file always lands on the same slot; otherwise the random
+        id assigned to this untitled document. Without this, two different
+        documents that merely share a filename (e.g. "vase.am3d" in two
+        different folders) would collide on the same autosave file and
+        silently clobber each other's recovery snapshot.
+        """
+        if self._path:
+            resolved = os.path.realpath(self._path)
+            return hashlib.sha1(
+                resolved.encode("utf-8", "surrogateescape")).hexdigest()[:10]
+        return self._untitled_id
+
     def autosave_path(self) -> str:
         """Return the autosave path for the current project."""
         from PySide6.QtCore import QStandardPaths
         app_data = Path(QStandardPaths.writableLocation(
             QStandardPaths.AppLocalDataLocation))
         app_data.mkdir(parents=True, exist_ok=True)
-        name = Path(self._path).stem if self._path else "autosave"
-        return str(app_data / f"{name}.autosave.am3d")
+        stem = Path(self._path).stem if self._path else "untitled"
+        return str(app_data / f"{stem}-{self._document_identity()}.autosave.am3d")
 
     def do_autosave(self) -> None:
         """Write an autosave snapshot (best effort, never raises)."""
@@ -212,9 +247,20 @@ class DocumentController:
         return sorted(str(p) for p in app_data.glob("*.autosave.am3d"))
 
     def recover_from(self, path: str) -> bool:
-        """Load a recovery/autosave file.  Returns True on success."""
+        """Load a recovery/autosave file.  Returns True on success.
+
+        A recovered document opens dirty and pathless, even though the
+        autosave file it loaded from has a real path on disk: the autosave
+        slot is an internal app-data snapshot, not a project location the
+        user chose, so the next Save must go through Save As rather than
+        silently overwriting the snapshot file in place. A fresh untitled
+        identity means the recovered document also gets its own autosave
+        slot instead of reusing whatever untitled slot preceded it.
+        """
         try:
             self.do_open(path)
+            self._path = None
+            self._untitled_id = uuid.uuid4().hex[:10]
             self._dirty = True
             return True
         except Exception:

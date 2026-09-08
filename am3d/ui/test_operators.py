@@ -444,3 +444,97 @@ def test_viewport_bone_pose_drag():
     finally:
         win.viewport._timer.stop()
         win.close()
+
+
+def test_open_recent_resets_document_ui_state(monkeypatch, tmp_path):
+    """_open_recent must reset viewport/selection/playback like _file_open
+    does — otherwise selection and timeline state from the old document
+    leak into the newly-opened one."""
+    win = _make_main_window()
+    try:
+        path = str(tmp_path / "other.am3d")
+        other = Session()
+        other.create_object("cube")
+        other.save_project(path)
+
+        win.properties_dock.set_context("object", "sphere", "")
+        win.current_context = ("object", "sphere", "")
+
+        win._open_recent(path)
+
+        assert "sphere" not in win.session.project.objects
+        assert "cube" in win.session.project.objects
+        assert win.current_context == ("", "", "")
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_recover_project_resets_document_ui_state(tmp_path):
+    """_recover_project must reset viewport/selection/playback like
+    _file_open does, for the same reason as _open_recent."""
+    win = _make_main_window()
+    try:
+        snapshot = str(tmp_path / "snap.autosave.am3d")
+        other = Session()
+        other.create_object("cube")
+        other.save_project(snapshot)
+
+        win.properties_dock.set_context("object", "sphere", "")
+        win.current_context = ("object", "sphere", "")
+
+        win._recover_project(snapshot)
+
+        assert "sphere" not in win.session.project.objects
+        assert "cube" in win.session.project.objects
+        assert win.current_context == ("", "", "")
+        assert win.doc_ctrl.dirty is True
+        assert win.doc_ctrl.path is None
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_autosave_timer_fires_only_when_dirty(monkeypatch):
+    """The lifecycle-owned autosave timer must call do_autosave() when the
+    document is dirty, and must never mark the document clean itself —
+    autosave is a recovery safety net, not a substitute for Save."""
+    win = _make_main_window()
+    try:
+        calls = []
+        monkeypatch.setattr(win.doc_ctrl, "do_autosave", lambda: calls.append(1))
+
+        assert win.doc_ctrl.dirty is False
+        win._on_autosave_timeout()
+        assert calls == []
+
+        win.doc_ctrl.mark_dirty()
+        win._on_autosave_timeout()
+        assert calls == [1]
+        assert win.doc_ctrl.dirty is True  # autosave never cleans the doc
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_apply_autosave_interval_reads_settings_in_minutes(monkeypatch):
+    """Changing the Settings autosave-interval preference reschedules the
+    same timer instance (not a new one) with the interval in milliseconds."""
+    from PySide6.QtCore import QSettings
+    win = _make_main_window()
+    try:
+        timer_before = win._autosave_timer
+        s = QSettings("3DMASTER2005", "app")
+        s.setValue("autosaveInterval", 7)
+        try:
+            win._apply_autosave_interval()
+            assert win._autosave_timer is timer_before
+            assert win._autosave_timer.interval() == 7 * 60_000
+        finally:
+            s.remove("autosaveInterval")
+    finally:
+        win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+        win.close()

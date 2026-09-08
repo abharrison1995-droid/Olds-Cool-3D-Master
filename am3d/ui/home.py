@@ -35,6 +35,7 @@ class HomeWidget(QWidget):
     action_open = Signal()
     action_recent = Signal(str)          # project path
     action_recover = Signal(str)         # autosave path
+    action_example = Signal(str)         # bundled example project path
     action_enter_editor = Signal()
     action_about = Signal()
     action_quick_start = Signal()
@@ -118,6 +119,22 @@ class HomeWidget(QWidget):
         self.recover_btn.clicked.connect(self._on_recover)
         right.addWidget(self.recover_btn)
 
+        ex_label = QLabel("Examples")
+        ex_label.setObjectName("homeSectionTitle")
+        f4 = ex_label.font()
+        f4.setPointSize(14)
+        f4.setBold(True)
+        ex_label.setFont(f4)
+        right.addWidget(ex_label)
+
+        self.examples_list = QListWidget()
+        self.examples_list.setObjectName("homeExamplesList")
+        self.examples_list.setMinimumWidth(280)
+        self.examples_list.setMaximumWidth(400)
+        self.examples_list.setMaximumHeight(90)
+        self.examples_list.itemDoubleClicked.connect(self._on_example_double_click)
+        right.addWidget(self.examples_list)
+
         row.addLayout(right, 1)
         layout.addLayout(row)
 
@@ -148,12 +165,35 @@ class HomeWidget(QWidget):
         """Show or hide the Recover Autosave button."""
         self.recover_btn.setVisible(visible)
 
+    def set_examples(self, examples: list[tuple[str, str]]):
+        """Populate the bundled-example list from (label, path) pairs.
+
+        Missing/uninstalled example files are the caller's responsibility to
+        filter out -- this just renders whatever it's given, or a fallback
+        message if the list is empty.
+        """
+        self.examples_list.clear()
+        for label, path in examples:
+            item = QListWidgetItem(label)
+            item.setData(Qt.UserRole, path)
+            item.setToolTip(path)
+            self.examples_list.addItem(item)
+        if not examples:
+            item = QListWidgetItem("(No examples installed)")
+            item.setFlags(Qt.NoItemFlags)
+            self.examples_list.addItem(item)
+
     # -- internal slots -----------------------------------------------------
 
     def _on_recent_double_click(self, item: QListWidgetItem):
         path = item.data(Qt.UserRole)
         if path:
             self.action_recent.emit(path)
+
+    def _on_example_double_click(self, item: QListWidgetItem):
+        path = item.data(Qt.UserRole)
+        if path:
+            self.action_example.emit(path)
 
     def _on_recover(self):
         from .document_controller import DocumentController

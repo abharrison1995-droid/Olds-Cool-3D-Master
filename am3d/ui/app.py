@@ -574,10 +574,26 @@ class MainWindow(QMainWindow):
         self.stack.setCurrentIndex(0)
         self.home.set_recent_projects(self.doc_ctrl.recent_projects())
         self.home.set_recover_visible(self.doc_ctrl.autosave_exists())
+        self.home.set_examples(self._example_projects())
         self.menuBar().setVisible(False)
         self.workspace_tabs.setVisible(False)
         self.tiled.setVisible(False)
         self.update()
+
+    def _example_projects(self) -> list[tuple[str, str]]:
+        """Bundled example projects for the Home screen's Examples list.
+
+        Resolved relative to the repo/package layout (am3d/ui/app.py ->
+        parents[2] is the repo root) rather than hardcoded, so the app
+        degrades to an empty list instead of a broken entry if the assets
+        directory isn't present alongside the installed package.
+        """
+        assets = Path(__file__).resolve().parents[2] / "assets"
+        candidates = [
+            ("Vase (lathed spline)", assets / "vase_demo.am3d"),
+            ("Generated character (knight)", assets / "demo" / "knight_project.am3d"),
+        ]
+        return [(label, str(path)) for label, path in candidates if path.is_file()]
 
     def show_editor(self):
         """Switch to the editor workspace."""
@@ -595,9 +611,13 @@ class MainWindow(QMainWindow):
         h.action_open.connect(self._file_open)
         h.action_enter_editor.connect(self.show_editor)
         h.action_about.connect(self._about)
+        h.action_quick_start.connect(self._show_quick_start)
         h.action_exit.connect(self._file_quit)
         h.action_recent.connect(self._open_recent)
         h.action_recover.connect(self._recover_project)
+        # Opening an example is just opening a project file -- same
+        # dirty-check/undo-clear/recent-list handling as any other Open.
+        h.action_example.connect(self._open_recent)
 
     def _open_recent(self, path: str):
         """Open a project from the recent-projects list."""
@@ -793,6 +813,23 @@ class MainWindow(QMainWindow):
             self, "About 3D MASTER:2005",
             "A pure spline-based 3D character animation suite.\n"
             "Workspaces: Layout  Model  Rig  Animate  Render")
+
+    def _show_quick_start(self):
+        QMessageBox.information(
+            self, "Quick Start",
+            "1. New Empty Project (Ctrl+N), or double-click an Example "
+            "below to open a finished one.\n"
+            "2. Model: Create menu > a primitive, or draw a profile spline "
+            "and Lathe/Extrude it into a surface.\n"
+            "3. Rig: add bones to a mesh, then pose them in the viewport.\n"
+            "4. Animate: switch to the Animate workspace, set poses on the "
+            "Timeline to key an Action.\n"
+            "5. Save (Ctrl+S), then Export OBJ/GLB from the File menu.\n\n"
+            "Undo/Redo (Ctrl+Z / Ctrl+Y) cover every edit above, including "
+            "keying poses and importing actions.\n\n"
+            "The Vase and Generated Character entries under Examples are "
+            "complete projects you can open, edit, and re-export to see the "
+            "whole pipeline end to end.")
 
 
 def main(argv=None) -> int:

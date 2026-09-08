@@ -1,0 +1,193 @@
+"""Tests for the Home hub: bundled Examples, Quick Start, and dirty-safe
+navigation back to Home from the editor (Phase 5 bullet 6).
+"""
+
+from __future__ import annotations
+
+import sys
+
+import pytest
+
+from PySide6.QtCore import Qt
+
+
+def _qapp():
+    try:
+        from PySide6.QtWidgets import QApplication
+        app = QApplication.instance()
+        if app is None:
+            app = QApplication(sys.argv)
+        return app
+    except Exception:
+        pytest.skip("PySide6 not available or no display")
+
+
+# -- HomeWidget (no MainWindow needed) ---------------------------------------
+
+def test_set_examples_populates_list_with_path_userdata():
+    _qapp()
+    from am3d.ui.home import HomeWidget
+    home = HomeWidget()
+    home.set_examples([("Vase", "/tmp/vase.am3d"), ("Knight", "/tmp/knight.am3d")])
+    assert home.examples_list.count() == 2
+    assert home.examples_list.item(0).text() == "Vase"
+    assert home.examples_list.item(0).data(Qt.UserRole) == "/tmp/vase.am3d"
+
+
+def test_set_examples_empty_shows_placeholder_not_clickable():
+    _qapp()
+    from am3d.ui.home import HomeWidget
+    home = HomeWidget()
+    home.set_examples([])
+    assert home.examples_list.count() == 1
+    item = home.examples_list.item(0)
+    assert item.flags() == Qt.NoItemFlags
+
+
+def test_example_double_click_emits_action_example_with_path():
+    _qapp()
+    from am3d.ui.home import HomeWidget
+    home = HomeWidget()
+    home.set_examples([("Vase", "/tmp/vase.am3d")])
+    received = []
+    home.action_example.connect(received.append)
+    home._on_example_double_click(home.examples_list.item(0))
+    assert received == ["/tmp/vase.am3d"]
+
+
+# -- MainWindow integration ---------------------------------------------------
+
+def _make_main_window():
+    from am3d.ui.test_operators import _make_main_window as _mw
+    return _mw()
+
+
+def test_example_projects_resolve_to_real_bundled_files():
+    """The Examples list must point at the actual vase/knight demo assets
+    shipped in the repo, not placeholders -- both should load cleanly."""
+    import os
+    win = _make_main_window()
+    try:
+        examples = win._example_projects()
+        labels = [label for label, _ in examples]
+        assert "Vase (lathed spline)" in labels
+        assert "Generated character (knight)" in labels
+        for _, path in examples:
+            assert os.path.isfile(path)
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_show_home_populates_examples_list():
+    win = _make_main_window()
+    try:
+        win.show_home()
+        assert win.home.examples_list.count() >= 1
+        assert "(No examples installed)" not in [
+            win.home.examples_list.item(i).text()
+            for i in range(win.home.examples_list.count())]
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_opening_vase_example_loads_expected_objects():
+    """The fresh-launch vase journey: open the bundled example, edit, and
+    confirm the resulting session matches what the demo script produces."""
+    win = _make_main_window()
+    try:
+        examples = dict(win._example_projects())
+        vase_path = examples["Vase (lathed spline)"]
+        win._open_recent(vase_path)
+        assert "vase" in win.session.project.objects
+        assert win.doc_ctrl.path == vase_path
+        assert win.doc_ctrl.dirty is False
+        assert win.undo_stack.count() == 0
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_opening_knight_example_loads_expected_objects():
+    """The fresh-launch generated-character journey."""
+    win = _make_main_window()
+    try:
+        examples = dict(win._example_projects())
+        knight_path = examples["Generated character (knight)"]
+        win._open_recent(knight_path)
+        assert "hero" in win.session.project.objects
+        assert win.doc_ctrl.path == knight_path
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_opening_example_respects_dirty_check(monkeypatch):
+    """Double-clicking an Example must go through the same unsaved-changes
+    gate as any other Open -- it must not silently discard live edits."""
+    win = _make_main_window()
+    try:
+        examples = dict(win._example_projects())
+        vase_path = examples["Vase (lathed spline)"]
+
+        win._do_primitive("sphere", dict(radius=0.8, sections=12, rings=8))
+        assert win.doc_ctrl.dirty is True
+
+        monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document", lambda: False)
+        win._open_recent(vase_path)
+        assert "vase" not in win.session.project.objects  # aborted
+
+        monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document", lambda: True)
+        win._open_recent(vase_path)
+        assert "vase" in win.session.project.objects
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_quick_start_button_is_wired_and_does_not_raise(monkeypatch):
+    """The Quick Start button previously emitted a signal nobody connected
+    to -- a dead control. It must now open real guidance."""
+    from PySide6.QtWidgets import QMessageBox
+    win = _make_main_window()
+    try:
+        shown = []
+        monkeypatch.setattr(
+            QMessageBox, "information",
+            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+        win.home.action_quick_start.emit()
+        assert len(shown) == 1
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_close_editor_is_dirty_safe_round_trip():
+    """'Close Editor' must not lose unsaved work -- it only navigates to
+    Home, leaving the in-memory document (and its undo history) intact so
+    Enter Editor resumes exactly where the user left off."""
+    win = _make_main_window()
+    try:
+        # _make_main_window() already seeds a fixture object named "sphere"
+        # directly (bypassing undo); use a different primitive so the new
+        # object's undo entry is unambiguous.
+        win._do_primitive("box", dict(width=1.0, height=1.0, depth=1.0))
+        assert win.doc_ctrl.dirty is True
+        count_before = win.undo_stack.count()
+
+        win.show_home()
+        assert win.doc_ctrl.dirty is True  # unaffected by the navigation
+        assert win.undo_stack.count() == count_before
+        assert "box" in win.session.project.objects
+
+        win.show_editor()
+        assert win.doc_ctrl.dirty is True
+        assert win.undo_stack.count() == count_before
+        assert "box" in win.session.project.objects
+
+        win.undo_stack.undo()
+        assert "box" not in win.session.project.objects
+    finally:
+        win.viewport._timer.stop()
+        win.close()

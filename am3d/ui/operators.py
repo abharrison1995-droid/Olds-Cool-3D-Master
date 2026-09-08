@@ -31,6 +31,7 @@ __all__ = [
     "CreateActionCommand", "DeleteActionCommand", "RenameActionCommand",
     "AssignActionCommand", "InsertKeyCommand", "MoveKeyCommand",
     "DeleteKeyCommand", "SetAnimationSettingsCommand",
+    "SetRenderSettingsCommand", "ImportActionCommand", "ClearPoseCommand",
     "CreatePrimitiveCommand",
     "CreateSplineProfileCommand",
     "LatheProfileCommand",
@@ -659,6 +660,78 @@ class SetAnimationSettingsCommand(_SessionCommand):
 
     def undo(self):
         self._apply(self.before)
+
+
+class SetRenderSettingsCommand(_SessionCommand):
+    """Render tab edits (supersample / toon), applied to Project.render_settings."""
+
+    def __init__(self, session, before, after):
+        super().__init__(session, "Render settings")
+        self.before = dict(before)
+        self.after = dict(after)
+
+    def _apply(self, settings):
+        proj = self.session.project
+        current = getattr(proj, "render_settings", None)
+        if current is None:
+            current = proj.render_settings = {}
+        current.update(settings)
+
+    def redo(self):
+        self._apply(self.after)
+
+    def undo(self):
+        self._apply(self.before)
+
+
+class ImportActionCommand(_SessionCommand):
+    """Register an already-parsed Action (see
+    am3d.core.serializer.load_action_file, a pure parse with no session
+    side effects) into the session. Keeping the file I/O out of redo/undo
+    means both are pure in-memory operations, idempotent on redo.
+    """
+
+    def __init__(self, session, action):
+        super().__init__(session, f"Import action {action.name}")
+        self.name = action.name
+        self.action = action
+        self._had_before = action.name in session.actions
+        self._before_action = (copy.deepcopy(session.actions[action.name])
+                               if self._had_before else None)
+        self._before_active = session.active_action
+
+    def redo(self):
+        self.session.actions[self.name] = self.action
+        if self.session.active_action is None:
+            self.session.set_active_action(self.name)
+
+    def undo(self):
+        if self._had_before:
+            self.session.actions[self.name] = self._before_action
+        else:
+            del self.session.actions[self.name]
+        self.session.set_active_action(self._before_active)
+
+
+class ClearPoseCommand(_SessionCommand):
+    """Reset Pose: drop every authored bone rotation/offset for an object."""
+
+    def __init__(self, session, object_name):
+        super().__init__(session, "Clear pose")
+        self.object_name = object_name
+        self._before_poses = dict(session.poses.get(object_name, {}))
+        self._before_offsets = dict(session.pose_offsets.get(object_name, {}))
+
+    def redo(self):
+        self.session.clear_pose(self.object_name)
+        self.session.apply_pose(self.object_name)
+
+    def undo(self):
+        if self._before_poses:
+            self.session.poses[self.object_name] = dict(self._before_poses)
+        if self._before_offsets:
+            self.session.pose_offsets[self.object_name] = dict(self._before_offsets)
+        self.session.apply_pose(self.object_name)
 
 
 def push_or_apply(main, command, emit=None):

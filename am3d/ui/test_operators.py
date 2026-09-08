@@ -10,14 +10,17 @@ from __future__ import annotations
 import numpy as np
 import pytest
 
+from am3d.core.animation import Action
 from am3d.core.project import ControlPoint
 from am3d.core.script import Session
 from am3d.ui.operators import (
-    AddMaterialCommand, AddObjectCommand, DeleteMaterialCommand,
-    DeleteObjectCommand, InsertCPCommand, MoveCPCommand, PoseBoneCommand,
+    AddMaterialCommand, AddObjectCommand, ClearPoseCommand,
+    DeleteMaterialCommand, DeleteObjectCommand, ImportActionCommand,
+    InsertCPCommand, MoveCPCommand, PoseBoneCommand,
     RemoveCPCommand, RenameObjectCommand, SetBoneEndpointsCommand,
     SetMaterialColorCommand, SetMaterialMapsCommand,
-    SetObjectTransformCommand, SetObjectVisibleCommand, QUndoStack,
+    SetObjectTransformCommand, SetObjectVisibleCommand,
+    SetRenderSettingsCommand, QUndoStack,
 )
 
 
@@ -159,6 +162,70 @@ def test_pose_bone_command(session, stack):
     assert "hero" in session.posed_transforms
     stack.undo()
     assert "arm" not in session.poses.get("hero", {})
+
+
+def test_clear_pose_command_undo_redo(session, stack):
+    session.add_bone("hero", "arm", (0, 0, 0), (0, 1, 0))
+    session.pose_bone("hero", "arm", np.eye(3))
+    session.apply_pose("hero")
+    assert "arm" in session.poses["hero"]
+
+    stack.push(ClearPoseCommand(session, "hero"))
+    assert "hero" not in session.poses
+    stack.undo()
+    assert "arm" in session.poses["hero"]
+    stack.redo()
+    assert "hero" not in session.poses
+
+
+def test_render_settings_command_undo_redo(session, stack):
+    session.project.render_settings = {"supersample": 2, "toon": True}
+    before = dict(session.project.render_settings)
+    after = {"supersample": 4, "toon": False}
+    stack.push(SetRenderSettingsCommand(session, before, after))
+    assert session.project.render_settings["supersample"] == 4
+    assert session.project.render_settings["toon"] is False
+    stack.undo()
+    assert session.project.render_settings["supersample"] == 2
+    assert session.project.render_settings["toon"] is True
+
+
+def test_import_action_command_undo_redo_new_name(session, stack):
+    act = Action(name="walk", duration=2.0)
+    assert "walk" not in session.actions
+    assert session.active_action is None
+
+    stack.push(ImportActionCommand(session, act))
+    assert session.actions["walk"] is act
+    assert session.active_action == "walk"  # first action becomes active
+    assert session.project.active_action == "walk"
+
+    stack.undo()
+    assert "walk" not in session.actions
+    assert session.active_action is None
+
+    stack.redo()
+    assert session.actions["walk"] is act
+    assert session.active_action == "walk"
+
+
+def test_import_action_command_undo_redo_overwrites_existing(session, stack):
+    old = Action(name="walk", duration=1.0)
+    session.actions["walk"] = old
+    session.active_action = "walk"
+    session.project.active_action = "walk"
+
+    new = Action(name="walk", duration=5.0)
+    stack.push(ImportActionCommand(session, new))
+    assert session.actions["walk"] is new
+    assert session.active_action == "walk"  # unchanged, already active
+
+    stack.undo()
+    # ImportActionCommand deep-copies the "before" action for snapshot
+    # safety, so undo restores an equal-but-distinct object, not `old` itself.
+    assert session.actions["walk"] is not new
+    assert session.actions["walk"].duration == old.duration
+    assert session.active_action == "walk"
 
 
 def test_undo_stack_clean_state(session, stack):
@@ -658,5 +725,138 @@ def test_apply_settings_falls_back_on_corrupt_undo_depth(monkeypatch):
         assert win.undo_stack.undoLimit() == 100
     finally:
         win._autosave_timer.stop()
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_render_settings_change_is_undoable_and_dirty(monkeypatch):
+    """Editing the Render tab's Supersample/Toon controls must be undoable
+    and must mark the document dirty -- previously it mutated
+    project.render_settings directly, bypassing both the undo stack and
+    dirty tracking (so it could be lost silently on Close without a save
+    prompt)."""
+    win = _make_main_window()
+    try:
+        win.properties_dock.set_context("render", "", "")
+        panel = win.properties_dock
+        panel._loading = False
+        assert win.doc_ctrl.dirty is False
+        count0 = win.undo_stack.count()
+
+        panel.rnd_supersample.setValue(6)
+        panel._render_changed()
+
+        assert win.session.project.render_settings["supersample"] == 6
+        assert win.doc_ctrl.dirty is True
+        assert win.undo_stack.count() == count0 + 1
+
+        win.undo_stack.undo()
+        assert win.session.project.render_settings.get("supersample", 2) != 6
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_import_action_is_undoable_and_dirty(monkeypatch, tmp_path):
+    """Importing an .am3a action file must be undoable and mark the
+    document dirty, like any other authoring action -- previously it
+    called Session.load_action_file() directly, which mutated session
+    state outside the undo stack."""
+    from am3d.core.animation import Action
+    from am3d.core.serializer import save_action
+    from PySide6.QtWidgets import QFileDialog
+
+    win = _make_main_window()
+    try:
+        path = str(tmp_path / "walk.am3a")
+        save_action(Action(name="walk", duration=1.5), path)
+
+        monkeypatch.setattr(QFileDialog, "getOpenFileName",
+                             staticmethod(lambda *a, **k: (path, "")))
+        assert win.doc_ctrl.dirty is False
+        count0 = win.undo_stack.count()
+
+        win._file_import_action()
+
+        assert "walk" in win.session.actions
+        assert win.doc_ctrl.dirty is True
+        assert win.undo_stack.count() == count0 + 1
+
+        win.undo_stack.undo()
+        assert "walk" not in win.session.actions
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_clear_pose_is_undoable_and_dirty():
+    """Reset Pose must be undoable and mark the document dirty -- previously
+    it called Session.clear_pose()/apply_pose() directly, bypassing both."""
+    win = _make_main_window()
+    try:
+        win.session.add_bone("sphere", "root", (0, 0, 0), (0, 1, 0))
+        win.session.pose_bone("sphere", "root", np.eye(3))
+        win.session.apply_pose("sphere")
+        win.doc_ctrl._mark_clean()
+        win.current_context = ("bone", "sphere", "root")
+
+        assert win.doc_ctrl.dirty is False
+        count0 = win.undo_stack.count()
+
+        win._clear_pose()
+
+        assert "sphere" not in win.session.poses
+        assert win.doc_ctrl.dirty is True
+        assert win.undo_stack.count() == count0 + 1
+
+        win.undo_stack.undo()
+        assert "root" in win.session.poses.get("sphere", {})
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_file_new_clears_undo_history():
+    """File->New must not let Ctrl+Z reach into the previous document's
+    edits -- previously the undo stack was never cleared on New, only
+    reset to a "clean" marker at whatever index it already had."""
+    win = _make_main_window()
+    win.show()
+    try:
+        win._do_primitive("sphere", dict(radius=0.8, sections=12, rings=8))
+        assert win.undo_stack.count() > 0
+
+        win._file_new()
+
+        assert win.undo_stack.count() == 0
+        assert win.undo_stack.isClean()
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_file_open_clears_undo_history(tmp_path, monkeypatch):
+    """File->Open must not let Ctrl+Z reach into the previously open
+    document's edits."""
+    from PySide6.QtWidgets import QFileDialog
+    win = _make_main_window()
+    try:
+        other = Session()
+        other.create_object("cube")
+        path = str(tmp_path / "other.am3d")
+        other.save_project(path)
+
+        win._do_primitive("sphere2", dict(radius=0.8, sections=12, rings=8))
+        assert win.undo_stack.count() > 0
+
+        monkeypatch.setattr(
+            QFileDialog, "getOpenFileName",
+            staticmethod(lambda *a, **k: (path, "")))
+        win._file_open()
+
+        assert win.undo_stack.count() == 0
+        assert win.undo_stack.isClean()
+        assert "cube" in win.session.project.objects
+    finally:
         win.viewport._timer.stop()
         win.close()

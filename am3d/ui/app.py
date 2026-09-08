@@ -247,8 +247,8 @@ class MainWindow(QMainWindow):
         target = oname if kind == "bone" else (
             self.viewport.selected[0] if self.viewport.selected else None)
         if target:
-            self.session.clear_pose(target)
-            self.session.apply_pose(target)
+            from .operators import ClearPoseCommand
+            self.push_command(ClearPoseCommand(self.session, target))
             self._refresh_all()
 
     def _auto_key(self, object_name, bone_name):
@@ -682,8 +682,14 @@ class MainWindow(QMainWindow):
         if not path:
             return
         try:
-            act = self.session.load_action_file(path)
-            self.doc_ctrl.mark_dirty()
+            # Parse the file first (no session side effects), then apply
+            # the resulting Action through an undoable command — importing
+            # an action is an authoring action like any other and must be
+            # reversible with Ctrl+Z, not applied directly to the session.
+            from am3d.core.serializer import load_action_file
+            from .operators import ImportActionCommand
+            act = load_action_file(path)
+            self.push_command(ImportActionCommand(self.session, act))
             self.statusBar().showMessage(f"Imported action: {act.name}")
             self._refresh_all()
         except Exception as exc:

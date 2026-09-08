@@ -311,10 +311,15 @@ class PropertiesDock(QWidget):
     def _render_changed(self):
         if self._loading:
             return
+        from .operators import SetRenderSettingsCommand, push_or_apply
         proj = self.main.session.project
-        settings = getattr(proj, "render_settings", None)
-        if settings is None:
-            settings = proj.render_settings = {}
-        settings["supersample"] = int(self.rnd_supersample.value())
-        settings["toon"] = bool(self.rnd_toon.isChecked())
+        before = dict(getattr(proj, "render_settings", None) or {})
+        after = dict(before)
+        after["supersample"] = int(self.rnd_supersample.value())
+        after["toon"] = bool(self.rnd_toon.isChecked())
+        if after == before:
+            return
+        push_or_apply(self.main,
+                      SetRenderSettingsCommand(self.main.session, before, after),
+                      emit=self.data_changed)
         self.data_changed.emit()

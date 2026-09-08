@@ -91,6 +91,10 @@ class DocumentController:
         self._apply_project_defaults()
         self._path = None
         self._untitled_id = uuid.uuid4().hex[:10]
+        # A new blank document has no history of its own -- without this,
+        # Ctrl+Z after File->New could undo edits from the *previous*
+        # document, since QUndoStack has no concept of "which document".
+        self._clear_undo()
         self._mark_clean()
 
     def _apply_project_defaults(self) -> None:
@@ -107,6 +111,10 @@ class DocumentController:
             frame_end = int(s.value("defaultFrameEnd", 120))
         except (TypeError, ValueError):
             frame_end = 120
+        # A hand-edited/corrupted settings store could carry a frame_end
+        # <= frame_start (0); floor it the same way undo_depth is floored,
+        # rather than handing the new project a degenerate animation range.
+        frame_end = max(1, frame_end)
         project = self.session.project
         project.fps = fps
         project.animation_settings["fps"] = fps
@@ -116,6 +124,9 @@ class DocumentController:
         """Load *path*, replacing the current session."""
         self.session.load_project(path)
         self._path = path
+        # Same reasoning as do_new(): a newly opened document must not
+        # inherit undo history from whatever was open before it.
+        self._clear_undo()
         self._mark_clean()
 
     def do_save(self) -> str | None:

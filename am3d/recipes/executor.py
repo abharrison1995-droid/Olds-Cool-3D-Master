@@ -95,7 +95,16 @@ class RecipeExecutor:
 
     def execute(self, recipe) -> ExecutionResult:
         if not isinstance(recipe, Recipe):
-            recipe = recipe_from_dict(recipe)
+            try:
+                recipe = recipe_from_dict(recipe)
+            except (TypeError, ValueError) as exc:
+                # recipe_from_dict can raise TypeError (e.g. an unhashable
+                # dict where a string field was expected) as well as
+                # ValueError; normalize both to the same "invalid recipe"
+                # contract validate_recipe's failures already use below,
+                # instead of letting whatever the parser happened to raise
+                # escape uncaught.
+                raise ValueError(f"invalid recipe: {exc}") from exc
 
         problems = validate_recipe(recipe)
         if problems:

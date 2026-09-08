@@ -132,3 +132,112 @@ def test_action_blender_renormalizes_partial_bones():
     frame = bl.sample(0.0, weights=[0.5, 0.5])
     assert np.allclose(frame["root"]["translate"], [1, 0, 0], atol=1e-9)
     assert np.allclose(frame["arm"]["translate"], [4, 0, 0], atol=1e-9)
+
+# -- a channel holds at most one key per time ---------------------------
+
+
+def _ch():
+    from am3d.core.animation import Channel
+    return Channel(bone="hip", property="rotate")
+
+
+def test_add_key_at_same_time_replaces_rather_than_duplicating():
+    """The newer write must win; previously it was silently unreachable."""
+    ch = _ch()
+    ch.add_key(1.0, [1, 1, 1])
+    ch.add_key(1.0, [2, 2, 2])
+    assert len(ch.keys) == 1
+    assert np.allclose(ch.sample(1.0), [2, 2, 2])
+
+
+def test_add_key_replace_returns_the_same_keyframe_object():
+    """Callers holding the key (undo commands) must not be orphaned."""
+    ch = _ch()
+    first = ch.add_key(1.0, [1, 1, 1])
+    again = ch.add_key(1.0, [2, 2, 2])
+    assert again is first
+    assert np.allclose(first.value, [2, 2, 2])
+
+
+def test_add_key_replace_updates_interpolation():
+    from am3d.core.animation import Interpolation
+
+    ch = _ch()
+    ch.add_key(1.0, [1, 1, 1], Interpolation.SMOOTH)
+    k = ch.add_key(1.0, [2, 2, 2], Interpolation.STEP)
+    assert k.interp == Interpolation.STEP
+
+
+def test_add_key_replace_clears_stale_tangents():
+    """Tangents described the old value's velocity."""
+    ch = _ch()
+    k = ch.add_key(1.0, [1, 1, 1])
+    k.in_tangent = np.array([9.0, 9.0, 9.0])
+    k.out_tangent = np.array([9.0, 9.0, 9.0])
+    ch.add_key(1.0, [2, 2, 2])
+    assert k.in_tangent is None and k.out_tangent is None
+
+
+def test_add_key_keeps_keys_sorted_and_unique():
+    ch = _ch()
+    for t in (2.0, 0.0, 1.0, 2.0, 0.0):
+        ch.add_key(t, [t, 0, 0])
+    times = [k.time for k in ch.keys]
+    assert times == sorted(times)
+    assert len(times) == len(set(times)) == 3
+
+
+def test_add_key_distinct_times_still_accumulate():
+    """Guard against over-correcting into replacing everything."""
+    ch = _ch()
+    for t in (0.0, 0.5, 1.0):
+        ch.add_key(t, [t, 0, 0])
+    assert len(ch.keys) == 3
+
+
+def test_key_at_finds_and_misses():
+    ch = _ch()
+    ch.add_key(1.0, [1, 1, 1])
+    assert ch.key_at(1.0) is ch.keys[0]
+    assert ch.key_at(1.5) is None
+
+
+def test_key_at_respects_key_time_eps_boundary():
+    """Comfortably within KEY_TIME_EPS matches; clearly past it does not."""
+    from am3d.core.animation import KEY_TIME_EPS
+
+    ch = _ch()
+    ch.add_key(1.0, [1, 1, 1])
+    assert ch.key_at(1.0 + KEY_TIME_EPS / 2) is ch.keys[0]
+    assert ch.key_at(1.0 + KEY_TIME_EPS * 1000) is None
+
+
+def test_add_key_binary_search_finds_correct_slot_at_scale():
+    """add_key/key_at use bisect on the sorted list; verify with many keys
+    that every key is still found and duplicates still replace, not just
+    with the handful of keys the other tests use."""
+    ch = _ch()
+    times = list(range(200, 0, -1))
+    for t in times:
+        ch.add_key(float(t), [t, 0, 0])
+    assert [k.time for k in ch.keys] == sorted(float(t) for t in times)
+    for t in (1.0, 50.0, 100.0, 200.0):
+        assert ch.key_at(t) is not None
+        assert ch.key_at(t).time == t
+    replaced = ch.add_key(100.0, [999, 0, 0])
+    assert replaced is ch.key_at(100.0)
+    assert len(ch.keys) == 200
+
+
+def test_session_insert_keyframe_still_replaces_after_delegation():
+    """insert_keyframe now delegates to add_key; behaviour must not change."""
+    from am3d.core.project import Project
+    from am3d.core.script import Session
+
+    s = Session(Project("p"))
+    s.create_action("a")
+    s.insert_keyframe("a", "hip", "rotate", 1.0, [0.5, 0, 0])
+    s.insert_keyframe("a", "hip", "rotate", 1.0, [0.9, 0, 0])
+    ch = s.get_action("a").get_channel("hip", "rotate")
+    assert len(ch.keys) == 1
+    assert np.isclose(ch.keys[0].value[0], 0.9)

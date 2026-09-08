@@ -17,7 +17,7 @@ class ProjectFormatError(Exception):
 
 
 # Schema version and safety limits
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 _MAX_FILE_BYTES = 64 * 1024 * 1024       # 64 MB
 _MAX_OBJECTS = 1000
 _MAX_SPLINES = 5000
@@ -45,6 +45,90 @@ def validate_project_bytes(payload: bytes) -> None:
         raise ProjectFormatError("File too small (truncated?)")
 
 
+def _unpack_msgpack(payload: bytes) -> dict:
+    """``msgpack.unpackb`` with the array-length safety limit applied,
+    surfaced as ``ProjectFormatError`` like every other load-time failure
+    instead of whatever raw exception msgpack raises for truncated data or
+    an oversized array.
+    """
+    try:
+        return msgpack.unpackb(payload, raw=False,
+                               max_array_len=_MAX_ARRAY_ELEMENTS)
+    except (ValueError, msgpack.exceptions.UnpackException) as exc:
+        raise ProjectFormatError(f"Malformed msgpack data: {exc}") from exc
+
+
+def _check_container_depth(obj, max_depth: int, _depth: int = 0) -> None:
+    """Reject a deserialized structure nested deeper than *max_depth*.
+
+    A malicious or corrupt file can nest dicts/lists deeply enough to blow
+    the interpreter's recursion limit while later code (validation,
+    decoding) walks the structure; this bounds it right after unpacking,
+    before anything recurses into it.
+    """
+    if _depth > max_depth:
+        raise ProjectFormatError(
+            f"Data nested too deeply (max depth {max_depth})")
+    if isinstance(obj, dict):
+        for v in obj.values():
+            _check_container_depth(v, max_depth, _depth + 1)
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            _check_container_depth(v, max_depth, _depth + 1)
+
+
+def _row_count(obj, path: str) -> int:
+    """Leading-axis length of a packed or plain array, without unpacking."""
+    if isinstance(obj, dict) and obj.get("__nd__"):
+        shape = obj.get("shape")
+        if not isinstance(shape, (list, tuple)) or not shape:
+            raise ProjectFormatError(f"{path}: packed array has no shape")
+        return int(shape[0])
+    if isinstance(obj, np.ndarray):
+        return int(obj.shape[0]) if obj.shape else 0
+    if isinstance(obj, (list, tuple)):
+        return len(obj)
+    raise ProjectFormatError(
+        f"{path}: expected an array, got {type(obj).__name__}")
+
+
+def _validate_spline(sdata, path: str) -> None:
+    """Structural checks for one serialized spline.
+
+    Control points are stored as two parallel arrays, ``[points, weights]``.
+    Zipping them is silently lossy when they disagree in length -- a
+    truncated weights array would drop control points with no error -- so
+    the mismatch is rejected here, before any model is constructed.
+    """
+    if not isinstance(sdata, dict):
+        raise ProjectFormatError(
+            f"{path}: expected a mapping, got {type(sdata).__name__}")
+    for field in ("cps", "degree", "closed"):
+        if field not in sdata:
+            raise ProjectFormatError(f"{path}: missing required field "
+                                     f"{field!r}")
+    cps = sdata["cps"]
+    if not isinstance(cps, (list, tuple)) or len(cps) != 2:
+        n = len(cps) if hasattr(cps, "__len__") else "?"
+        raise ProjectFormatError(
+            f"{path}.cps: expected [points, weights], got "
+            f"{type(cps).__name__} of length {n}")
+    n_pts = _row_count(cps[0], f"{path}.cps[0]")
+    n_weights = _row_count(cps[1], f"{path}.cps[1]")
+    if n_pts != n_weights:
+        raise ProjectFormatError(
+            f"{path}.cps: {n_pts} control point(s) but {n_weights} "
+            f"weight(s); the file is truncated or corrupt")
+    degree = sdata["degree"]
+    if isinstance(degree, bool) or not isinstance(degree, int) or degree < 1:
+        raise ProjectFormatError(
+            f"{path}.degree: expected an int >= 1, got {degree!r}")
+    if not isinstance(sdata["closed"], bool):
+        raise ProjectFormatError(
+            f"{path}.closed: expected a bool, got "
+            f"{type(sdata['closed']).__name__}")
+
+
 def validate_project_data(data: dict) -> None:
     """Validate deserialized project dict against safety limits."""
     objs = data.get("objects", {})
@@ -52,9 +136,12 @@ def validate_project_data(data: dict) -> None:
         raise ProjectFormatError(
             f"Too many objects: {len(objs)} (max {_MAX_OBJECTS})")
     for oname, odata in objs.items():
-        if len(odata.get("splines", {})) > _MAX_SPLINES:
+        splines = odata.get("splines", {}) or {}
+        if len(splines) > _MAX_SPLINES:
             raise ProjectFormatError(
                 f"Too many splines in {oname!r}")
+        for sname, sdata in splines.items():
+            _validate_spline(sdata, f"objects.{oname}.splines.{sname}")
         if len(odata.get("patches", [])) > _MAX_PATCHES:
             raise ProjectFormatError(
                 f"Too many patches in {oname!r}")
@@ -80,7 +167,11 @@ def _pack_ndarray(a):
 
 def _unpack_ndarray(obj):
     if isinstance(obj, dict) and obj.get("__nd__"):
-        return np.frombuffer(obj["data"], dtype=obj["dtype"]).reshape(obj["shape"])
+        dtype = obj.get("dtype")
+        if dtype not in _ALLOWED_DTYPES:
+            raise ProjectFormatError(
+                f"packed array: disallowed dtype {dtype!r}")
+        return np.frombuffer(obj["data"], dtype=dtype).reshape(obj["shape"])
     return obj
 
 
@@ -146,7 +237,9 @@ def dump_action(action: Action) -> bytes:
 
 def load_action(payload: bytes) -> Action:
     """Deserialize an Action from :func:`dump_action` output."""
-    return _decode(msgpack.unpackb(payload, raw=False))
+    data = _unpack_msgpack(payload)
+    _check_container_depth(data, _MAX_CONTAINER_DEPTH)
+    return _decode(data)
 
 
 def save_action(action: Action, path: str):
@@ -255,13 +348,21 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
         "active_action": project.active_action,
         "action_assignments": dict(project.action_assignments),
     }
-    body["format_version"] = 2
+    body["format_version"] = FORMAT_VERSION
     return msgpack.packb(body, use_bin_type=True)
 
 
 def load_project_bytes(payload: bytes) -> Project:
     validate_project_bytes(payload)
-    data = msgpack.unpackb(payload, raw=False)
+    data = _unpack_msgpack(payload)
+    _check_container_depth(data, _MAX_CONTAINER_DEPTH)
+    # Absent means a file saved before this field existed (format 1);
+    # only a version newer than this build understands is a hard error.
+    fmt = data.get("format_version", 1)
+    if not isinstance(fmt, int) or fmt > FORMAT_VERSION:
+        raise ProjectFormatError(
+            f"Unsupported project format version {fmt!r} "
+            f"(this build supports up to {FORMAT_VERSION})")
     validate_project_data(data)
     p = Project(name=data["name"])
     p.mode = data.get("mode", "object")
@@ -284,10 +385,19 @@ def load_project_bytes(payload: bytes) -> Project:
         if odata.get("transform") is not None:
             obj.transform = _unpack_ndarray(odata["transform"]).reshape(4, 4)
         for sname, sdata in odata.get("splines", {}).items():
-            pts = _unpack_ndarray(sdata["cps"][0])
-            weights = sdata["cps"][1]
-            cps = [_CP(np.asarray(pt, dtype=np.float64), w)
-                   for pt, w in zip(pts, weights)]
+            try:
+                pts = _unpack_ndarray(sdata["cps"][0])
+                weights = sdata["cps"][1]
+                cps = [_CP(np.asarray(pt, dtype=np.float64), w)
+                       for pt, w in zip(pts, weights, strict=True)]
+            except ValueError as exc:
+                # Backstop only -- validate_project_data() already checked
+                # points/weights agree in length. Surfaced as the same
+                # structured error type as every other load-time failure,
+                # in case that check is ever bypassed or has a gap.
+                raise ProjectFormatError(
+                    f"objects.{oname}.splines.{sname}.cps: malformed "
+                    f"control point data") from exc
             obj.add_spline(_Spline(name=sname, cps=cps,
                                    degree=sdata["degree"],
                                    closed=sdata["closed"]))

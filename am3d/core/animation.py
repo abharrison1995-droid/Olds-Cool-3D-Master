@@ -9,6 +9,7 @@ compatible skeleton.
 
 from __future__ import annotations
 
+import bisect
 from dataclasses import dataclass, field
 
 import numpy as np
@@ -20,6 +21,10 @@ class Interpolation:
     LINEAR = "linear"
     STEP = "step"
     SMOOTH = "smooth"
+
+
+# Two keys closer together than this are the same key.
+KEY_TIME_EPS = 1e-9
 
 
 @dataclass
@@ -56,10 +61,44 @@ class Channel:
     property: str = "translate"   # translate | rotate | scale | weight
     keys: list = field(default_factory=list)   # list[Keyframe] sorted by time
 
+    def key_at(self, time: float):
+        """The existing key at *time*, or ``None``.
+
+        ``keys`` is kept sorted by time, so a binary search finds the
+        candidate in O(log n) instead of scanning every key; at most the
+        one key on either side of the insertion point can be within
+        ``KEY_TIME_EPS``.
+        """
+        time = float(time)
+        i = bisect.bisect_left(self.keys, time, key=lambda k: k.time)
+        if i < len(self.keys) and abs(self.keys[i].time - time) <= KEY_TIME_EPS:
+            return self.keys[i]
+        if i > 0 and abs(self.keys[i - 1].time - time) <= KEY_TIME_EPS:
+            return self.keys[i - 1]
+        return None
+
     def add_key(self, time, value, interp=Interpolation.SMOOTH) -> Keyframe:
-        k = Keyframe(float(time), np.asarray(value, dtype=np.float64), interp)
-        self.keys.append(k)
-        self.keys.sort(key=lambda k_: k_.time)
+        """Add a key, or replace the one already at *time*.
+
+        Time is a key's identity within a channel. Appending a second key
+        at an existing time made the newer one unreachable: ``sample``
+        scans forward and stops at the first match, and the sort is
+        stable, so the older key kept winning and the write was silently
+        lost. Replacing keeps ``keys`` sorted and duplicate-free.
+
+        Tangents are cleared on replace -- they described the old value's
+        velocity and would otherwise be applied to the new one.
+        """
+        value = np.asarray(value, dtype=np.float64)
+        existing = self.key_at(time)
+        if existing is not None:
+            existing.value = value
+            existing.interp = interp
+            existing.in_tangent = None
+            existing.out_tangent = None
+            return existing
+        k = Keyframe(float(time), value, interp)
+        bisect.insort(self.keys, k, key=lambda k_: k_.time)
         return k
 
     def sample(self, time: float) -> np.ndarray:

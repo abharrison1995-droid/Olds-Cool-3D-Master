@@ -74,11 +74,14 @@ Section 12 is supported by automated or recorded manual evidence.
    `poses`, `pose_offsets`, `posed_transforms`, `action_assignments`.
 6. Autosave/recovery is non-operational and can delete unrelated recoveries. — still open (Phase 2).
 7. GUI export omits object transforms. — still open (Phase 4).
-8. Serializer hardening declares important limits it does not enforce. — **still open**,
-   re-confirmed by 2026-08-26 swarm review: `_MAX_CONTAINER_DEPTH`,
-   `_MAX_ARRAY_ELEMENTS`, `_ALLOWED_DTYPES` remain declared but unenforced, and
-   spline load (`serializer.py:287`) does unvalidated key access that raises a
-   raw `KeyError` instead of `ProjectFormatError` on a malformed file.
+8. Serializer hardening declares important limits it does not enforce. —
+   **partially fixed** (2026-08-27): the spline load path now validates
+   structure and control-point/weight agreement and raises
+   `ProjectFormatError` with a field path, closing both the silent-truncation
+   and raw-`KeyError` halves. **Still open:** `_MAX_CONTAINER_DEPTH`,
+   `_MAX_ARRAY_ELEMENTS` and `_ALLOWED_DTYPES` remain declared but unenforced,
+   and `format_version` is emitted but never read on load, so there is no
+   migration branch to dispatch on.
 9. Windows build automation has the wrong root and no real workflow smoke test. — still open (Phase 5).
 10. Home and Settings contain dead or decorative controls. — still open (Phase 3).
 11. ~~Pillow is an undeclared runtime dependency while `am3d.spec` actively
@@ -662,17 +665,57 @@ in this plan that GPU paths are untested-by-skip does not hold on this host.
 
 **Open, verified, not yet fixed:**
 
-- **[MAJOR — reproduced]** `core/animation.py:59` — `Channel.add_key` appends
-  and sorts without checking for an existing key at the same time, and Python's
-  stable sort then keeps the *older* key first, so `sample()` returns the
-  superseded value: `add_key(1.0, a); add_key(1.0, b); sample(1.0) -> a`. The
-  later write is unreachable. `Session.insert_keyframe` (`script.py:312`)
-  dedupes correctly, so only callers bypassing that wrapper are exposed —
-  but the invariant belongs on `Channel`.
-- **[MAJOR]** `core/serializer.py:289` — `zip(pts, weights)` truncates to the
-  shorter sequence, so a truncated weights array silently drops control points
-  instead of raising `ProjectFormatError`. Belongs to blocker 8 alongside the
-  already-recorded `KeyError` gap two lines above.
+- **[MAJOR — reproduced, fixed]** `core/animation.py:59` — `Channel.add_key`
+  appended and sorted without checking for an existing key at the same time,
+  and because the sort is stable the *older* key stayed first, so `sample()`
+  returned the superseded value and the newer write was unreachable.
+  `add_key` now replaces the key at the same time (within `KEY_TIME_EPS`),
+  returning the same `Keyframe` object so undo commands holding a reference
+  are not orphaned, and clearing tangents that described the old value's
+  velocity. `Session.insert_keyframe` carried a second copy of the dedupe
+  loop and now delegates, so the invariant has one owner. Eight regression
+  tests; five fail against the previous implementation. Suite:
+  **336 -> 344 passed**.
+
+  **Related, also fixed:** `ui/operators.py:590` (`MoveKeyCommand._set`)
+  mutated `key.time` directly and re-sorted, bypassing `add_key` entirely, so
+  dragging a dopesheet key onto another produced two keys at one time. Per
+  product decision, a drag onto an occupied time now **overwrites** the key
+  already there; the displaced key is retained so undo restores it and redo
+  removes it again, keeping the command idempotent under repeated
+  undo/redo cycling.
+
+  Note for anyone touching key lists: `Keyframe` is a dataclass holding an
+  ndarray, so `==` raises "truth value of an array is ambiguous" — and with
+  it `list.remove` and `in`. The new `_discard_identical` /
+  `_contains_identical` helpers compare by identity. `DeleteKeyCommand` was
+  checked and is safe (it indexes and appends, never compares).
+
+  Five further regression tests; four fail against the previous command.
+  Suite: **344 -> 349 passed**.
+- **[MAJOR — reproduced, fixed]** `core/serializer.py:289` —
+  `zip(pts, weights)` truncated to the shorter sequence, so a corrupt or
+  truncated weights array silently dropped control points instead of raising.
+  Control points are stored as two parallel arrays (`[points, weights]`), and
+  nothing checked that they agreed.
+
+  Fixed in `validate_project_data`, which already runs before any model is
+  constructed: a new `_validate_spline()` rejects a length mismatch, a missing
+  `cps`/`degree`/`closed` field, and a malformed `cps` container, each with a
+  field path (`objects.<obj>.splines.<spline>.cps`). `_row_count()` reads the
+  packed array's declared shape, so validation does not unpack. The load-site
+  `zip` gained `strict=True` as a backstop should validation ever be bypassed.
+
+  This also closes the adjacent raw-`KeyError` half of blocker 8 recorded in
+  the 2026-08-26 pass — the same four lines were responsible for both, so they
+  could not sensibly be fixed apart. Twelve regression tests; eleven fail
+  against the previous serializer. Verified that `assets/vase_demo.am3d` and
+  `assets/walk.am3a` still load and that a rejected file leaves the previously
+  loaded session intact. Suite: **324 -> 336 passed**.
+
+  Still open in blocker 8: `_MAX_CONTAINER_DEPTH`, `_MAX_ARRAY_ELEMENTS` and
+  `_ALLOWED_DTYPES` remain declared and unenforced, and `format_version` is
+  written but never read on load. Those are Phase 2 (7.3) scope.
 - **[MAJOR — reproduced]** `recipes/executor.py:98` — `recipe_from_dict` and
   `validate_recipe` are called *outside* the `try`, so malformed input escapes
   as whatever the parser raises rather than as an `ExecutionResult`. Passing
@@ -717,9 +760,13 @@ isolated slip. Section 4.4's single-scene-assembly-path requirement should be
 read as the general remedy.
 
 **What's actually left (in priority order):**
-1. Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope explicitly
-   — unenforced limits, the raw `KeyError`, and the `zip()` truncation are the
-   concrete instances of blocker #8.
+1. ~~Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope
+   explicitly — unenforced limits, the raw `KeyError`, and the `zip()`
+   truncation are the concrete instances of blocker #8.~~ **Done** — see
+   the 2026-09-08 entry below (`_MAX_CONTAINER_DEPTH`/`_MAX_ARRAY_ELEMENTS`/
+   `_ALLOWED_DTYPES` now enforced, `format_version` now read and checked,
+   and the separate `recipes/executor.py:98` parse-outside-try bug fixed
+   alongside it).
 2. Reconcile `LatheProfileCommand`/`ExtrudeProfileCommand` with the
    `Session.lathe_spline()`/`extrude_spline()` facade (one code path, one axis
    convention) before Phase 4 export-parity work builds on top of it.
@@ -737,6 +784,112 @@ read as the general remedy.
 The Phase 0/1 work described above landed in commit `5026e2e`. As of the
 2026-08-27 review the only uncommitted changes are the OBJ export fix, its
 regression tests, this plan update, and a `.gitignore` entry for `.venv/`.
+
+### 2026-09-08 — 6-way Haiku swarm review of commits `afcc69d`/`24fb626`/`7ec87c5`
+
+A prior agent session was interrupted (usage limit) after landing the three
+commits above (malformed-spline rejection, `Channel.add_key` dedupe,
+`MoveKeyCommand` drag-overwrite) but before starting the next backlog item.
+Before resuming, those three commits were reviewed by 6 parallel Haiku
+reviewers (Correctness, Security/Data-Integrity, Performance, Architecture,
+Edge Cases, Style) and every severe finding re-verified against the code by
+hand. Correctness, memory-safety, and dead-code lanes came back clean; the
+core bug fixes and their regression tests were confirmed sound. Four real
+gaps survived verification and are now fixed:
+
+- **[MAJOR — fixed]** `am3d/ui/operators.py` — `InsertKeyCommand` still had
+  its own hardcoded `abs(k.time - t) < 1e-9` duplicate-detection scan,
+  never migrated onto `Channel.key_at()`/`KEY_TIME_EPS` despite
+  `Session.insert_keyframe` and `MoveKeyCommand` being consolidated onto it
+  in the same two commits — so "one owner of the invariant" wasn't actually
+  true. `redo()`/`undo()` now call `ch.key_at()` and the existing
+  `_discard_identical()` helper instead of reimplementing the scan. Three
+  new regression tests (`test_insert_key_command_*`) — this class had no
+  dedicated tests before.
+- **[MINOR — fixed]** `am3d/core/serializer.py:349` — the `zip(pts, weights,
+  strict=True)` backstop (and `_unpack_ndarray`'s `.reshape()`, which can
+  fail the same way on a lying declared shape) could raise a raw
+  `ValueError` instead of `ProjectFormatError` if ever reached. Wrapped in
+  try/except; one new regression test corrupts a declared array shape so
+  it passes length validation but fails at reshape, and asserts the
+  structured error. In practice this was never a crash — `ui/app.py:620`
+  already catches `Exception` broadly around `do_open` — only a
+  worse-quality error message; still worth being consistent with every
+  other load-time failure.
+- **[MINOR — fixed]** `am3d/core/serializer.py` — `_validate_spline`
+  checked `degree`/`closed` for presence but not type or value; a
+  `degree: 0` or `degree: -1` file loaded unchecked and only surfaced (or
+  silently mis-rendered) later in `renderer/tessellate.py`'s
+  `max(spl.degree, 1)` clamp. Now rejects non-`bool` `closed` and
+  non-positive-`int` `degree` at load time. **Considered and rejected:**
+  also requiring `n_pts >= degree + 1` (matching `tools_spline.py`'s
+  `can_remove_cp` invariant) — reverted after it broke
+  `test_project_roundtrip[_splines_only]`, which legitimately loads a
+  3-point spline at the default `degree=3`. `tessellate.py` already
+  degrades gracefully (`deg = min(..., len(pts)-1)`, and skips entirely
+  under 3 points), so under-provisioned control points are intentionally
+  tolerated, not a defect.
+- **[MINOR — fixed]** `am3d/core/animation.py` — `Channel.key_at()` and
+  `add_key()` did a linear scan plus a full re-sort on every call, O(n²)
+  over bulk insertion (e.g. `recipes/animation.py`'s procedural sampling).
+  Both now use `bisect` (`keys` is already sorted by time) — O(log n)
+  lookup, `bisect.insort` instead of append+sort. New test inserts 200 keys
+  out of order and checks both ordering and dedupe still hold at that
+  scale, plus a `KEY_TIME_EPS`-boundary test (kept comfortably off the
+  exact float boundary — `1.0 + 1e-9` isn't representable precisely enough
+  at that magnitude for an exact-boundary assertion to be meaningful).
+
+Full suite: **349 -> 364 passed**. Landed in commit `e4e7a6a` on
+`fix/export-and-recipe-silent-failures`, pushed, PR opened
+([#2](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/pull/2)).
+
+### 2026-09-08 — item 1: serializer limits, format_version, executor parse bug
+
+Continuing straight on from the swarm review above (same session), item 1
+of the "What's actually left" list:
+
+- **[fixed]** `_MAX_ARRAY_ELEMENTS` now passed as `max_array_len` to both
+  `msgpack.unpackb()` call sites (`load_action`, `load_project_bytes`).
+  msgpack raises a plain `ValueError` when this trips — a new
+  `_unpack_msgpack()` helper wraps both call sites and converts that (and
+  any other raw unpack failure — truncated data, `msgpack.exceptions.*`)
+  into `ProjectFormatError`, the same fix pattern as the `zip(strict=True)`
+  backstop from the prior pass, generalized to unpacking itself.
+- **[fixed]** `_MAX_CONTAINER_DEPTH` enforced via a new
+  `_check_container_depth()` walking the deserialized structure right
+  after unpacking, applied at both call sites.
+- **[fixed]** `_ALLOWED_DTYPES` enforced in `_unpack_ndarray()` — a packed
+  array's `dtype` string is checked before it reaches `np.frombuffer`.
+- **[fixed]** `format_version`: the module constant `FORMAT_VERSION = 1`
+  didn't match what `dump_project` actually wrote (`2`) — a pre-existing
+  inconsistency, not something this pass introduced. Bumped the constant
+  to `2` and made `dump_project` write it via the constant instead of a
+  magic number. `load_project_bytes` now reads it, treats an absent field
+  as format 1 (files saved before the field existed) for backward
+  compatibility, and rejects anything newer than this build supports.
+- **[fixed]** `recipes/executor.py:98` — `recipe_from_dict()` was called
+  outside `execute()`'s try block, so a parse-stage failure (e.g. a dict
+  landing where a string was expected, tripping an `in PRIMITIVES`
+  membership check on an unhashable type) escaped as a bare `TypeError`
+  instead of the `ValueError("invalid recipe: ...")` contract
+  `validate_recipe`'s failures already use two lines below — and that
+  `cli.py` already independently normalizes to on its own separate call
+  path. Now wrapped and re-raised in the same format. **Not changed**:
+  `validate_recipe`'s own raise-on-`problems` path — seven existing tests
+  (`pytest.raises(ValueError, match="invalid recipe")`) already lock that
+  in as the intended contract; the reported bug was specifically about the
+  parse stage having no equivalent handling, not about switching either
+  path over to populating `ExecutionResult.errors` instead of raising.
+
+Regression tests added for all five; verified each new test fails against
+the pre-fix code before confirming it passes after (not just written and
+assumed correct). Full suite: **364 -> 371 passed**. Also re-ran the
+standing `scripts/knight_recipe.json` smoke test end-to-end (CLI export of
+every format plus an `.am3d` project save) and round-tripped the saved
+project back through `load_project` — clean, no errors or warnings.
+
+The **"What's actually left"** list above is otherwise unchanged — item 2
+(Lathe/Extrude command reconciliation) is next.
 
 ## 14. Agent execution protocol
 

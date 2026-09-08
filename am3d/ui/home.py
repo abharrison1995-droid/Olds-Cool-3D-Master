@@ -39,6 +39,7 @@ class HomeWidget(QWidget):
     action_enter_editor = Signal()
     action_about = Signal()
     action_quick_start = Signal()
+    action_diagnostics = Signal()
     action_exit = Signal()
 
     def __init__(self, parent=None):
@@ -82,13 +83,17 @@ class HomeWidget(QWidget):
             b = _HomeButton(text, desc)
             b.clicked.connect(signal.emit)
             left.addWidget(b)
+            return b
 
-        _btn("New Empty Project", "Create a new blank project", self.action_new)
-        _btn("Open Project", "Open an existing .am3d project", self.action_open)
-        _btn("Enter Editor", "Continue working in the current project", self.action_enter_editor)
-        _btn("Quick Start", "Open the quick-start guide", self.action_quick_start)
-        _btn("About", "About 3D MASTER:2005", self.action_about)
-        _btn("Exit", "Exit the application", self.action_exit)
+        # Mnemonics (&) give keyboard-only users Alt+<letter> access to every
+        # action without a mouse click; kept distinct within this button list.
+        self._new_btn = _btn("&New Empty Project", "Create a new blank project", self.action_new)
+        _btn("&Open Project", "Open an existing .am3d project", self.action_open)
+        _btn("&Enter Editor", "Continue working in the current project", self.action_enter_editor)
+        _btn("&Quick Start", "Open the quick-start guide", self.action_quick_start)
+        _btn("&Diagnostics", "View version, renderer, and document info", self.action_diagnostics)
+        _btn("&About", "About 3D MASTER:2005", self.action_about)
+        _btn("E&xit", "Exit the application", self.action_exit)
 
         left.addStretch(1)
 
@@ -182,6 +187,15 @@ class HomeWidget(QWidget):
             item = QListWidgetItem("(No examples installed)")
             item.setFlags(Qt.NoItemFlags)
             self.examples_list.addItem(item)
+
+    # -- keyboard access ------------------------------------------------------
+
+    def showEvent(self, event):
+        """Give keyboard-only users a usable starting point: whenever Home
+        becomes visible (fresh launch or Close Editor), focus lands on the
+        primary action instead of requiring a mouse click first."""
+        super().showEvent(event)
+        self._new_btn.setFocus()
 
     # -- internal slots -----------------------------------------------------
 

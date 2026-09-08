@@ -47,6 +47,16 @@ def _get_gpu_render():
             _gpu_render_frame = False
     return _gpu_render_frame if _gpu_render_frame is not False else None
 
+
+def gpu_render_available() -> bool:
+    """Whether the optional GPU renderer module actually imported.
+
+    Public wrapper around the lazy-cached `_get_gpu_render()` lookup, for
+    callers outside this module (e.g. a diagnostics view) that need to know
+    availability without triggering the "force software" viewport setting.
+    """
+    return _get_gpu_render() is not None
+
 # View-preset hotkeys (numpad style) mapped in keyPressEvent.
 _PRESET_KEYS = {
     Qt.Key_1: "front",

@@ -261,7 +261,7 @@ class MainWindow(QMainWindow):
     
     def _build_menu(self):
         m = self.menuBar()
-        fm = m.addMenu("File")
+        fm = m.addMenu("&File")
 
         def _add(label, slot, sc=None):
             a = QAction(label, self)
@@ -270,22 +270,22 @@ class MainWindow(QMainWindow):
             a.triggered.connect(slot)
             fm.addAction(a)
 
-        _add("New", self._file_new, "Ctrl+N")
-        _add("Open .am3d...", self._file_open, "Ctrl+O")
+        _add("&New", self._file_new, "Ctrl+N")
+        _add("&Open .am3d...", self._file_open, "Ctrl+O")
         fm.addSeparator()
-        _add("Save .am3d", self._file_save, "Ctrl+S")
-        _add("Save As .am3d...", self._file_save_as)
+        _add("&Save .am3d", self._file_save, "Ctrl+S")
+        _add("Save &As .am3d...", self._file_save_as)
         fm.addSeparator()
-        _add("Close Project", self._file_close_project)
-        _add("Close Editor", self.show_home)
+        _add("&Close Project", self._file_close_project)
+        _add("Close &Editor", self.show_home)
         fm.addSeparator()
-        _add("Import Action (.am3a)...", self._file_import_action)
-        _add("Export OBJ...", self._file_export_obj)
-        _add("Export GLB...", self._file_export_glb)
+        _add("&Import Action (.am3a)...", self._file_import_action)
+        _add("Export O&BJ...", self._file_export_obj)
+        _add("Export &GLB...", self._file_export_glb)
         fm.addSeparator()
-        _add("Quit", self.close, "Ctrl+Q")
+        _add("&Quit", self.close, "Ctrl+Q")
 
-        em = m.addMenu("Edit")
+        em = m.addMenu("&Edit")
         undo = self.undo_stack.createUndoAction(self, "&Undo")
         undo.setShortcut(QKeySequence.Undo)
         redo = self.undo_stack.createRedoAction(self, "&Redo")
@@ -293,17 +293,19 @@ class MainWindow(QMainWindow):
         em.addAction(undo)
         em.addAction(redo)
 
-        cm = m.addMenu("Create")
+        cm = m.addMenu("&Create")
         self._build_create_menu(cm)
 
-        wm = m.addMenu("Workspace")
+        wm = m.addMenu("&Workspace")
         for name in WORKSPACE_NAMES:
             wm.addAction(name, lambda _=False, n=name: self.set_workspace(n))
-        sm = m.addMenu("Settings")
-        sm.addAction("Preferences...", self._file_settings)
+        sm = m.addMenu("&Settings")
+        sm.addAction("&Preferences...", self._file_settings)
 
-        hm = m.addMenu("Help")
-        hm.addAction("About", self._about)
+        hm = m.addMenu("&Help")
+        hm.addAction("&Quick Start", self._show_quick_start)
+        hm.addAction("&Diagnostics...", self._show_diagnostics)
+        hm.addAction("&About", self._about)
 
     def _build_create_menu(self, cm):
         """Populate the Create menu with primitives and spline actions."""
@@ -612,6 +614,7 @@ class MainWindow(QMainWindow):
         h.action_enter_editor.connect(self.show_editor)
         h.action_about.connect(self._about)
         h.action_quick_start.connect(self._show_quick_start)
+        h.action_diagnostics.connect(self._show_diagnostics)
         h.action_exit.connect(self._file_quit)
         h.action_recent.connect(self._open_recent)
         h.action_recover.connect(self._recover_project)
@@ -851,6 +854,48 @@ class MainWindow(QMainWindow):
             "The Vase and Generated Character entries under Examples are "
             "complete projects you can open, edit, and re-export to see the "
             "whole pipeline end to end.")
+
+    def _show_diagnostics(self):
+        """Report the live state a bug report or support request would
+        actually need: versions, active renderer backend and why, the
+        current document's identity/size, undo/autosave state, and where
+        on disk the app is reading/writing from."""
+        import sys as _sys
+        import PySide6
+        from PySide6.QtCore import qVersion, QSettings, QStandardPaths
+        from .viewport3d import gpu_render_available
+
+        s = QSettings("3DMASTER2005", "app")
+        if self.viewport.force_software:
+            backend = "Software (forced by Settings > Render backend)"
+        elif gpu_render_available():
+            backend = "GPU"
+        else:
+            backend = "Software (GPU renderer module unavailable)"
+
+        proj = self.session.project
+        doc_desc = (Path(self.doc_ctrl.path).name if self.doc_ctrl.has_path
+                    else "(unsaved)")
+        undo_limit = self.undo_stack.undoLimit()
+
+        app_data = QStandardPaths.writableLocation(
+            QStandardPaths.AppLocalDataLocation)
+
+        QMessageBox.information(
+            self, "Diagnostics",
+            f"3D MASTER:2005  Version 0.2.0b1\n"
+            f"Python {_sys.version.split()[0]}   "
+            f"PySide6 {PySide6.__version__}   Qt {qVersion()}\n\n"
+            f"Renderer backend: {backend}\n\n"
+            f"Document: {doc_desc}"
+            f"{'  (modified)' if self.doc_ctrl.dirty else ''}\n"
+            f"Objects: {len(proj.objects)}   "
+            f"Actions: {len(self.session.actions)}\n"
+            f"Undo entries: {self.undo_stack.count()}   "
+            f"Undo limit: {undo_limit if undo_limit else 'unlimited'}\n\n"
+            f"Autosave interval: {int(s.value('autosaveInterval', 5))} min   "
+            f"Snapshots on disk: {len(self.doc_ctrl.list_autosave_files())}\n"
+            f"App data directory: {app_data}")
 
 
 def main(argv=None) -> int:

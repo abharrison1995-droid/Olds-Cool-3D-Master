@@ -324,7 +324,7 @@ def test_mainwindow_edit_menu_actions():
     win = _make_main_window()
     try:
         edit = [a for a in win.menuBar().actions()
-                if a.text() == "Edit"]
+                if a.text().replace("&", "") == "Edit"]
         assert edit
         texts = [a.text() for a in edit[0].menu().actions()]
         assert any("Undo" in t for t in texts)

@@ -196,6 +196,94 @@ def test_quick_start_button_is_wired_and_does_not_raise(monkeypatch):
         win.close()
 
 
+def test_diagnostics_button_is_wired_and_does_not_raise(monkeypatch):
+    """The Home screen's Diagnostics button must open a real report -- the
+    Help menu is hidden while on Home, so this is the only path to
+    diagnostics from a fresh launch."""
+    from PySide6.QtWidgets import QMessageBox
+    win = _make_main_window()
+    try:
+        shown = []
+        monkeypatch.setattr(
+            QMessageBox, "information",
+            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+        win.home.action_diagnostics.emit()
+        assert len(shown) == 1
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_diagnostics_menu_action_is_wired_and_does_not_raise(monkeypatch):
+    """Help > Diagnostics... must call the same handler as the Home button."""
+    from PySide6.QtWidgets import QMessageBox
+    win = _make_main_window()
+    try:
+        shown = []
+        monkeypatch.setattr(
+            QMessageBox, "information",
+            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+        win._show_diagnostics()
+        assert len(shown) == 1
+        text = shown[0][2]
+        assert "Renderer backend" in text
+        assert "Undo entries" in text
+        assert "App data directory" in text
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_diagnostics_reports_forced_software_backend(monkeypatch):
+    """When Settings forces software rendering, diagnostics must say so
+    rather than reporting whatever the GPU probe happens to find."""
+    from PySide6.QtWidgets import QMessageBox
+    win = _make_main_window()
+    try:
+        win.viewport.force_software = True
+        shown = []
+        monkeypatch.setattr(
+            QMessageBox, "information",
+            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+        win._show_diagnostics()
+        text = shown[0][2]
+        assert "Software (forced by Settings" in text
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_gpu_render_available_reflects_probe_cache():
+    """gpu_render_available() is a thin public wrapper around the module's
+    lazy-cached renderer probe -- it must agree with the private lookup
+    regardless of whether the optional GPU module is actually installed."""
+    from am3d.ui.viewport3d import gpu_render_available, _get_gpu_render
+    assert gpu_render_available() == (_get_gpu_render() is not None)
+
+
+def test_home_shown_gives_keyboard_focus_to_primary_action(monkeypatch):
+    """A keyboard-only user landing on Home (fresh launch or Close Editor)
+    must not need a mouse click just to start tabbing through actions.
+
+    hasFocus() depends on window activation, which the offscreen test
+    platform doesn't reliably grant -- spy on setFocus() instead of
+    asserting the ambient focus state."""
+    from am3d.ui.home import _HomeButton
+    calls = []
+    original = _HomeButton.setFocus
+    monkeypatch.setattr(_HomeButton, "setFocus",
+                         lambda self, *a: (calls.append(self), original(self, *a)))
+    win = _make_main_window()
+    try:
+        win.show()
+        calls.clear()
+        win.show_home()
+        assert win.home._new_btn in calls
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
 def test_close_editor_is_dirty_safe_round_trip():
     """'Close Editor' must not lose unsaved work -- it only navigates to
     Home, leaving the in-memory document (and its undo history) intact so

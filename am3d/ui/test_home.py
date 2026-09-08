@@ -93,15 +93,18 @@ def test_show_home_populates_examples_list():
 
 
 def test_opening_vase_example_loads_expected_objects():
-    """The fresh-launch vase journey: open the bundled example, edit, and
-    confirm the resulting session matches what the demo script produces."""
+    """The fresh-launch vase journey: open the bundled example and confirm
+    the resulting session matches what the demo script produces. The
+    document must be pathless (see test_opening_example_clears_path_*
+    below) -- opening an example is not the same as opening a normal
+    recent project."""
     win = _make_main_window()
     try:
         examples = dict(win._example_projects())
         vase_path = examples["Vase (lathed spline)"]
-        win._open_recent(vase_path)
+        win._open_example(vase_path)
         assert "vase" in win.session.project.objects
-        assert win.doc_ctrl.path == vase_path
+        assert win.doc_ctrl.path is None
         assert win.doc_ctrl.dirty is False
         assert win.undo_stack.count() == 0
     finally:
@@ -115,9 +118,9 @@ def test_opening_knight_example_loads_expected_objects():
     try:
         examples = dict(win._example_projects())
         knight_path = examples["Generated character (knight)"]
-        win._open_recent(knight_path)
+        win._open_example(knight_path)
         assert "hero" in win.session.project.objects
-        assert win.doc_ctrl.path == knight_path
+        assert win.doc_ctrl.path is None
     finally:
         win.viewport._timer.stop()
         win.close()
@@ -135,12 +138,42 @@ def test_opening_example_respects_dirty_check(monkeypatch):
         assert win.doc_ctrl.dirty is True
 
         monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document", lambda: False)
-        win._open_recent(vase_path)
+        win._open_example(vase_path)
         assert "vase" not in win.session.project.objects  # aborted
 
         monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document", lambda: True)
-        win._open_recent(vase_path)
+        win._open_example(vase_path)
         assert "vase" in win.session.project.objects
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_opening_example_clears_path_so_save_cannot_overwrite_bundled_asset():
+    """Opening an example must not let a plain Ctrl+S silently overwrite the
+    shipped asset file -- do_open_example() clears the path so Save routes
+    through Save As instead (which conftest's autouse fixture mocks to
+    cancel, so this proves the bundled file is untouched either way)."""
+    import hashlib
+    win = _make_main_window()
+    try:
+        examples = dict(win._example_projects())
+        vase_path = examples["Vase (lathed spline)"]
+        with open(vase_path, "rb") as f:
+            original = hashlib.sha1(f.read()).hexdigest()
+
+        win._open_example(vase_path)
+        assert win.doc_ctrl.path is None
+        assert win.doc_ctrl.has_path is False
+
+        win._do_primitive("box", dict(width=1.0, height=1.0, depth=1.0))
+        assert win.doc_ctrl.dirty is True
+
+        win._file_save()  # pathless -> do_save_as() -> mocked dialog cancels
+
+        with open(vase_path, "rb") as f:
+            after = hashlib.sha1(f.read()).hexdigest()
+        assert after == original
     finally:
         win.viewport._timer.stop()
         win.close()

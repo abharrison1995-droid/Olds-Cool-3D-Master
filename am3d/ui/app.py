@@ -615,9 +615,7 @@ class MainWindow(QMainWindow):
         h.action_exit.connect(self._file_quit)
         h.action_recent.connect(self._open_recent)
         h.action_recover.connect(self._recover_project)
-        # Opening an example is just opening a project file -- same
-        # dirty-check/undo-clear/recent-list handling as any other Open.
-        h.action_example.connect(self._open_recent)
+        h.action_example.connect(self._open_example)
 
     def _open_recent(self, path: str):
         """Open a project from the recent-projects list."""
@@ -626,6 +624,27 @@ class MainWindow(QMainWindow):
         try:
             self.doc_ctrl.do_open(path)
             self.doc_ctrl.add_recent(path)
+            self._reset_document_ui_state()
+            self._refresh_all()
+            self.show_editor()
+        except Exception as exc:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(self, "Open failed", str(exc))
+
+    def _open_example(self, path: str):
+        """Open a bundled example project (Home screen's Examples list).
+
+        Uses do_open_example(), not do_open(), so the loaded document is
+        pathless -- a plain Ctrl+S must route through Save As rather than
+        silently overwriting the shipped asset file. Examples are also kept
+        out of the recent-projects list: reopening via Recent would go
+        through the ordinary do_open()/add_recent() and reintroduce the same
+        overwrite risk.
+        """
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
+        try:
+            self.doc_ctrl.do_open_example(path)
             self._reset_document_ui_state()
             self._refresh_all()
             self.show_editor()
@@ -821,7 +840,9 @@ class MainWindow(QMainWindow):
             "below to open a finished one.\n"
             "2. Model: Create menu > a primitive, or draw a profile spline "
             "and Lathe/Extrude it into a surface.\n"
-            "3. Rig: add bones to a mesh, then pose them in the viewport.\n"
+            "3. Rig: the bundled Examples come pre-rigged -- select a bone "
+            "in the Outliner and drag it in the viewport to pose it. "
+            "(Building a skeleton from scratch isn't yet exposed in the UI.)\n"
             "4. Animate: switch to the Animate workspace, set poses on the "
             "Timeline to key an Action.\n"
             "5. Save (Ctrl+S), then Export OBJ/GLB from the File menu.\n\n"

@@ -277,6 +277,19 @@ class DocumentController:
             QStandardPaths.AppLocalDataLocation))
         return sorted(str(p) for p in app_data.glob("*.autosave.am3d"))
 
+    def do_open_example(self, path: str) -> None:
+        """Load a bundled example (Home screen's Examples list) as pathless
+        content, same reasoning as recover_from(): examples ship inside the
+        app/repo, so opening one must never let a plain Save silently
+        overwrite the shipped asset file -- the next Save has to go through
+        Save As. Unlike recover_from(), the document is NOT marked dirty:
+        nothing has actually changed yet, so Close/New shouldn't immediately
+        prompt to save unmodified example content.
+        """
+        self.do_open(path)
+        self._path = None
+        self._untitled_id = uuid.uuid4().hex[:10]
+
     def recover_from(self, path: str) -> bool:
         """Load a recovery/autosave file.  Returns True on success.
 

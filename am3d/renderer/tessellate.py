@@ -33,6 +33,8 @@ class MeshData:
 
     def compute_normals(self):
         """Angle-weighted smooth vertex normals via face accumulation."""
+        if len(self.vertices) == 0:
+            return np.zeros((0, 3), dtype=np.float64)
         tri = self.vertices[self.indices]
         n = np.cross(tri[:, 1] - tri[:, 0], tri[:, 2] - tri[:, 0])
         unit = n / np.maximum(np.linalg.norm(n, axis=1), 1e-12)[:, None]
@@ -45,6 +47,20 @@ class MeshData:
             cos = np.einsum("ij,ij->i", a, b) / np.maximum(denom, 1e-12)
             ang = np.arccos(np.clip(cos, -1.0, 1.0))
             np.add.at(vn, self.indices[:, c], unit * ang[:, None])
+
+        # Closed surfaces (lathe poles, u-wrap seams) tessellate to distinct
+        # vertex indices that share the exact same position. Each duplicate
+        # only sees its own local triangle fan, which for a pinched pole can
+        # be entirely degenerate (zero contribution). Weld by position so
+        # every duplicate shares the full accumulated normal before
+        # normalizing.
+        keys = np.round(self.vertices, 7)
+        _, inverse = np.unique(keys, axis=0, return_inverse=True)
+        inverse = inverse.reshape(-1)
+        merged = np.zeros((inverse.max() + 1, 3))
+        np.add.at(merged, inverse, vn)
+        vn = merged[inverse]
+
         n_len = np.linalg.norm(vn, axis=1, keepdims=True)
         return vn / np.maximum(n_len, 1e-12)
 

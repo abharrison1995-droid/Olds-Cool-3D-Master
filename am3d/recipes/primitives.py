@@ -39,14 +39,22 @@ def _closed_lathe(profile, axis: str = "y", sections: int = 16) -> np.ndarray:
 
 
 def _face_grid(corner, du, dv, n: int = 4) -> np.ndarray:
-    """An ``n x n`` coplanar control grid spanning corner -> corner+du+dv."""
+    """An ``n x n`` coplanar control grid spanning corner -> corner+du+dv.
+
+    ``build_patch_grid``'s fixed (a,b,c)/(b,d,c) triangulation produces an
+    outward-facing normal (via -cross(d/du, d/dv)) only when the *second*
+    grid axis is du and the first is dv — i.e. this grid must be built
+    transposed relative to the naive "first axis follows du" layout, or
+    every face built from it comes out normal-inward. Verified against the
+    expected outward direction for all six box faces and the XY-plane.
+    """
     corner = np.asarray(corner, dtype=np.float64)
     du = np.asarray(du, dtype=np.float64)
     dv = np.asarray(dv, dtype=np.float64)
     u = np.linspace(0.0, 1.0, n)
     return (corner[None, None, :]
-            + u[:, None, None] * du[None, None, :]
-            + u[None, :, None] * dv[None, None, :])
+            + u[None, :, None] * du[None, None, :]
+            + u[:, None, None] * dv[None, None, :])
 
 
 # ---------------------------------------------------------------------------
@@ -56,7 +64,12 @@ def make_sphere(radius: float = 1.0, sections: int = 16, rings: int = 8):
     """UV-sphere: a lathed semicircular profile, poles pinched to the axis."""
     sections = max(int(sections), 4)
     rings = max(int(rings), 4)
-    theta = np.linspace(0.0, np.pi, rings)
+    # Outward normals need the profile's axial coordinate to *increase*
+    # with the row index (that's what makes make_cylinder's wall come out
+    # right) — theta from pi to 0 walks bottom pole -> equator -> top pole,
+    # so cos(theta) rises monotonically, matching that convention. Walking
+    # 0 -> pi instead produces a sphere with every normal pointing inward.
+    theta = np.linspace(np.pi, 0.0, rings)
     profile = np.stack([radius * np.sin(theta), radius * np.cos(theta)], axis=1)
     net = _closed_lathe(profile, axis="y", sections=sections)
     return {"patches": [("sphere", net,

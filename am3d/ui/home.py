@@ -8,6 +8,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
+import am3d
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
@@ -145,7 +146,7 @@ class HomeWidget(QWidget):
 
         # Version footer
         layout.addStretch(1)
-        footer = QLabel("Version 0.2.0b1  |  Built on Python + PySide6")
+        footer = QLabel(f"Version {am3d.__version__}  |  Built on Python + PySide6")
         footer.setObjectName("homeFooter")
         footer.setAlignment(Qt.AlignCenter)
         layout.addWidget(footer)

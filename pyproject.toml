@@ -4,7 +4,7 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "am3d"
-version = "0.1.0"
+version = "0.2.0b1"
 description = "3D MASTER:2005 - A pure spline-based 3D character animation suite (Animation Master revival)"
 readme = "README.md"
 requires-python = ">=3.10"

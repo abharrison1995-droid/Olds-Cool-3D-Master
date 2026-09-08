@@ -14,6 +14,7 @@ from __future__ import annotations
 import sys
 from pathlib import Path
 
+import am3d
 from PySide6.QtCore import QTimer
 from PySide6.QtGui import QAction, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
@@ -835,6 +836,7 @@ class MainWindow(QMainWindow):
     def _about(self):
         QMessageBox.about(
             self, "About 3D MASTER:2005",
+            f"3D MASTER:2005  Version {am3d.__version__}\n\n"
             "A pure spline-based 3D character animation suite.\n"
             "Workspaces: Layout  Model  Rig  Animate  Render")
 
@@ -885,7 +887,7 @@ class MainWindow(QMainWindow):
 
         QMessageBox.information(
             self, "Diagnostics",
-            f"3D MASTER:2005  Version 0.2.0b1\n"
+            f"3D MASTER:2005  Version {am3d.__version__}\n"
             f"Python {_sys.version.split()[0]}   "
             f"PySide6 {PySide6.__version__}   Qt {qVersion()}\n\n"
             f"Renderer backend: {backend}\n\n"

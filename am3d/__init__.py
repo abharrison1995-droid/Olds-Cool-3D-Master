@@ -27,7 +27,7 @@ from . import spline  # noqa: F401  (geometry kernel)
 from . import core     # noqa: F401  (document data model)
 from .core.project import Project  # noqa: F401
 
-__version__ = "0.2.0"
+__version__ = "0.2.0b1"
 
 # Names re-exported from the scripting facade onto the package root.  An
 # explicit allowlist (rather than a blanket hasattr) keeps private helpers,

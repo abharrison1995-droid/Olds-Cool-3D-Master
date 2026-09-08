@@ -262,7 +262,12 @@ def deform_object(obj, bones, bone_transforms, rest_transforms,
         return obj
     import copy as _copy
     out = _copy.copy(obj)
-    out.patches = [_copy.copy(p) for p in obj.patches]
+    out.patches = []
+    for p in obj.patches:
+        p_copy = _copy.copy(p)
+        if p.interior is not None:
+            p_copy.interior = np.array(p.interior, copy=True)
+        out.patches.append(p_copy)
     out.splines = {name: _copy.copy(s) for name, s in obj.splines.items()}
     for s in out.splines.values():
         s.cps = [_copy.copy(cp) for cp in s.cps]
@@ -285,3 +290,94 @@ def deform_object(obj, bones, bone_transforms, rest_transforms,
             positions[idx], weights, bone_transforms, rest_transforms,
             bulge_strength=bulge_strength)
     return writer(out, deformed)
+
+
+def auto_weight_object(obj, bones, max_influences: int = 2, falloff: float = 2.0,
+                       assign: bool = True) -> dict[str, dict[int, float]]:
+    """Compute deterministic proximity skin weights for an object's control points.
+
+    For each control point in canonical ordering (patch interiors then spline CPs),
+    finds the Euclidean distance to each bone's line segment (head to tail), computes
+    inverse-distance falloff weights, selects the top *max_influences* bones, and
+    normalizes the weights to sum to 1.0.
+
+    Parameters
+    ----------
+    obj : Object3D
+        The geometry object whose control points will be weighted.
+    bones : sequence of Bone
+        The skeleton bones with .name, .head, .tail.
+    max_influences : int
+        Maximum number of bones influencing any single control point (default 2).
+    falloff : float
+        Distance falloff exponent (default 2.0).
+    assign : bool
+        If True, directly updates bone.cp_weights on each bone in *bones*.
+
+    Returns
+    -------
+    dict[str, dict[int, float]]
+        Map of bone_name -> {cp_index: weight}.
+    """
+    bone_list = list(bones)
+    weights_by_bone: dict[str, dict[int, float]] = {b.name: {} for b in bone_list}
+    if not bone_list:
+        return weights_by_bone
+
+    positions, _ = object_cp_positions(obj)
+    if len(positions) == 0:
+        return weights_by_bone
+
+    segments = []
+    for b in bone_list:
+        head = np.asarray(b.head, dtype=np.float64).reshape(3)
+        tail = np.asarray(b.tail, dtype=np.float64).reshape(3)
+        d = tail - head
+        l2 = float(np.dot(d, d))
+        segments.append((b.name, head, tail, d, l2))
+
+    max_inf = max(1, int(max_influences))
+    p_exp = float(falloff)
+
+    for i, p in enumerate(positions):
+        bone_dists = []
+        for b_name, head, tail, d, l2 in segments:
+            if l2 < 1e-12:
+                dist = float(np.linalg.norm(p - head))
+            else:
+                t = float(np.clip(np.dot(p - head, d) / l2, 0.0, 1.0))
+                proj = head + t * d
+                dist = float(np.linalg.norm(p - proj))
+            bone_dists.append((b_name, dist))
+
+        bone_dists.sort(key=lambda x: x[1])
+        top = bone_dists[:max_inf]
+
+        raw_w = []
+        for b_name, dist in top:
+            w = 1.0 / (max(dist, 1e-4) ** p_exp)
+            raw_w.append((b_name, w))
+
+        total_w = sum(w for _, w in raw_w)
+        if total_w < 1e-12:
+            closest_name = top[0][0]
+            weights_by_bone[closest_name][i] = 1.0
+        else:
+            filtered = [(b_name, w / total_w) for b_name, w in raw_w if (w / total_w) > 1e-5]
+            if not filtered:
+                filtered = [(top[0][0], 1.0)]
+            sub_total = sum(fw for _, fw in filtered)
+            for b_name, fw in filtered:
+                weights_by_bone[b_name][i] = round(fw / sub_total, 6)
+            assigned_sum = sum(weights_by_bone[b_name][i] for b_name, _ in filtered)
+            diff = round(1.0 - assigned_sum, 6)
+            if abs(diff) > 1e-7:
+                best_b = filtered[0][0]
+                weights_by_bone[best_b][i] = round(weights_by_bone[best_b][i] + diff, 6)
+
+    if assign:
+        for b in bone_list:
+            b.cp_weights = dict(weights_by_bone.get(b.name, {}))
+
+    return weights_by_bone
+

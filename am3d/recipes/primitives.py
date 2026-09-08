@@ -32,12 +32,10 @@ def _clamp_degree(requested: int, count: int) -> int:
 def _closed_lathe(profile, axis: str = "y", sections: int = 16) -> np.ndarray:
     """Lathe *profile* and duplicate the first ring so the revolution closes.
 
-    ``kernel.build_lathe_net`` samples angles in ``[0, 2*pi)`` — the last
-    section stops one step short of the first.  Appending a copy of row 0
-    closes the loop with a zero-width segment (harmless when tessellated).
+    ``kernel.build_lathe_net`` samples angles in ``[0, 2*pi)`` — passing
+    ``closed=True`` appends a copy of row 0 closing the revolution cleanly.
     """
-    net = kernel.build_lathe_net(profile, axis=axis, sections=int(sections))
-    return np.concatenate([net, net[:1]], axis=0)
+    return kernel.build_lathe_net(profile, axis=axis, sections=int(sections), closed=True)
 
 
 def _face_grid(corner, du, dv, n: int = 4) -> np.ndarray:

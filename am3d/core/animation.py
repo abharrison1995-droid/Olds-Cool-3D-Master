@@ -57,7 +57,16 @@ class Channel:
     keys: list = field(default_factory=list)   # list[Keyframe] sorted by time
 
     def add_key(self, time, value, interp=Interpolation.SMOOTH) -> Keyframe:
-        k = Keyframe(float(time), np.asarray(value, dtype=np.float64), interp)
+        t_flt = float(time)
+        val_arr = np.asarray(value, dtype=np.float64)
+        for existing in self.keys:
+            if abs(existing.time - t_flt) < 1e-9:
+                existing.value = val_arr
+                existing.interp = interp
+                existing.in_tangent = None
+                existing.out_tangent = None
+                return existing
+        k = Keyframe(t_flt, val_arr, interp)
         self.keys.append(k)
         self.keys.sort(key=lambda k_: k_.time)
         return k

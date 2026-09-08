@@ -8,7 +8,8 @@
       "params": {
         "radius": 0.6,
         "sections": 16,
-        "rings": 8
+        "rings": 8,
+        "skeleton": "hero"
       }
     },
     {

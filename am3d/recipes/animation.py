@@ -132,7 +132,7 @@ def generate_idle(bones, name: str = "idle", duration: float = 2.4,
         def rot(t, _phase=phase, _amp=amp * falloff):
             w = 2.0 * math.pi * float(t) / float(duration)
             return [_amp * 0.4 * math.sin(w + _phase),
-                    _amp * math.sin(w * 0.5 + _phase), 0.0]
+                    _amp * math.sin(w + _phase), 0.0]
 
         _add_sampled_rotation(act, bone.name, duration, rot)
     return act

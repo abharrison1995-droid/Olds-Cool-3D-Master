@@ -101,13 +101,13 @@ def _apply_object_transform(mesh, transform):
     object's placement must live in world-space vertex data (for glTF this
     is equivalent to putting the transform on the node).
     """
-    m = np.asarray(transform, dtype=np.float64).reshape(4, 4)
-    if np.array_equal(m, np.eye(4)):
-        return mesh
-    mesh.vertices = mesh.vertices @ m[:3, :3].T + m[:3, 3]
-    normals = mesh.normals @ m[:3, :3].T
-    mesh.normals = normals / np.maximum(
-        np.linalg.norm(normals, axis=1, keepdims=True), 1e-12)
+    from am3d.core.mathutil import transform_mesh_geometry
+    v, n, idx = transform_mesh_geometry(mesh.vertices, mesh.normals, mesh.indices, transform)
+    mesh.vertices = v
+    if n is not None:
+        mesh.normals = n
+    if idx is not None:
+        mesh.indices = idx
     return mesh
 
 
@@ -254,13 +254,27 @@ class RecipeExecutor:
     # -- phases --------------------------------------------------------------
     def _build_objects(self, recipe: Recipe, res: ExecutionResult) -> None:
         from am3d.core.project import Patch
+        from am3d.core.rigging import auto_weight_object
 
         s = self.session
         for spec in recipe.objects:
             s.create_object(spec.name)
             obj = s.get_object(spec.name)
 
-            built = (build_primitive(spec.primitive, spec.params)
+            if getattr(spec, "transform", None):
+                t_arr = np.asarray(spec.transform, dtype=np.float64)
+                if t_arr.shape == (4, 4) or t_arr.size == 16:
+                    obj.transform = t_arr.reshape(4, 4)
+                elif t_arr.size == 3:
+                    m = np.eye(4, dtype=np.float64)
+                    m[:3, 3] = t_arr.reshape(3)
+                    obj.transform = m
+
+            prim_params = dict(spec.params) if isinstance(spec.params, dict) else {}
+            prim_params.pop("skeleton", None)
+            prim_params.pop("auto_weights", None)
+
+            built = (build_primitive(spec.primitive, prim_params)
                      if spec.primitive else {"patches": [], "splines": []})
 
             for pname, net, du, dv in built["patches"]:
@@ -272,10 +286,44 @@ class RecipeExecutor:
                 s.add_spline(spec.name, sr.points, degree=sr.degree,
                              name=name, closed=sr.closed)
 
+            has_explicit_weights = False
             for br in spec.bones:
-                s.add_bone(spec.name, br.name, br.head, br.tail,
-                           parent=br.parent)
+                bone = s.add_bone(spec.name, br.name, br.head, br.tail,
+                                  parent=br.parent)
+                raw_w = getattr(br, "cp_weights", None) or getattr(br, "weights", None)
+                if raw_w:
+                    bone.cp_weights = {int(k): float(v) for k, v in raw_w.items()}
+                    has_explicit_weights = True
+
+            bones = s.get_bones(spec.name)
+            has_geometry = bool(obj.patches or obj.splines)
+            auto_w = spec.params.get("auto_weights") if isinstance(spec.params, dict) else False
+            if bones and has_geometry and (not has_explicit_weights or auto_w):
+                auto_weight_object(obj, bones)
+
             res.objects.append(spec.name)
+
+        # Pass 2: resolve cross-object skeleton references
+        for idx, spec in enumerate(recipe.objects):
+            skel_ref = spec.params.get("skeleton") if isinstance(spec.params, dict) else None
+            if not skel_ref:
+                continue
+            obj = s.get_object(spec.name)
+            bones = s.get_bones(spec.name)
+            if not bones:
+                if skel_ref not in s.project.skeletons:
+                    res.add_error(
+                        f"object {spec.name!r} references nonexistent skeleton {skel_ref!r}",
+                        code="missing_reference", stage="schema",
+                        path=f"recipe.objects[{idx}].params.skeleton",
+                        hint="The referenced skeleton object must exist in recipe.objects."
+                    )
+                    continue
+                ref_bones = s.get_bones(skel_ref)
+                for rb in ref_bones:
+                    s.add_bone(spec.name, rb.name, rb.head, rb.tail, parent=rb.parent)
+                new_bones = s.get_bones(spec.name)
+                auto_weight_object(obj, new_bones)
 
     def _build_materials(self, recipe: Recipe, res: ExecutionResult) -> None:
         from am3d.core.serializer import resolve_resource_path
@@ -298,8 +346,7 @@ class RecipeExecutor:
                 for oname in mat.objects:
                     if oname in s.project.objects:
                         obj = s.project.objects[oname]
-                        if obj.material is None:
-                            obj.material = mat.name
+                        obj.material = material.name
             res.materials.append(mat.name)
 
     def _build_actions(self, recipe: Recipe, res: ExecutionResult) -> None:
@@ -333,8 +380,25 @@ class RecipeExecutor:
                         path=f"recipe.actions[{index}].source_action")
                     continue
                 from am3d.core.retarget import retarget_action
-                act = retarget_action(src, bones, bones,
-                                      mapping=dict(spec.params.get("mapping", {})),
+                src_char = spec.params.get("source_character") if isinstance(spec.params, dict) else None
+                if not src_char:
+                    for c_name, a_name in s.action_assignments.items():
+                        if a_name == spec.source_action and c_name in s.project.skeletons:
+                            src_char = c_name
+                            break
+                source_bones = s.get_bones(src_char) if src_char else None
+                if not source_bones:
+                    src_bone_names = {ch.bone for ch in src.channels}
+                    for skel_name, skel in s.project.skeletons.items():
+                        if skel_name != spec.character and src_bone_names.issubset(set(skel.keys())):
+                            source_bones = list(skel.values())
+                            break
+                if not source_bones:
+                    source_bones = bones
+
+                _explicit_mapping = spec.params.get("mapping") if isinstance(spec.params, dict) else None
+                act = retarget_action(src, source_bones, bones,
+                                      mapping=dict(_explicit_mapping) if _explicit_mapping else None,
                                       default_duration=spec.duration)
                 act.name = spec.name
                 s.actions[act.name] = act
@@ -460,12 +524,8 @@ class RecipeExecutor:
                             hint="Check that the project state is valid.")
                     continue
 
-                meshes = {}
-                for name, mesh in tessellate_project(self.session.project).items():
-                    if not len(mesh.vertices):
-                        continue
-                    obj = self.session.project.objects[name]
-                    meshes[name] = _apply_object_transform(mesh, obj.transform)
+                scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
+                meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
 
                 if fmt == "obj":
                     from am3d.export.obj import write_obj

@@ -6,7 +6,9 @@ rigging subsystems used across the four work modes.
 
 from __future__ import annotations
 
-from . import animation, rigging, script  # noqa: F401
+from . import animation, naming, rigging, scene, script  # noqa: F401
+from .naming import allocate_unique_name  # noqa: F401
+from .scene import EvaluatedScene, evaluate_scene  # noqa: F401
 from .project import (  # noqa: F401
     Bone,
     ControlPoint,
@@ -19,7 +21,8 @@ from .project import (  # noqa: F401
 )
 
 __all__ = [
-    "animation", "rigging", "script",
+    "animation", "naming", "rigging", "scene", "script",
+    "allocate_unique_name", "evaluate_scene", "EvaluatedScene",
     "Bone", "ControlPoint", "Hook", "Material",
     "Object3D", "Patch", "Project", "Spline",
 ]

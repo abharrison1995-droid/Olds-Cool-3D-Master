@@ -146,35 +146,12 @@ class Viewport(QWidget):
         frame/pose change, so deform only recomputes then.
         """
         if self._meshes is None:
-            from am3d.core.rigging import deform_object, fk_pose
-            from am3d.renderer.tessellate import MeshData, tessellate_object
-            session = self.main.session
-            proj = session.project
-            posed = getattr(session, "posed_transforms", {}) or {}
-            out = {}
-            for name, obj in proj.objects.items():
-                if not getattr(obj, "visible", True):
-                    continue                # hidden in the outliner
-                source = obj
-                rig = getattr(proj, "skeletons", {}).get(name)
-                if rig and name in posed and any(
-                        b.cp_weights for b in rig.values()):
-                    bones = list(rig.values())
-                    rest = fk_pose(bones)
-                    source = deform_object(obj, bones, posed[name], rest)
-                mesh = tessellate_object(source)
-                m = np.asarray(getattr(obj, "transform", np.eye(4)),
-                               dtype=np.float64).reshape(4, 4)
-                if len(mesh.vertices) and not np.allclose(m, np.eye(4)):
-                    rot = m[:3, :3]
-                    verts = mesh.vertices @ rot.T + m[:3, 3]
-                    normals = mesh.normals @ rot.T
-                    n_len = np.linalg.norm(normals, axis=1, keepdims=True)
-                    normals = normals / np.maximum(n_len, 1e-12)
-                    mesh = MeshData(verts, mesh.indices, normals=normals,
-                                    uvs=mesh.uvs, name=mesh.name)
-                out[name] = mesh
-            self._meshes = out
+            if hasattr(self.main.session, "evaluate_scene"):
+                scene = self.main.session.evaluate_scene(visible_only=True, apply_transforms=True)
+            else:
+                from am3d.core.scene import evaluate_scene
+                scene = evaluate_scene(self.main.session, visible_only=True, apply_transforms=True)
+            self._meshes = scene.meshes
         return self._meshes
 
     # -- painting ---------------------------------------------------------

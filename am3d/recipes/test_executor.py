@@ -7,6 +7,7 @@ import os
 import struct
 
 import pytest
+import numpy as np
 
 from am3d.core.script import Session
 from am3d.recipes.executor import ExecutionResult, RecipeExecutor
@@ -966,4 +967,324 @@ def test_patch_material_takes_priority_over_mats_for_obj_filter(tmp_path):
     atlases = ex._bake_atlases(recipe)
     assert "box" in atlases
     assert atlases["box"] is not None
+
+
+def test_recipe_object_transform_baked_into_exports(tmp_path):
+    """Recipe object.transform is baked into exported meshes."""
+    m = np.eye(4, dtype=np.float64)
+    m[0, 3] = 5.0  # translate +5 along X
+    m[1, 3] = 2.0  # translate +2 along Y
+    recipe = {
+        "name": "transformed_scene",
+        "objects": [
+            {
+                "name": "shifted_box",
+                "primitive": "box",
+                "transform": m.tolist(),
+            }
+        ],
+        "exports": [
+            {"format": "obj", "path": "shifted_box"},
+            {"format": "glb", "path": "shifted_box"},
+        ],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    # Check exported session object transform
+    obj = ex.session.project.objects["shifted_box"]
+    assert np.allclose(obj.transform, m)
+
+    # Check that evaluated meshes reflect the translation
+    scene = ex.session.evaluate_scene(apply_transforms=True)
+    v = scene.meshes["shifted_box"].vertices
+    assert np.all(v[:, 0] >= 4.0)
+    assert np.all(v[:, 1] >= 1.0)
+
+
+def test_recipe_singular_transform_rejected_with_structured_error():
+    """Recipe with singular object transform is rejected during validation."""
+    singular_m = np.diag([1.0, 0.0, 1.0, 1.0]).tolist()
+    recipe = {
+        "name": "bad_transform",
+        "objects": [
+            {
+                "name": "flattened",
+                "primitive": "box",
+                "transform": singular_m,
+            }
+        ],
+    }
+    ex = RecipeExecutor()
+    res = ex.execute(recipe)
+    assert not res.ok
+    assert any(rec.get("code") == "singular_transform" for rec in res.error_records)
+
+
+def test_recipe_animated_character_deforms_exports(tmp_path):
+    """A recipe with character bones and walk action deforms the exported geometry."""
+    recipe = {
+        "name": "walking_knight",
+        "objects": [
+            {
+                "name": "knight",
+                "primitive": "cylinder",
+                "params": {"radius": 0.3, "height": 2.0, "sections": 8},
+                "bones": [
+                    {"name": "hip", "head": [0.0, 0.0, 0.0], "tail": [0.0, 1.0, 0.0]},
+                    {"name": "spine", "head": [0.0, 1.0, 0.0], "tail": [0.0, 2.0, 0.0], "parent": "hip"},
+                ],
+            }
+        ],
+        "actions": [
+            {
+                "name": "walk",
+                "kind": "walk",
+                "duration": 1.0,
+                "character": "knight",
+            }
+        ],
+        "exports": [
+            {"format": "obj", "path": "knight_walk"},
+            {"format": "am3d", "path": "knight_walk"},
+        ],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    # Verify bones were added and auto-weighted
+    bones = ex.session.get_bones("knight")
+    assert len(bones) == 2
+    assert any(b.cp_weights for b in bones)
+
+    # Evaluate at t=0 and t=0.25; confirm deformation occurs
+    f0 = ex.session.evaluate_scene(time=0.0)
+    f1 = ex.session.evaluate_scene(time=0.25)
+    v0 = f0.meshes["knight"].vertices
+    v1 = f1.meshes["knight"].vertices
+    assert np.max(np.linalg.norm(v1 - v0, axis=1)) > 0.01
+
+
+def test_recipe_skeleton_reference_binds_and_deforms(tmp_path):
+    """An object specifying skeleton: other_obj (even declared before the skeleton) binds and deforms."""
+    recipe = {
+        "name": "separate_rig_and_mesh",
+        "objects": [
+            {
+                # Declared BEFORE hero_rig to verify order independence in Pass 2
+                "name": "hero_mesh",
+                "primitive": "cylinder",
+                "params": {
+                    "radius": 0.3,
+                    "height": 2.0,
+                    "sections": 8,
+                    "skeleton": "hero_rig",
+                },
+            },
+            {
+                "name": "hero_rig",
+                "bones": [
+                    {"name": "hip", "head": [0.0, 0.0, 0.0], "tail": [0.0, 1.0, 0.0]},
+                    {"name": "spine", "head": [0.0, 1.0, 0.0], "tail": [0.0, 2.0, 0.0], "parent": "hip"},
+                ],
+            },
+        ],
+        "actions": [
+            {
+                "name": "walk",
+                "kind": "walk",
+                "duration": 1.0,
+                "character": "hero_rig",
+            }
+        ],
+        "exports": [
+            {"format": "am3d", "path": "hero_project"},
+        ],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+
+    # hero_mesh should have copied bones and non-empty weights
+    mesh_bones = ex.session.get_bones("hero_mesh")
+    assert len(mesh_bones) == 2
+    assert any(b.cp_weights for b in mesh_bones)
+
+    # Evaluate at t=0 and t=0.25; confirm deformation occurs
+    f0 = ex.session.evaluate_scene(time=0.0)
+    f1 = ex.session.evaluate_scene(time=0.25)
+    v0 = f0.meshes["hero_mesh"].vertices
+    v1 = f1.meshes["hero_mesh"].vertices
+    assert np.max(np.linalg.norm(v1 - v0, axis=1)) > 0.01
+
+
+def test_recipe_missing_skeleton_reference_rejected_with_structured_error():
+    """Recipe with params.skeleton referencing nonexistent object emits structured missing_reference."""
+    recipe = {
+        "name": "bad_rig_ref",
+        "objects": [
+            {
+                "name": "orphan_mesh",
+                "primitive": "cylinder",
+                "params": {"skeleton": "ghost_rig"},
+            }
+        ],
+    }
+    ex = RecipeExecutor()
+    res = ex.execute(recipe)
+    assert not res.ok
+    assert any(rec["code"] == "missing_reference" and "params.skeleton" in rec["path"] for rec in res.error_records)
+
+
+def test_recipe_transform_invalid_shape_and_non_numeric():
+    """Transform with invalid shape or non-numeric values yields structured schema errors."""
+    bad_shape = {
+        "name": "bad_shape",
+        "objects": [{"name": "b", "primitive": "box", "transform": [1.0, 2.0, 3.0, 4.0, 5.0]}],
+    }
+    ex = RecipeExecutor()
+    res1 = ex.execute(bad_shape)
+    assert not res1.ok
+    assert any(rec["code"] == "invalid_shape" and rec["stage"] == "schema" for rec in res1.error_records)
+
+    bad_val = {
+        "name": "bad_val",
+        "objects": [{"name": "b", "primitive": "box", "transform": ["x", "y", "z"]}],
+    }
+    res2 = ex.execute(bad_val)
+    assert not res2.ok
+    assert any(rec["code"] == "invalid_value" and rec["stage"] == "schema" for rec in res2.error_records)
+
+
+def test_recipe_retarget_between_distinct_characters(tmp_path):
+    """Retargeting action between two distinct characters in a recipe scales translation properly."""
+    recipe = {
+        "name": "retarget_demo",
+        "objects": [
+            {
+                "name": "short_char",
+                "bones": [
+                    {"name": "root", "head": [0, 0, 0], "tail": [0, 1, 0]},
+                ],
+            },
+            {
+                "name": "tall_char",
+                "bones": [
+                    {"name": "root", "head": [0, 0, 0], "tail": [0, 2, 0]},
+                ],
+            },
+        ],
+        "actions": [
+            {
+                "name": "short_hop",
+                "kind": "custom",
+                "character": "short_char",
+                "duration": 1.0,
+                "channels": [
+                    {
+                        "bone": "root",
+                        "property": "translate",
+                        "keys": [
+                            {"time": 0.0, "value": [0, 0, 0]},
+                            {"time": 0.5, "value": [0, 0.5, 0]},
+                            {"time": 1.0, "value": [0, 0, 0]},
+                        ],
+                    }
+                ],
+            },
+            {
+                "name": "tall_hop",
+                "kind": "retarget",
+                "character": "tall_char",
+                "source_action": "short_hop",
+                "duration": 1.0,
+                "params": {"source_character": "short_char"},
+            },
+        ],
+    }
+    ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+    res = ex.execute(recipe)
+    assert res.ok, res.errors
+    assert "tall_hop" in res.actions
+
+    act = ex.session.actions["tall_hop"]
+    ch = act.get_channel("root", "translate")
+    # Bone length ratio tall (2.0) / short (1.0) is 2.0; translation 0.5 becomes 1.0
+    assert ch.sample(0.5)[1] == pytest.approx(1.0)
+
+
+def test_flagship_knight_recipes_bind_and_deform(tmp_path):
+    """Flagship knight recipes (knight_full.json and knight_recipe.json) bind and visibly deform."""
+    for rel_path in ["docs/recipes/examples/knight_full.json", "scripts/knight_recipe.json"]:
+        with open(rel_path, "r", encoding="utf-8") as f:
+            r_data = json.load(f)
+
+        r_data["exports"] = []  # test execution and deformation without writing exports to root
+        ex = RecipeExecutor(output_root=str(tmp_path), base_dir=str(tmp_path))
+        res = ex.execute(r_data)
+        assert res.ok, (rel_path, res.errors)
+
+        # Check that geometry object received copied bones and weights
+        geom_name = "body" if "body" in ex.session.project.objects else "torso"
+        bones = ex.session.get_bones(geom_name)
+        assert len(bones) > 0, f"{rel_path}: {geom_name} has no bones"
+        assert any(b.cp_weights for b in bones), f"{rel_path}: {geom_name} has no skin weights"
+
+        # Evaluate at t=0.0 and t=0.25; confirm deformation occurs
+        f0 = ex.session.evaluate_scene(time=0.0)
+        f1 = ex.session.evaluate_scene(time=0.25)
+        v0 = f0.meshes[geom_name].vertices
+        v1 = f1.meshes[geom_name].vertices
+        delta = np.max(np.linalg.norm(v1 - v0, axis=1))
+        assert delta > 0.01, f"{rel_path}: {geom_name} did not deform between frames (delta={delta})"
+
+
+def test_gui_lathe_and_recipe_lathe_geometry_agree():
+    """GUI lathe profile extraction [0, 1] produces identical geometry to recipe lathe."""
+    from am3d.ui.operators import LatheProfileCommand
+    from am3d.recipes.primitives import make_lathe_profile
+    from am3d.core.project import Object3D, Patch
+    from am3d.renderer.tessellate import tessellate_object
+
+    # Create session with vase profile
+    s = Session()
+    s.create_object("vase_gui")
+    # Vase control points: X=radius, Y=axial, Z=0.0
+    cps = [
+        np.array([0.2, 0.0, 0.0], dtype=np.float64),
+        np.array([0.5, 0.3, 0.0], dtype=np.float64),
+        np.array([0.3, 0.7, 0.0], dtype=np.float64),
+        np.array([0.4, 1.0, 0.0], dtype=np.float64),
+    ]
+    s.add_spline("vase_gui", cps, name="profile")
+
+    # GUI lathe extraction logic
+    spline = s.project.objects["vase_gui"].splines["profile"]
+    pts = spline.point_array()
+    gui_profile = pts[:, [0, 1]]
+
+    cmd = LatheProfileCommand(s, "vase_gui", gui_profile, sections=16)
+    cmd.redo()
+
+    # Recipe lathe using make_lathe_profile with same profile
+    recipe_res = make_lathe_profile(gui_profile, sections=16)
+
+    gui_patch = s.project.objects["vase_gui"].patches[0]
+    recipe_patch_net = recipe_res["patches"][0][1]
+
+    # Geometries must agree
+    assert np.allclose(gui_patch.interior, recipe_patch_net)
+    gui_obj = Object3D(name="vase_gui_lathed")
+    gui_obj.patches.append(Patch(name="p", splines=[], interior=gui_patch.interior))
+    gui_mesh = tessellate_object(gui_obj, nu=8, nv=8)
+
+    recipe_obj = Object3D(name="vase_recipe")
+    recipe_obj.patches.append(Patch(name="p", splines=[], interior=recipe_patch_net))
+    recipe_mesh = tessellate_object(recipe_obj, nu=8, nv=8)
+
+    assert np.allclose(gui_mesh.vertices, recipe_mesh.vertices)
+    assert np.allclose(gui_mesh.normals, recipe_mesh.normals)
+
 

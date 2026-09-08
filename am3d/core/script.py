@@ -110,6 +110,16 @@ class Session:
         self.action_assignments = test_session.action_assignments
         return self.project
 
+    def evaluate_scene(self, *, action_name: str | None = None,
+                       time: float | None = None, pose: dict | None = None,
+                       visible_only: bool = True, nu: int = 16, nv: int = 16,
+                       apply_transforms: bool = True):
+        """Evaluate the scene via the single authoritative evaluation boundary."""
+        from .scene import evaluate_scene
+        return evaluate_scene(self, action_name=action_name, time=time,
+                              pose=pose, visible_only=visible_only,
+                              nu=nu, nv=nv, apply_transforms=apply_transforms)
+
     # -- object mode --------------------------------------------------------
     def create_object(self, name: str) -> Object3D:
         return self.project.create_object(name)
@@ -184,7 +194,7 @@ class Session:
         return patch
 
     def lathe_spline(self, object_name, spline_name: str, axis: str = "y",
-                     sections: int = 24) -> Patch:
+                     sections: int = 24, closed: bool = False) -> Patch:
         from am3d.spline import kernel
         obj = self.project.objects.get(object_name)
         if obj is None:
@@ -192,7 +202,8 @@ class Session:
         if spline_name not in obj.splines:
             raise ScriptingError(f"no spline {spline_name!r}")
         profile = obj.splines[spline_name].point_array()[:, [0, 1]]
-        net = kernel.build_lathe_net(profile, axis=axis, sections=sections)
+        net = kernel.build_lathe_net(profile, axis=axis, sections=sections,
+                                     closed=closed)
         patch = Patch(name=f"{spline_name}_lathe", splines=[spline_name],
                       interior=net)
         obj.patches.append(patch)
@@ -361,12 +372,7 @@ class Session:
         if ch is None:
             ch = act.add_channel(bone, prop)
         time = float(time)
-        for k in ch.keys:
-            if abs(k.time - time) < 1e-9:
-                k.value = np.asarray(value, dtype=np.float64).reshape(-1)
-                return k
-        return ch.add_key(time, value,
-                          interp or Interpolation.SMOOTH)
+        return ch.add_key(time, value, interp or Interpolation.SMOOTH)
 
     def remove_keyframe(self, action_name: str, bone: str, prop: str,
                         index: int):

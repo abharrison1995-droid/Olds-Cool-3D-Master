@@ -2,6 +2,7 @@
 
 from __future__ import annotations
 
+import copy
 import json
 
 import pytest
@@ -173,11 +174,48 @@ def test_schema_json_conformance():
         "version": 1,
         "name": "valid_knight",
         "objects": [
-            {"name": "body", "primitive": "sphere", "params": {"radius": 0.5}},
-            {"name": "hero", "bones": [{"name": "hip", "head": [0, 0, 0], "tail": [0, 1, 0]}]}
+            {
+                "name": "body",
+                "primitive": "sphere",
+                "params": {"radius": 0.5},
+                "transform": [1.0, 2.0, 3.0],
+            },
+            {
+                "name": "hero",
+                "transform": [
+                    [1, 0, 0, 0],
+                    [0, 1, 0, 0],
+                    [0, 0, 1, 0],
+                    [0, 0, 0, 1],
+                ],
+                "bones": [
+                    {
+                        "name": "hip",
+                        "head": [0, 0, 0],
+                        "tail": [0, 1, 0],
+                        "weights": {"0": 0.5, "1": 0.5},
+                        "cp_weights": {"0": 0.5, "1": 0.5},
+                    }
+                ],
+            },
         ],
         "materials": [{"name": "iron", "roughness": 0.4, "metalness": 0.8}],
         "actions": [{"name": "walk", "kind": "walk", "duration": 1.0, "character": "hero"}],
         "exports": [{"format": "obj", "path": "out/knight"}],
     }
-    jsonschema.validate(instance=valid_sample, schema=schema)
+    jsonschema.validate(instance=valid_sample, schema=schema)
+
+    # Negative weights must fail schema validation
+    invalid_weights_sample = copy.deepcopy(valid_sample)
+    invalid_weights_sample["objects"][1]["bones"][0]["weights"] = {"0": -0.5}
+    with pytest.raises(jsonschema.ValidationError):
+        jsonschema.validate(instance=invalid_weights_sample, schema=schema)
+
+    # Validate actual repo examples against schema
+    with open("docs/recipes/examples/knight_full.json", "r", encoding="utf-8") as f:
+        kf = json.load(f)
+    jsonschema.validate(instance=kf, schema=schema)
+
+    with open("scripts/knight_recipe.json", "r", encoding="utf-8") as f:
+        kr = json.load(f)
+    jsonschema.validate(instance=kr, schema=schema)

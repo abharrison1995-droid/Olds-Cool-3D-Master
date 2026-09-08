@@ -29,6 +29,8 @@ from __future__ import annotations
 from dataclasses import asdict, dataclass, field
 import math
 
+import numpy as np
+
 
 CURRENT_RECIPE_VERSION = 1
 
@@ -127,6 +129,8 @@ class BoneRecipe:
     head: list
     tail: list
     parent: str | None = None
+    weights: dict = field(default_factory=dict)
+    cp_weights: dict = field(default_factory=dict)
 
 
 @dataclass
@@ -138,6 +142,7 @@ class ObjectRecipe:
     params: dict = field(default_factory=dict)
     splines: list = field(default_factory=list)   # list[SplineRecipe | dict]
     bones: list = field(default_factory=list)     # list[BoneRecipe | dict]
+    transform: list = field(default_factory=list)
 
 
 @dataclass
@@ -251,6 +256,17 @@ def _coerce(value, cls, path: str):
         elif isinstance(instance, BoneRecipe):
             _validate_finite_sequence(instance.head, f"{path}.head", expected_len=3)
             _validate_finite_sequence(instance.tail, f"{path}.tail", expected_len=3)
+            raw_w = instance.cp_weights or instance.weights
+            if raw_w:
+                if not isinstance(raw_w, dict):
+                    raise RecipeValidationError("invalid_type", f"{path}.weights must be a dictionary", path=f"{path}.weights")
+                for k, v in raw_w.items():
+                    try:
+                        int(k)
+                    except (ValueError, TypeError):
+                        raise RecipeValidationError("invalid_index", f"{path}.weights keys must be integer indices, got {k!r}", path=f"{path}.weights")
+                    if not isinstance(v, (int, float)) or isinstance(v, bool) or not math.isfinite(v) or v < 0.0:
+                        raise RecipeValidationError("invalid_value", f"{path}.weights values must be finite non-negative numbers", path=f"{path}.weights")
         elif isinstance(instance, MaterialRecipe):
             if instance.color is not None:
                 _validate_finite_sequence(instance.color, f"{path}.color")
@@ -348,6 +364,31 @@ def recipe_from_dict(data: dict) -> Recipe:
         obj.bones = [
             _coerce(bd, BoneRecipe, f"{path}.bones[{i}]")
             for i, bd in enumerate(obj.bones or [])]
+        if obj.transform:
+            if not isinstance(obj.transform, (list, tuple)):
+                raise RecipeValidationError("invalid_type", f"{path}.transform must be a list", path=f"{path}.transform")
+            def _check_num(v):
+                if isinstance(v, bool) or not isinstance(v, (int, float)):
+                    raise RecipeValidationError("invalid_value", f"{path}.transform elements must be numbers", path=f"{path}.transform")
+            if any(isinstance(row, (list, tuple)) for row in obj.transform):
+                for row in obj.transform:
+                    if not isinstance(row, (list, tuple)):
+                        raise RecipeValidationError("invalid_type", f"{path}.transform matrix rows must be lists", path=f"{path}.transform")
+                    for val in row:
+                        _check_num(val)
+            else:
+                for val in obj.transform:
+                    _check_num(val)
+            t_arr = np.asarray(obj.transform, dtype=np.float64)
+            if not np.all(np.isfinite(t_arr)):
+                raise RecipeValidationError("invalid_value", f"{path}.transform values must be finite", path=f"{path}.transform")
+            if t_arr.shape == (4, 4) or t_arr.size == 16:
+                m = t_arr.reshape(4, 4)
+                det = float(np.linalg.det(m[:3, :3]))
+                if abs(det) < 1e-12:
+                    raise RecipeValidationError("singular_transform", f"object {obj.name!r} transform is singular (det={det:.3e})", path=f"{path}.transform")
+            elif t_arr.size != 3:
+                raise RecipeValidationError("invalid_shape", f"{path}.transform must be a 4x4 matrix (16 elements) or a 3-element translation", path=f"{path}.transform")
         recipe.objects.append(obj)
 
     for index, md in enumerate(data.get("materials", []) or []):
@@ -483,6 +524,70 @@ def validate_recipe(recipe: Recipe) -> list:
                     break
                 visited.add(curr)
                 curr = parent_map.get(curr)
+
+        for b_idx, bone in enumerate(obj.bones):
+            for w_field in ("weights", "cp_weights"):
+                raw_w = getattr(bone, w_field, None)
+                if raw_w:
+                    w_path = f"{path}.bones[{b_idx}].{w_field}"
+                    if not isinstance(raw_w, dict):
+                        problems.append(ValidationIssue(f"{w_path} must be a dictionary", code="invalid_type", path=w_path))
+                    else:
+                        for k, v in raw_w.items():
+                            try:
+                                ik = int(k)
+                                if ik < 0:
+                                    problems.append(ValidationIssue(f"{w_path}: control point index must be non-negative", code="invalid_value", path=w_path))
+                                    break
+                            except (ValueError, TypeError):
+                                problems.append(ValidationIssue(f"{w_path}: control point key {k!r} must be an integer", code="invalid_key", path=w_path))
+                                break
+                            if isinstance(v, bool) or not isinstance(v, (int, float)) or not math.isfinite(v) or v < 0:
+                                problems.append(ValidationIssue(f"{w_path}: weight for CP {k} must be a non-negative finite number", code="invalid_value", path=w_path))
+                                break
+
+        if getattr(obj, "transform", None):
+            t_path = f"{path}.transform"
+            t = obj.transform
+            if not isinstance(t, (list, tuple)):
+                problems.append(ValidationIssue(f"object {obj.name!r}: transform must be a list", code="invalid_type", path=t_path))
+            else:
+                has_invalid = False
+                flat_items = []
+                for row in t:
+                    if isinstance(row, (list, tuple)):
+                        for item in row:
+                            flat_items.append(item)
+                    else:
+                        flat_items.append(row)
+                for item in flat_items:
+                    if isinstance(item, bool) or not isinstance(item, (int, float)):
+                        problems.append(ValidationIssue(f"object {obj.name!r}: transform elements must be numbers", code="invalid_value", path=t_path))
+                        has_invalid = True
+                        break
+                if not has_invalid:
+                    t_arr = np.asarray(t, dtype=np.float64)
+                    if not np.all(np.isfinite(t_arr)):
+                        problems.append(ValidationIssue(f"object {obj.name!r}: transform values must be finite", code="invalid_value", path=t_path))
+                    elif t_arr.shape == (4, 4) or t_arr.size == 16:
+                        m = t_arr.reshape(4, 4)
+                        det = float(np.linalg.det(m[:3, :3]))
+                        if abs(det) < 1e-12:
+                            problems.append(ValidationIssue(f"object {obj.name!r}: transform matrix has near-zero determinant ({det:.3e}) and is singular", code="singular_transform", path=t_path, hint="Ensure transform scale factors are non-zero."))
+                    elif t_arr.size != 3:
+                        problems.append(ValidationIssue(f"object {obj.name!r}: transform must be 16 elements (4x4) or 3 elements (translation)", code="invalid_shape", path=t_path))
+
+    # Check params.skeleton references
+    obj_names = {o.name for o in recipe.objects}
+    for index, obj in enumerate(recipe.objects):
+        skel_ref = obj.params.get("skeleton") if isinstance(obj.params, dict) else None
+        if skel_ref and skel_ref not in obj_names:
+            problems.append(ValidationIssue(
+                f"object {obj.name!r} references nonexistent skeleton {skel_ref!r}",
+                code="missing_reference",
+                path=f"recipe.objects[{index}].params.skeleton",
+                hint="The referenced skeleton object must exist in recipe.objects."
+            ))
 
     seen_materials = set()
     for index, material in enumerate(recipe.materials):

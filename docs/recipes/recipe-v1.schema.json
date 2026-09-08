@@ -25,7 +25,14 @@
         },
         "params": { "type": "object" },
         "splines": { "type": "array", "items": { "$ref": "#/$defs/spline" } },
-        "bones": { "type": "array", "items": { "$ref": "#/$defs/bone" } }
+        "bones": { "type": "array", "items": { "$ref": "#/$defs/bone" } },
+        "transform": {
+          "oneOf": [
+            { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+            { "type": "array", "minItems": 16, "maxItems": 16, "items": { "type": "number" } },
+            { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } } }
+          ]
+        }
       }
     },
     "spline": {
@@ -47,7 +54,17 @@
         "name": { "type": "string", "minLength": 1 },
         "head": { "$ref": "#/$defs/vec3" },
         "tail": { "$ref": "#/$defs/vec3" },
-        "parent": { "type": ["string", "null"] }
+        "parent": { "type": ["string", "null"] },
+        "weights": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "number", "minimum": 0.0 }
+        },
+        "cp_weights": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "number", "minimum": 0.0 }
+        }
       }
     },
     "material": {

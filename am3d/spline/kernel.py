@@ -245,12 +245,14 @@ def build_extrude_net(profile, height, twist_deg=0.0, n_rings=2):
     return net
 
 
-def build_lathe_net(profile, axis="y", sections=24):
+def build_lathe_net(profile, axis="y", sections=24, closed: bool = False):
     """Revolve a 2-D profile around an axis (lathing a control net).
 
     *profile* : ndarray (m, 2); ``(radius, axial)`` per row.
     *axis* : "x", "y", or "z" — axis of revolution.
-    Returns an ``(sections, m, 3)`` control net.
+    *closed* : if True, appends a copy of the first section at angle 2*pi
+               so the revolution closes seamlessly.
+    Returns an ``(sections + (1 if closed else 0), m, 3)`` control net.
     """
     profile = np.asarray(profile, dtype=np.float64)
     m = profile.shape[0]
@@ -266,4 +268,6 @@ def build_lathe_net(profile, axis="y", sections=24):
                 net[i, j] = (r * c, r * s, axial)
             else:  # axis == "x"
                 net[i, j] = (axial, r * s, r * c)
+    if closed:
+        net = np.concatenate([net, net[:1]], axis=0)
     return net

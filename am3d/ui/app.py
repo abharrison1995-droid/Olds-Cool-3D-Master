@@ -320,14 +320,8 @@ class MainWindow(QMainWindow):
     def _do_primitive(self, name, params):
         """Undoably create a primitive object with collision-safe naming."""
         from .operators import CreatePrimitiveCommand, push_or_apply
-        base = name
-        obj_name = base
-        i = 1
-        while obj_name in self.session.project.objects:
-            obj_name = f"{base}_{i:03d}"
-            i += 1
-            if i > 999:
-                return
+        from am3d.core.naming import allocate_unique_name
+        obj_name = allocate_unique_name(self.session.project.objects.keys(), name)
         push_or_apply(self, CreatePrimitiveCommand(
             self.session, obj_name, name, params))
         self._refresh_all()
@@ -339,15 +333,9 @@ class MainWindow(QMainWindow):
     def _create_spline(self):
         """Undoably create a new object with a profile spline."""
         from .operators import CreateSplineProfileCommand, push_or_apply
+        from am3d.core.naming import allocate_unique_name
         import numpy as np
-        base = "spline"
-        name = base
-        i = 1
-        while name in self.session.project.objects:
-            name = f"{base}_{i:03d}"
-            i += 1
-            if i > 999:
-                return
+        name = allocate_unique_name(self.session.project.objects.keys(), "spline")
         cps = [
             np.array([0.0, -0.5, 0.0], dtype=np.float64),
             np.array([0.3, 0.0, 0.0], dtype=np.float64),
@@ -372,8 +360,8 @@ class MainWindow(QMainWindow):
         sname = sname if sname in obj.splines else next(iter(obj.splines))
         spline = obj.splines[sname]
         pts = spline.point_array()
-        # Profile spline varies in X/Y; extract [radius, axial] as [X, Z].
-        profile = pts[:, [0, 2]]  # X -> radius, Z -> axial
+        # Profile spline varies in X/Y; extract [radius, axial] as [X, Y].
+        profile = pts[:, [0, 1]]  # X -> radius, Y -> axial
         if len(profile) < 2:
             return
         push_or_apply(self, LatheProfileCommand(
@@ -411,14 +399,8 @@ class MainWindow(QMainWindow):
         obj = self.session.project.objects.get(oname)
         if obj is None:
             return
-        base = f"{oname}_copy"
-        name = base
-        i = 1
-        while name in self.session.project.objects:
-            name = f"{base}_{i:03d}"
-            i += 1
-            if i > 999:
-                return
+        from am3d.core.naming import allocate_unique_name
+        name = allocate_unique_name(self.session.project.objects.keys(), f"{oname}_copy")
         push_or_apply(self, DuplicateObjectCommand(
             self.session, oname, name))
         self._refresh_all()

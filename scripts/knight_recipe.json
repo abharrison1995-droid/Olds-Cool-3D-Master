@@ -1,4 +1,5 @@
 {
+  "version": 1,
   "name": "knight_demo",
   "objects": [
     {
@@ -7,7 +8,8 @@
       "params": {
         "radius": 0.45,
         "sections": 16,
-        "rings": 8
+        "rings": 8,
+        "skeleton": "hero"
       }
     },
     {

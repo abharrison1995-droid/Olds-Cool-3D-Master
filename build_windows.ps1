@@ -79,6 +79,18 @@ if ($LASTEXITCODE -ne 0) {
 }
 Write-Host "Build completed." -ForegroundColor Green
 
+# Packaged headless recipe entry point (am3d-recipe.exe) -- a separate,
+# smaller onefile console build alongside the windowed GUI, so an external
+# agent can drive recipes without installing Python or the GUI's Qt runtime.
+Write-Host ""
+Write-Host "Step 4b: Building packaged recipe CLI with PyInstaller..." -ForegroundColor Yellow
+Invoke-Native { & $py -m PyInstaller --clean am3d_recipe.spec }
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "PyInstaller recipe CLI build failed!"
+    exit 1
+}
+Write-Host "Recipe CLI build completed." -ForegroundColor Green
+
 # ---- 4. Stage release folder ----
 Write-Host ""
 Write-Host "Step 5: Staging release folder..." -ForegroundColor Yellow
@@ -92,6 +104,12 @@ New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 $distDir = Join-Path $RepoRoot "dist\3D MASTER 2005 Beta"
 if (Test-Path $distDir) {
     Copy-Item -Recurse -Force "$distDir\*" $releaseDir
+}
+
+# Copy the packaged recipe CLI onefile exe alongside the GUI
+$recipeExeSrc = Join-Path $RepoRoot "dist\am3d-recipe.exe"
+if (Test-Path $recipeExeSrc) {
+    Copy-Item -Force $recipeExeSrc (Join-Path $releaseDir "am3d-recipe.exe")
 }
 
 # Copy examples
@@ -135,6 +153,24 @@ if (Test-Path $exePath) {
     Write-Host "  File size: $((Get-Item $exePath).Length / 1MB -as [int]) MB" -ForegroundColor Green
 } else {
     Write-Error "Executable not found at $exePath"
+    exit 1
+}
+
+# Recipe CLI smoke test: actually invoke it (--validate-only, no output
+# written) against the bundled minimal example, so a broken onefile bundle
+# (missing hidden import, etc.) fails the build instead of shipping silently.
+$recipeExePath = Join-Path $releaseDir "am3d-recipe.exe"
+if (Test-Path $recipeExePath) {
+    Write-Host "  Recipe CLI found: $recipeExePath" -ForegroundColor Green
+    $minimalRecipe = Join-Path $RepoRoot "docs\recipes\examples\minimal.json"
+    Invoke-Native { & $recipeExePath --recipe $minimalRecipe --validate-only }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Packaged recipe CLI failed to validate the bundled example recipe!"
+        exit 1
+    }
+    Write-Host "  Recipe CLI validated the bundled example recipe." -ForegroundColor Green
+} else {
+    Write-Error "Recipe CLI executable not found at $recipeExePath"
     exit 1
 }
 

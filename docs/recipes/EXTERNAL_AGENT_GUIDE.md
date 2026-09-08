@@ -31,6 +31,25 @@ output. With `--out`, every export path must be relative and must resolve
 inside that directory; absolute paths, drive letters, and traversal escapes are rejected.
 Without `--out`, relative exports resolve next to the recipe file.
 
+### Packaged entry point (no Python required)
+
+Windows releases also ship `am3d-recipe.exe` alongside the GUI executable
+in the release folder -- a standalone build of the same entry point, for an
+external process that cannot rely on Python being installed:
+
+```text
+am3d-recipe.exe --recipe recipe.json --out output-directory
+```
+
+```text
+type recipe.json | am3d-recipe.exe --recipe - --out output-directory
+```
+
+It is built from the identical `am3d.recipes.cli:main` source as
+`python -m am3d.recipes`, so JSON report shape, exit codes (`0`/`1`),
+stdin (`--recipe -`) support, and `--validate-only` semantics are exactly
+the same -- only the invocation differs.
+
 ## 2. Coordinate, Angle, and Time Conventions
 
 - **Coordinate System**: Right-handed, $Y$-up, $X$-right, $Z$-forward.

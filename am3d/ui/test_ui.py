@@ -138,6 +138,34 @@ def test_properties_object_transform_edit():
 
 
 
+def test_gui_export_scene_applies_transform_and_material(tmp_path):
+    """``_export_scene`` (behind File > Export OBJ/GLB) must evaluate the
+    same world-space, materially-coloured geometry as the viewport — not
+    raw bind-pose meshes with no material, which is what a direct
+    ``tessellate_project`` call would give a moved/coloured object."""
+    win = _make_main_window()
+    try:
+        obj = win.session.get_object("sphere")
+        obj.transform[0, 3] = 3.0
+        win.session.create_material("red", color=(1.0, 0.0, 0.0))
+        obj.material = "red"
+
+        meshes, mat_colors = win._export_scene()
+        assert "sphere" in meshes
+        assert meshes["sphere"].vertices[:, 0].mean() > 2.0, \
+            "exported mesh must carry the object's world transform"
+        import pytest
+        assert mat_colors["sphere"][:3] == pytest.approx((1.0, 0.0, 0.0))
+
+        from am3d.export.obj import write_obj
+        out = tmp_path / "sphere.obj"
+        write_obj(str(out), meshes, materials=mat_colors or None)
+        assert (tmp_path / "sphere.mtl").exists()
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
 def _make_viewport():
     """Create a Viewport with a minimal fake main window (skip headless)."""
     import pytest

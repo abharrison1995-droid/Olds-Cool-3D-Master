@@ -111,29 +111,6 @@ def _apply_object_transform(mesh, transform):
     return mesh
 
 
-def _collect_material_colors(session) -> dict:
-    """Build ``{object_name: (r, g, b, a)}`` from session material bindings.
-
-    Returns a dict of flat colours for every object that has a bound material
-    with an explicit colour.  Objects without a material binding are omitted.
-    """
-    project = session.project
-    result = {}
-    for obj_name, obj in project.objects.items():
-        mat_name = getattr(obj, "material", None)
-        if not mat_name:
-            continue
-        mat = project.materials.get(mat_name)
-        if mat is None:
-            continue
-        color = getattr(mat, "color", None)
-        if color is not None and len(color) >= 3:
-            r, g, b = float(color[0]), float(color[1]), float(color[2])
-            a = float(color[3]) if len(color) >= 4 else 1.0
-            result[obj_name] = (r, g, b, a)
-    return result
-
-
 class RecipeExecutor:
     """Applies a validated :class:`Recipe` to a scripting session."""
 
@@ -547,9 +524,10 @@ class RecipeExecutor:
                             hint="Check that the project state is valid.")
                     continue
 
+                from am3d.core.scene import scene_material_colors
                 scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
                 meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
-                mat_colors = _collect_material_colors(self.session)
+                mat_colors = scene_material_colors(scene)
 
                 if fmt == "obj":
                     from am3d.export.obj import write_obj

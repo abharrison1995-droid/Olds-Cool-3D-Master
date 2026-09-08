@@ -507,10 +507,6 @@ class MainWindow(QMainWindow):
         self.viewport.update()
         self._update_title()
 
-    def _tessellate(self):
-        from am3d.renderer.tessellate import tessellate_project
-        return tessellate_project(self.session.project)
-
     def _file_new(self):
         if not self.doc_ctrl.maybe_abandon_document():
             return
@@ -667,6 +663,17 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "Import failed", str(exc))
 
+    def _export_scene(self):
+        """Evaluated world-space meshes and material colours for the
+        current pose/frame — the same boundary the viewport and recipe
+        exporter use, so a GUI export matches what's on screen (baked
+        transforms, current pose deformation, visibility, material colour)
+        rather than re-tessellating raw bind-pose geometry."""
+        from am3d.core.scene import scene_material_colors
+        scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
+        meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
+        return meshes, scene_material_colors(scene)
+
     def _file_export_obj(self):
         path, _ = QFileDialog.getSaveFileName(
             self, "Export OBJ", "model.obj", "Wavefront (*.obj)")
@@ -674,7 +681,8 @@ class MainWindow(QMainWindow):
             return
         try:
             from am3d.export.obj import write_obj
-            write_obj(path, self._tessellate())
+            meshes, mat_colors = self._export_scene()
+            write_obj(path, meshes, materials=mat_colors or None)
             self.statusBar().showMessage("Exported: " + path)
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))
@@ -686,7 +694,8 @@ class MainWindow(QMainWindow):
             return
         try:
             from am3d.export.gltf import write_glb
-            write_glb(path, self._tessellate())
+            meshes, mat_colors = self._export_scene()
+            write_glb(path, meshes, materials=mat_colors or None)
             self.statusBar().showMessage("Exported: " + path)
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))

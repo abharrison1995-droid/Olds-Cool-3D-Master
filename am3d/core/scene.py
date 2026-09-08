@@ -180,3 +180,24 @@ def evaluate_scene(
         object_materials=obj_materials,
         bounds=bounds,
     )
+
+
+def scene_material_colors(scene: EvaluatedScene) -> dict[str, tuple]:
+    """``{object_name: (r, g, b, a)}`` for every object bound to a material.
+
+    Single source of truth for the flat colour an OBJ/GLB export writes
+    into its material record — derived from the same evaluated scene the
+    viewport and recipe exporter already share, so every caller agrees on
+    which objects are coloured and with what.
+    """
+    colors: dict[str, tuple] = {}
+    for obj_name, mat_name in scene.object_materials.items():
+        if not mat_name:
+            continue
+        mat = scene.materials.get(mat_name)
+        if mat is None or mat.color is None or len(mat.color) < 3:
+            continue
+        r, g, b = float(mat.color[0]), float(mat.color[1]), float(mat.color[2])
+        a = float(mat.color[3]) if len(mat.color) >= 4 else 1.0
+        colors[obj_name] = (r, g, b, a)
+    return colors

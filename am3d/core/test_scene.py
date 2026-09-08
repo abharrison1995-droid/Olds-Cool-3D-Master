@@ -9,7 +9,7 @@ from am3d.core.mathutil import transform_mesh_geometry
 from am3d.core.naming import allocate_unique_name
 from am3d.core.project import Bone, ControlPoint, Object3D, Patch, Spline
 from am3d.core.rigging import auto_weight_object, deform_object, fk_pose
-from am3d.core.scene import EvaluatedScene, evaluate_scene
+from am3d.core.scene import EvaluatedScene, evaluate_scene, scene_material_colors
 from am3d.core.script import Session
 from am3d.recipes.animation import generate_action, generate_idle, generate_walk_cycle
 from am3d.renderer.tessellate import MeshData, tessellate_object
@@ -239,6 +239,24 @@ def test_evaluate_scene_multi_object_bounds():
     min_b, max_b = scene.bounds
     assert max_b[0] > 9.5
     assert min_b[0] < 0.5
+
+
+def test_scene_material_colors_reads_bound_objects_only():
+    """scene_material_colors is the single source of truth OBJ/GLB export
+    and the GUI export path both draw from — it must reflect exactly the
+    object -> material -> colour bindings on the evaluated scene, skipping
+    unbound objects and materials with no colour."""
+    s = Session()
+    s.project.objects["colored"] = _make_test_cylinder("colored", radius=0.5, height=1.0)
+    s.project.objects["plain"] = _make_test_cylinder("plain", radius=0.5, height=1.0)
+    mat = s.create_material("blue", color=(0.1, 0.2, 0.9))
+    s.project.objects["colored"].material = "blue"
+
+    scene = s.evaluate_scene()
+    colors = scene_material_colors(scene)
+
+    assert colors == {"colored": (0.1, 0.2, 0.9, 1.0)}
+    assert "plain" not in colors
 
 
 # ---------------------------------------------------------------------------

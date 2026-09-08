@@ -17,7 +17,7 @@ class ProjectFormatError(Exception):
 
 
 # Schema version and safety limits
-FORMAT_VERSION = 1
+FORMAT_VERSION = 2
 _MAX_FILE_BYTES = 64 * 1024 * 1024       # 64 MB
 _MAX_OBJECTS = 1000
 _MAX_SPLINES = 5000
@@ -43,6 +43,38 @@ def validate_project_bytes(payload: bytes) -> None:
             f"File too large: {len(payload)} bytes (max {_MAX_FILE_BYTES})")
     if len(payload) < 4:
         raise ProjectFormatError("File too small (truncated?)")
+
+
+def _unpack_msgpack(payload: bytes) -> dict:
+    """``msgpack.unpackb`` with the array-length safety limit applied,
+    surfaced as ``ProjectFormatError`` like every other load-time failure
+    instead of whatever raw exception msgpack raises for truncated data or
+    an oversized array.
+    """
+    try:
+        return msgpack.unpackb(payload, raw=False,
+                               max_array_len=_MAX_ARRAY_ELEMENTS)
+    except (ValueError, msgpack.exceptions.UnpackException) as exc:
+        raise ProjectFormatError(f"Malformed msgpack data: {exc}") from exc
+
+
+def _check_container_depth(obj, max_depth: int, _depth: int = 0) -> None:
+    """Reject a deserialized structure nested deeper than *max_depth*.
+
+    A malicious or corrupt file can nest dicts/lists deeply enough to blow
+    the interpreter's recursion limit while later code (validation,
+    decoding) walks the structure; this bounds it right after unpacking,
+    before anything recurses into it.
+    """
+    if _depth > max_depth:
+        raise ProjectFormatError(
+            f"Data nested too deeply (max depth {max_depth})")
+    if isinstance(obj, dict):
+        for v in obj.values():
+            _check_container_depth(v, max_depth, _depth + 1)
+    elif isinstance(obj, (list, tuple)):
+        for v in obj:
+            _check_container_depth(v, max_depth, _depth + 1)
 
 
 def _row_count(obj, path: str) -> int:
@@ -135,7 +167,11 @@ def _pack_ndarray(a):
 
 def _unpack_ndarray(obj):
     if isinstance(obj, dict) and obj.get("__nd__"):
-        return np.frombuffer(obj["data"], dtype=obj["dtype"]).reshape(obj["shape"])
+        dtype = obj.get("dtype")
+        if dtype not in _ALLOWED_DTYPES:
+            raise ProjectFormatError(
+                f"packed array: disallowed dtype {dtype!r}")
+        return np.frombuffer(obj["data"], dtype=dtype).reshape(obj["shape"])
     return obj
 
 
@@ -201,7 +237,9 @@ def dump_action(action: Action) -> bytes:
 
 def load_action(payload: bytes) -> Action:
     """Deserialize an Action from :func:`dump_action` output."""
-    return _decode(msgpack.unpackb(payload, raw=False))
+    data = _unpack_msgpack(payload)
+    _check_container_depth(data, _MAX_CONTAINER_DEPTH)
+    return _decode(data)
 
 
 def save_action(action: Action, path: str):
@@ -310,13 +348,21 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
         "active_action": project.active_action,
         "action_assignments": dict(project.action_assignments),
     }
-    body["format_version"] = 2
+    body["format_version"] = FORMAT_VERSION
     return msgpack.packb(body, use_bin_type=True)
 
 
 def load_project_bytes(payload: bytes) -> Project:
     validate_project_bytes(payload)
-    data = msgpack.unpackb(payload, raw=False)
+    data = _unpack_msgpack(payload)
+    _check_container_depth(data, _MAX_CONTAINER_DEPTH)
+    # Absent means a file saved before this field existed (format 1);
+    # only a version newer than this build understands is a hard error.
+    fmt = data.get("format_version", 1)
+    if not isinstance(fmt, int) or fmt > FORMAT_VERSION:
+        raise ProjectFormatError(
+            f"Unsupported project format version {fmt!r} "
+            f"(this build supports up to {FORMAT_VERSION})")
     validate_project_data(data)
     p = Project(name=data["name"])
     p.mode = data.get("mode", "object")

@@ -760,9 +760,13 @@ isolated slip. Section 4.4's single-scene-assembly-path requirement should be
 read as the general remedy.
 
 **What's actually left (in priority order):**
-1. Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope explicitly
-   — unenforced limits, the raw `KeyError`, and the `zip()` truncation are the
-   concrete instances of blocker #8.
+1. ~~Add the three MAJOR serializer gaps above to Phase 2 (7.3) scope
+   explicitly — unenforced limits, the raw `KeyError`, and the `zip()`
+   truncation are the concrete instances of blocker #8.~~ **Done** — see
+   the 2026-09-08 entry below (`_MAX_CONTAINER_DEPTH`/`_MAX_ARRAY_ELEMENTS`/
+   `_ALLOWED_DTYPES` now enforced, `format_version` now read and checked,
+   and the separate `recipes/executor.py:98` parse-outside-try bug fixed
+   alongside it).
 2. Reconcile `LatheProfileCommand`/`ExtrudeProfileCommand` with the
    `Session.lathe_spline()`/`extrude_spline()` facade (one code path, one axis
    convention) before Phase 4 export-parity work builds on top of it.
@@ -835,15 +839,57 @@ gaps survived verification and are now fixed:
   exact float boundary — `1.0 + 1e-9` isn't representable precisely enough
   at that magnitude for an exact-boundary assertion to be meaningful).
 
-Full suite: **349 -> 364 passed**. Work is on local branch
-`fix/export-and-recipe-silent-failures` (tracking
-`origin/fix/export-and-recipe-silent-failures`), not yet committed as of
-this writing. The **"What's actually left"** list above is unchanged by
-this pass — it is still the correct place to resume: item 1 (serializer
-`_MAX_CONTAINER_DEPTH`/`_MAX_ARRAY_ELEMENTS`/`_ALLOWED_DTYPES`/
-`format_version` enforcement, and the `recipes/executor.py:98`
-parse-outside-try bug) is the most natural next step since it's the same
-file this pass was already working in.
+Full suite: **349 -> 364 passed**. Landed in commit `e4e7a6a` on
+`fix/export-and-recipe-silent-failures`, pushed, PR opened
+([#2](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/pull/2)).
+
+### 2026-09-08 — item 1: serializer limits, format_version, executor parse bug
+
+Continuing straight on from the swarm review above (same session), item 1
+of the "What's actually left" list:
+
+- **[fixed]** `_MAX_ARRAY_ELEMENTS` now passed as `max_array_len` to both
+  `msgpack.unpackb()` call sites (`load_action`, `load_project_bytes`).
+  msgpack raises a plain `ValueError` when this trips — a new
+  `_unpack_msgpack()` helper wraps both call sites and converts that (and
+  any other raw unpack failure — truncated data, `msgpack.exceptions.*`)
+  into `ProjectFormatError`, the same fix pattern as the `zip(strict=True)`
+  backstop from the prior pass, generalized to unpacking itself.
+- **[fixed]** `_MAX_CONTAINER_DEPTH` enforced via a new
+  `_check_container_depth()` walking the deserialized structure right
+  after unpacking, applied at both call sites.
+- **[fixed]** `_ALLOWED_DTYPES` enforced in `_unpack_ndarray()` — a packed
+  array's `dtype` string is checked before it reaches `np.frombuffer`.
+- **[fixed]** `format_version`: the module constant `FORMAT_VERSION = 1`
+  didn't match what `dump_project` actually wrote (`2`) — a pre-existing
+  inconsistency, not something this pass introduced. Bumped the constant
+  to `2` and made `dump_project` write it via the constant instead of a
+  magic number. `load_project_bytes` now reads it, treats an absent field
+  as format 1 (files saved before the field existed) for backward
+  compatibility, and rejects anything newer than this build supports.
+- **[fixed]** `recipes/executor.py:98` — `recipe_from_dict()` was called
+  outside `execute()`'s try block, so a parse-stage failure (e.g. a dict
+  landing where a string was expected, tripping an `in PRIMITIVES`
+  membership check on an unhashable type) escaped as a bare `TypeError`
+  instead of the `ValueError("invalid recipe: ...")` contract
+  `validate_recipe`'s failures already use two lines below — and that
+  `cli.py` already independently normalizes to on its own separate call
+  path. Now wrapped and re-raised in the same format. **Not changed**:
+  `validate_recipe`'s own raise-on-`problems` path — seven existing tests
+  (`pytest.raises(ValueError, match="invalid recipe")`) already lock that
+  in as the intended contract; the reported bug was specifically about the
+  parse stage having no equivalent handling, not about switching either
+  path over to populating `ExecutionResult.errors` instead of raising.
+
+Regression tests added for all five; verified each new test fails against
+the pre-fix code before confirming it passes after (not just written and
+assumed correct). Full suite: **364 -> 371 passed**. Also re-ran the
+standing `scripts/knight_recipe.json` smoke test end-to-end (CLI export of
+every format plus an `.am3d` project save) and round-tripped the saved
+project back through `load_project` — clean, no errors or warnings.
+
+The **"What's actually left"** list above is otherwise unchanged — item 2
+(Lathe/Extrude command reconciliation) is next.
 
 ## 14. Agent execution protocol
 

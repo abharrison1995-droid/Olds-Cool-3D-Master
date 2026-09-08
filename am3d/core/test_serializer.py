@@ -364,6 +364,81 @@ def test_corrupt_declared_shape_surfaces_as_project_format_error():
     assert "objects.o.splines.s.cps" in str(excinfo.value)
 
 
+def test_disallowed_dtype_is_rejected():
+    """dtype was declared but unenforced; a lying dtype string previously
+    reached np.frombuffer unchecked."""
+    payload = _corrupt(lambda s: s["cps"][0].__setitem__("dtype", "complex128"))
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "dtype" in str(excinfo.value)
+
+
+def test_deeply_nested_project_data_is_rejected():
+    """_MAX_CONTAINER_DEPTH was declared but unenforced."""
+    import msgpack
+
+    nested = {}
+    cur = nested
+    for _ in range(serializer._MAX_CONTAINER_DEPTH + 5):
+        cur["x"] = {}
+        cur = cur["x"]
+    payload = msgpack.packb(nested, use_bin_type=True)
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "nested too deeply" in str(excinfo.value)
+
+
+def test_deeply_nested_action_data_is_rejected():
+    """load_action gets the same depth guard as load_project_bytes."""
+    import msgpack
+
+    nested = {}
+    cur = nested
+    for _ in range(serializer._MAX_CONTAINER_DEPTH + 5):
+        cur["x"] = {}
+        cur = cur["x"]
+    payload = msgpack.packb(nested, use_bin_type=True)
+    with pytest.raises(serializer.ProjectFormatError):
+        serializer.load_action(payload)
+
+
+def test_oversized_array_is_rejected(monkeypatch):
+    """_MAX_ARRAY_ELEMENTS was declared but unenforced; a claimed array
+    length beyond the limit must fail structured, not as a raw msgpack
+    ValueError escaping the loader."""
+    monkeypatch.setattr(serializer, "_MAX_ARRAY_ELEMENTS", 3)
+    payload = serializer.dump_project(_spline_project())    # 4 weights
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "Malformed msgpack data" in str(excinfo.value)
+
+
+def test_future_format_version_is_rejected():
+    """format_version was written but never read; a file from a newer,
+    incompatible build must not be silently misinterpreted."""
+    import msgpack
+
+    data = msgpack.unpackb(serializer.dump_project(_spline_project()),
+                           raw=False)
+    data["format_version"] = serializer.FORMAT_VERSION + 1
+    payload = msgpack.packb(data, use_bin_type=True)
+    with pytest.raises(serializer.ProjectFormatError) as excinfo:
+        serializer.load_project_bytes(payload)
+    assert "format version" in str(excinfo.value).lower()
+
+
+def test_missing_format_version_still_loads():
+    """Files saved before this field existed (format 1) must still open."""
+    import msgpack
+
+    data = msgpack.unpackb(serializer.dump_project(_spline_project()),
+                           raw=False)
+    del data["format_version"]
+    payload = msgpack.packb(data, use_bin_type=True)
+    q = serializer.load_project_bytes(payload)
+    assert "o" in q.objects
+
+
 def test_rejected_file_does_not_partially_construct(tmp_path):
     """A malformed file must fail before it can replace a live session."""
     from am3d.core.script import Session

@@ -233,7 +233,7 @@ loops are continuous, and save/reload yields equivalent sampled geometry.
 GUI and recipe vase geometry agree; transformed multi-object evaluation has
 correct world bounds/normals and honors visibility.
 
-Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 4.
+Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 4. Status: PASS (Verified 2026-09-08, see docs/evidence/v3/phase-3/gate_evidence.md).
 
 ## 8. Phase 4 — Rendering and exported artifact correctness
 
@@ -262,7 +262,7 @@ animation frames, preserves appearance after reload, and static OBJ/GLB reopen
 at the selected pose with supported materials. Manifest capabilities never imply
 skeletal GLB animation. All-view and animation outputs are distinguishable.
 
-Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 5.
+Gate: four-agent Luna review, fixes, rechecks, evidence; then Phase 5. Status: PASS (Verified 2026-09-08, see docs/evidence/v3/phase-4/gate_evidence.md). Note: this review swarm ran on Haiku rather than Luna at explicit user direction; see gate evidence for the caveat.
 
 ## 9. Phase 5 — Desktop reliability and recovery
 

@@ -159,6 +159,63 @@ def eval_curve(t, degree, knots, cps, weights=None):
 # ---------------------------------------------------------------------------
 # Surface construction (4-sided control-point nets)
 # ---------------------------------------------------------------------------
+def _check_resolution(value, name):
+    """Validate a tessellation sample count (finding API-01).
+
+    Fewer than two samples cannot span a quad, so it would yield a mesh with
+    vertices but no triangles -- silently empty geometry rather than an error.
+    """
+    if isinstance(value, bool) or not isinstance(value, (int, np.integer)):
+        raise ValueError(
+            f"{name} must be an integer sample count, got "
+            f"{type(value).__name__}")
+    value = int(value)
+    if value < 2:
+        raise ValueError(
+            f"{name} must be at least 2 to produce triangles, got {value}")
+    return value
+
+
+def _check_degree(degree, ncp, axis):
+    """Validate a spline degree against the control points available."""
+    if isinstance(degree, bool) or not isinstance(degree, (int, np.integer)):
+        raise ValueError(
+            f"degree_{axis} must be an integer, got {type(degree).__name__}")
+    degree = int(degree)
+    if degree < 1:
+        raise ValueError(
+            f"degree_{axis} must be at least 1 (a degree-0 surface is a set "
+            f"of disconnected points), got {degree}")
+    if ncp < degree + 1:
+        raise ValueError(
+            f"a degree-{degree} patch needs at least {degree + 1} control "
+            f"points along {axis}, but the grid has {ncp}")
+    return degree
+
+
+def _check_weights(weights, ncp, name):
+    """Validate rational weights: one per control point, finite, positive.
+
+    Non-positive weights are rejected because the rational basis divides by
+    their sum: all-zero weights collapsed the whole surface onto the origin
+    without any error, and a negative weight can drive the denominator
+    through zero and produce unbounded coordinates.
+    """
+    if weights is None:
+        return None
+    arr = np.asarray(weights, dtype=np.float64).ravel()
+    if arr.size != ncp:
+        raise ValueError(
+            f"{name} must have one weight per control point: expected "
+            f"{ncp}, got {arr.size}")
+    if not np.isfinite(arr).all():
+        raise ValueError(f"{name} contains NaN or infinite values")
+    if (arr <= 0.0).any():
+        raise ValueError(
+            f"{name} must be strictly positive; got a minimum of {arr.min()}")
+    return arr
+
+
 def build_patch_grid(control_grid, degree_u=3, degree_v=3, nu=16, nv=16,
                      weights_u=None, weights_v=None):
     """Tessellate a 4-sided B-spline patch into a triangle mesh.
@@ -174,7 +231,17 @@ def build_patch_grid(control_grid, degree_u=3, degree_v=3, nu=16, nv=16,
     grid = np.asarray(control_grid, dtype=np.float64)
     if grid.ndim != 3 or grid.shape[2] != 3:
         raise ValueError("control_grid must have shape (mu, mv, 3)")
+    if not np.isfinite(grid).all():
+        raise ValueError(
+            "control_grid contains NaN or infinite coordinates")
     mu, mv = grid.shape[:2]
+
+    nu = _check_resolution(nu, "nu")
+    nv = _check_resolution(nv, "nv")
+    _check_degree(degree_u, mu, "u")
+    _check_degree(degree_v, mv, "v")
+    weights_u = _check_weights(weights_u, mu, "weights_u")
+    weights_v = _check_weights(weights_v, mv, "weights_v")
 
     knots_u = make_clamped_knots(degree_u, mu)
     knots_v = make_clamped_knots(degree_v, mv)

@@ -1,0 +1,30 @@
+API-01 pre-fix probe: build_patch_grid input validation
+Command: .venv/bin/python, 4x4 flat control net, one argument varied per row.
+Executed on the baseline (commit a6fe665, before the validation change).
+
+nu=1                   -> OK verts(16, 3) tris(0, 3) finite=True
+nu=0                   -> ValueError: negative dimensions are not allowed
+nu=-3                  -> ValueError: Number of samples, -3, must be non-negative.
+degree_u=5 (>mu-1)     -> ValueError: need at least degree + 1 control points
+degree_u=0             -> OK verts(256, 3) tris(450, 3) finite=True
+degree_u=-1            -> ValueError: degree must be >= 0
+weights_u len 2        -> ValueError: cannot reshape array of size 2 into shape (4,)
+weights_u zeros        -> OK verts(256, 3) tris(450, 3) finite=True
+nu=1.5                 -> TypeError: 'float' object cannot be interpreted as an integer
+
+Three rows are silent-wrong-result defects, not merely poor messages:
+
+  nu=1        16 vertices, ZERO triangles. A caller gets an empty surface with
+              no error at all.
+  degree_u=0  accepted; a degree-0 tensor-product surface is a set of
+              disconnected constant spans, not a surface.
+  weights=0   every vertex collapsed onto the origin:
+                build_patch_grid(g, weights_u=[0,0,0,0])[0][:2]
+                -> [[0. 0. 0.]
+                    [0. 0. 0.]]
+              The rational basis divides by the weight sum; all-zero gives 0/0
+              resolved to the origin with no warning. A negative weight
+              (weights_u=[1,-1,1,1]) drives the denominator toward zero.
+
+The remaining rows raise, but with numpy-internal messages that name no
+parameter of this API, so a caller cannot tell which argument was wrong.

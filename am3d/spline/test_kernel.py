@@ -152,3 +152,84 @@ def test_extrude_net_rejects_single_ring():
     profile = np.array([[0, 0, 0], [1, 0, 0]], dtype=np.float64)
     with pytest.raises(ValueError):
         kernel.build_extrude_net(profile, height=1.0, n_rings=1)
+
+# ---------------------------------------------------------------------------
+# Patch-grid input validation (finding API-01)
+#
+# Before the fix these inputs either produced silently degenerate geometry
+# (nu=1 -> 16 vertices and zero triangles; all-zero weights -> every vertex
+# collapsed onto the origin) or leaked a numpy internal message that named no
+# parameter of this API ("negative dimensions are not allowed", "cannot
+# reshape array of size 2 into shape (4,)").
+# ---------------------------------------------------------------------------
+
+def _flat_grid(mu=4, mv=4):
+    grid = np.zeros((mu, mv, 3), dtype=np.float64)
+    grid[..., 0] = np.arange(mu)[:, None]
+    grid[..., 1] = np.arange(mv)[None, :]
+    return grid
+
+
+@pytest.mark.parametrize("kwargs, expect", [
+    ({"nu": 1}, "nu must be at least 2"),
+    ({"nv": 1}, "nv must be at least 2"),
+    ({"nu": 0}, "nu must be at least 2"),
+    ({"nv": -3}, "nv must be at least 2"),
+    ({"nu": 1.5}, "nu must be an integer"),
+    ({"nv": "8"}, "nv must be an integer"),
+    ({"degree_u": 0}, "degree_u must be at least 1"),
+    ({"degree_v": -1}, "degree_v must be at least 1"),
+    ({"degree_u": 3.0}, "degree_u must be an integer"),
+    ({"degree_u": 5}, "at least 6 control points along u"),
+    ({"degree_v": 9}, "at least 10 control points along v"),
+    ({"weights_u": [1.0, 1.0]}, "expected 4, got 2"),
+    ({"weights_v": [1.0] * 5}, "expected 4, got 5"),
+    ({"weights_u": [0.0] * 4}, "must be strictly positive"),
+    ({"weights_v": [1.0, -1.0, 1.0, 1.0]}, "must be strictly positive"),
+    ({"weights_u": [1.0, float("nan"), 1.0, 1.0]}, "NaN or infinite"),
+])
+def test_patch_grid_rejects_invalid_inputs_with_a_named_message(kwargs, expect):
+    with pytest.raises(ValueError) as excinfo:
+        kernel.build_patch_grid(_flat_grid(), **kwargs)
+    assert expect in str(excinfo.value)
+
+
+def test_patch_grid_rejects_a_non_finite_control_net():
+    grid = _flat_grid()
+    grid[2, 1, 0] = np.inf
+    with pytest.raises(ValueError, match="NaN or infinite coordinates"):
+        kernel.build_patch_grid(grid)
+
+
+def test_patch_grid_still_accepts_the_smallest_valid_resolution():
+    verts, tris = kernel.build_patch_grid(_flat_grid(), nu=2, nv=2)
+    assert verts.shape == (4, 3)
+    assert tris.shape == (2, 3)
+
+
+def test_patch_grid_accepts_positive_weights_unchanged():
+    grid = _flat_grid()
+    plain, _ = kernel.build_patch_grid(grid, nu=6, nv=6)
+    unit, _ = kernel.build_patch_grid(grid, nu=6, nv=6,
+                                      weights_u=[1.0] * 4,
+                                      weights_v=[1.0] * 4)
+    assert np.allclose(plain, unit)
+
+
+def test_eval_surface_validates_through_the_same_path():
+    with pytest.raises(ValueError, match="nu must be at least 2"):
+        kernel.eval_surface(_flat_grid(), nu=1)
+
+
+def test_tessellating_an_object_reports_a_bad_resolution_clearly():
+    """The exposed caller: evaluate_scene/tessellate_object take nu/nv."""
+    from am3d.core.script import Session
+    from am3d.renderer.tessellate import tessellate_object
+    from am3d.ui.operators import CreatePrimitiveCommand
+
+    s = Session()
+    CreatePrimitiveCommand(s, "box", "box").redo()
+    obj = s.get_object("box")
+    assert len(tessellate_object(obj, nu=2, nv=2).indices) > 0
+    with pytest.raises(ValueError, match="nu must be at least 2"):
+        tessellate_object(obj, nu=1, nv=8)

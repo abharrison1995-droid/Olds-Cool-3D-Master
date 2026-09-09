@@ -249,9 +249,121 @@ if ($smokeExitCode -ne 0 -or $smokeManifest.ok -ne $true -or $incompleteSteps) {
 }
 Write-Host "  Smoke test passed: $($smokeManifest.steps.Count) steps, all ok." -ForegroundColor Green
 
+# ---- 7. Release ZIP and checksum ----
+# Phase 6 bullet 5: ship a single reproducible archive plus its checksum,
+# not just the loose release folder that Step 5 staged.
+Write-Host ""
+Write-Host "Step 8: Packaging release ZIP and checksum..." -ForegroundColor Yellow
+$version = (& $py -c "import am3d; print(am3d.__version__)").Trim()
+$releaseParent = Split-Path $releaseDir -Parent
+$zipName = "3D-MASTER-2005-Beta-$version-win64.zip"
+$zipPath = Join-Path $releaseParent $zipName
+if (Test-Path $zipPath) {
+    Remove-Item -Force $zipPath
+}
+# Zips the release folder itself as the archive's single top-level entry
+# (so extracting reproduces "3D MASTER 2005 Beta\..." rather than dumping
+# loose files), matching how the recipient is expected to unpack it.
+Compress-Archive -Path $releaseDir -DestinationPath $zipPath -CompressionLevel Optimal
+$zipHash = Get-FileHash -Algorithm SHA256 -Path $zipPath
+$checksumPath = "$zipPath.sha256"
+# sha256sum-compatible format ("<hash> *<filename>") so it can be verified
+# with either PowerShell or a standard sha256sum on the recipient's end.
+"$($zipHash.Hash.ToLower()) *$zipName" | Out-File -FilePath $checksumPath -Encoding ascii -NoNewline
+Write-Host "  Release ZIP: $zipPath" -ForegroundColor Green
+Write-Host "  SHA-256: $($zipHash.Hash)" -ForegroundColor Green
+
+# ---- 8. Verify release contents from a relocated path ----
+# Extracts the ZIP to a throwaway location with a space and a non-ASCII
+# character in its name (Phase 6 bullet 5: "paths containing spaces/
+# non-ASCII"), independent of the build/dist/release directories the build
+# itself just produced, then re-runs both packaged entry points from there
+# with inputs that are not the repo's own files -- so this step must fail if
+# the packaged app secretly depends on an absolute path from the build
+# machine (e.g. a leftover PyInstaller temp path) rather than being truly
+# relocatable.
+Write-Host ""
+Write-Host "Step 9: Verifying release contents from a relocated path..." -ForegroundColor Yellow
+$verifyRoot = Join-Path ([System.IO.Path]::GetTempPath()) "am3d verify éé $([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+try {
+    New-Item -ItemType Directory -Path $verifyRoot -Force | Out-Null
+    Expand-Archive -Path $zipPath -DestinationPath $verifyRoot -Force
+    $verifiedReleaseDir = Get-ChildItem -Path $verifyRoot -Directory | Select-Object -First 1
+    if (-not $verifiedReleaseDir) {
+        Write-Error "Extracted ZIP contains no release folder!"
+        exit 1
+    }
+    $verifiedExe = Join-Path $verifiedReleaseDir.FullName "3D MASTER 2005.exe"
+    $verifiedRecipeExe = Join-Path $verifiedReleaseDir.FullName "am3d-recipe.exe"
+    if (-not (Test-Path $verifiedExe) -or -not (Test-Path $verifiedRecipeExe)) {
+        Write-Error "Extracted release is missing an executable ($verifiedExe / $verifiedRecipeExe)!"
+        exit 1
+    }
+
+    # Recipe entry point: validate a source-independent copy of the minimal
+    # recipe (not a path back into the repo) from the relocated exe.
+    $verifyRecipeJson = Join-Path $verifyRoot "standalone_recipe.json"
+    Copy-Item -Force (Join-Path $RepoRoot "docs\recipes\examples\minimal.json") $verifyRecipeJson
+    Invoke-Native { & $verifiedRecipeExe --recipe $verifyRecipeJson --validate-only }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Relocated recipe CLI failed to validate a source-independent recipe!"
+        exit 1
+    }
+
+    # GUI entry point: re-run the smoke test from the relocated copy, with
+    # --out also pointing at a spaced/non-ASCII path, to confirm
+    # software-only operation (QT_QPA_PLATFORM=offscreen) survives being
+    # moved off the build machine's own directories.
+    $verifyManifestPath = Join-Path $verifyRoot "verify_smoke_manifest.json"
+    $prevQtPlatform2 = $env:QT_QPA_PLATFORM
+    $env:QT_QPA_PLATFORM = "offscreen"
+    try {
+        $vpsi = New-Object System.Diagnostics.ProcessStartInfo
+        $vpsi.FileName = $verifiedExe
+        $vpsi.Arguments = "--smoke-test --out `"$verifyManifestPath`""
+        $vpsi.UseShellExecute = $false
+        $vpsi.CreateNoWindow = $true
+        $vpsi.RedirectStandardOutput = $true
+        $vpsi.RedirectStandardError = $true
+        $vproc = [System.Diagnostics.Process]::Start($vpsi)
+        $vStdoutTask = $vproc.StandardOutput.ReadToEndAsync()
+        $vStderrTask = $vproc.StandardError.ReadToEndAsync()
+        $vFinished = $vproc.WaitForExit($smokeTimeoutMs)
+        if (-not $vFinished) {
+            Stop-Process -Id $vproc.Id -Force -ErrorAction SilentlyContinue
+            Write-Error "Relocated packaged smoke test timed out after $($smokeTimeoutMs / 1000)s!"
+            exit 1
+        }
+        $vExitCode = $vproc.ExitCode
+        $vStdoutTask.Result | Out-Null
+        $vStderrTask.Result | Out-Null
+    } finally {
+        $env:QT_QPA_PLATFORM = $prevQtPlatform2
+    }
+    if (-not (Test-Path $verifyManifestPath)) {
+        Write-Error "Relocated packaged smoke test produced no manifest (exit code $vExitCode)!"
+        exit 1
+    }
+    $verifyManifest = Get-Content $verifyManifestPath -Raw | ConvertFrom-Json
+    $verifyIncomplete = $verifyManifest.steps | Where-Object { $_.status -ne "ok" }
+    if ($vExitCode -ne 0 -or $verifyManifest.ok -ne $true -or $verifyIncomplete) {
+        Write-Error "Relocated packaged smoke test failed or is incomplete (exit code $vExitCode)!"
+        Get-Content $verifyManifestPath | Write-Host
+        exit 1
+    }
+    Write-Host "  Verified from: $verifyRoot" -ForegroundColor Green
+    Write-Host "  Relocated recipe CLI and GUI smoke test both passed." -ForegroundColor Green
+} finally {
+    if (Test-Path $verifyRoot) {
+        Remove-Item -Recurse -Force $verifyRoot -ErrorAction SilentlyContinue
+    }
+}
+
 Write-Host ""
 Write-Host "=== Build complete! ===" -ForegroundColor Cyan
 Write-Host "Release folder: $releaseDir"
+Write-Host "Release ZIP: $zipPath"
+Write-Host "Checksum: $checksumPath"
 Write-Host "Executable: $exePath"
 Write-Host ""
 Write-Host "To smoke test manually, run the executable from the release folder."

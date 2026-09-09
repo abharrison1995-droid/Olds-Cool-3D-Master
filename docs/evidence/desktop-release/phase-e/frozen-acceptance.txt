@@ -1,9 +1,9 @@
 === Frozen bundle acceptance: /home/swarm/Desktop/Olds-Cool-3D-Master/release/3D MASTER 2005 Beta
-=== 2026-09-09T21:01:08+01:00  host: Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
+=== 2026-09-09T21:12:37+01:00  host: Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
 
 1. The bundle carries its own runtime
   [PASS] packaged smoke test (all workflows) exits 0
-  [note] smoke steps: 13, not ok: none
+  [note] smoke steps: 14, not ok: none
   [note] gpu/software parity: {'gpu_lit_pixels': 2173, 'software_lit_pixels': 2243, 'ratio': 0.969, 'silhouette_iou': 0.806}
 
 2. Graphics routes (each launched for 10 s, then TERM)
@@ -30,5 +30,11 @@
 7. No source-tree references in the payload
   [PASS] no build-location references in the payload's text files
 
-13 passed, 0 failed
-artifacts under /tmp/am3d_accept_R0RG9A
+8. The pose on screen reaches the exported file
+Traceback (most recent call last):
+  File "<stdin>", line 16, in <module>
+  File "<stdin>", line 5, in verts
+FileNotFoundError: [Errno 2] No such file or directory: '/tmp/am3d_smoke_58gf3yao/posed_export_rest.obj'
+
+13 passed, 1 failed
+artifacts under /tmp/am3d_accept_YqtB4A

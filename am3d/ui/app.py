@@ -1163,8 +1163,21 @@ def main(argv=None) -> int:
         import json
         import tempfile
         from .smoke import run_smoke_test
-        with tempfile.TemporaryDirectory(prefix="am3d_smoke_") as td:
-            manifest = run_smoke_test(Path(td))
+        if out_path:
+            # Keep the run's working files beside the manifest it writes.
+            # The manifest records the paths of what the run produced --
+            # rendered PNGs, exports, the two posed OBJs -- and those paths
+            # are useless if the directory evaporates when the process
+            # exits, which is exactly what an acceptance pass needs to read
+            # back with an independent parser.
+            work = Path(out_path).with_name(
+                Path(out_path).stem + "_artifacts")
+            work.mkdir(parents=True, exist_ok=True)
+            manifest = run_smoke_test(work)
+            manifest["artifacts"]["work_dir"] = str(work)
+        else:
+            with tempfile.TemporaryDirectory(prefix="am3d_smoke_") as td:
+                manifest = run_smoke_test(Path(td))
         text = json.dumps(manifest, indent=2)
         if out_path:
             Path(out_path).write_text(text, encoding="utf-8")

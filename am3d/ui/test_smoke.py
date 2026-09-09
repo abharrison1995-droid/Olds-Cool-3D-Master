@@ -11,6 +11,7 @@ script's own smoke-test invocation is for.
 from __future__ import annotations
 
 import json
+from pathlib import Path
 
 from am3d.ui.smoke import STEPS, run_smoke_test
 from am3d.ui.app import main
@@ -66,6 +67,24 @@ def test_main_smoke_test_writes_manifest_to_out_path(tmp_path):
     manifest = json.loads(out_path.read_text(encoding="utf-8"))
     assert manifest["ok"] is True
     assert [s["name"] for s in manifest["steps"]] == STEPS
+
+
+def test_smoke_artifacts_survive_the_run_when_out_is_given(tmp_path):
+    """The manifest records the paths of what the run produced (renders,
+    exports, the two posed OBJs). An acceptance pass reads those files back
+    with an independent parser, which is impossible if the working
+    directory is deleted when the process exits."""
+    out_path = tmp_path / "manifest.json"
+
+    rc = main(["am3d", "--smoke-test", "--out", str(out_path)])
+
+    assert rc == 0
+    manifest = json.loads(out_path.read_text(encoding="utf-8"))
+    work = Path(manifest["artifacts"]["work_dir"])
+    assert work.is_dir(), "the smoke run's working directory did not survive"
+    posed = manifest["artifacts"]["posed_export"]
+    for key in ("rest", "bent"):
+        assert Path(posed[key]).is_file(), f"{key} export is not on disk"
 
 
 def test_main_out_without_value_errors_cleanly(tmp_path, capsys):

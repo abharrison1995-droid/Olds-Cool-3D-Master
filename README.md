@@ -38,9 +38,8 @@ and Render workspaces around the spline-patch viewport.
 | Procedural textures + atlas baking (checker/bricks/noise/…) | done | 17 |
 | Toon shader: cel bands + ink lines (headless NPR) | done | 10 |
 | Material node graph (mix/tint/noise_overlay chains) | done | 10 |
-| Qt UI (four-mode workspace) | scaffolded | — |
+| Qt UI (four-mode workspace, viewport, timeline, file I/O, recovery) | done | 161 |
 | GPU multi-pass renderer (ModernGL headless G-buffer → PBR) | done | 6 |
-| Qt UI (four-mode workspace, viewport, timeline, file I/O) | done | 2 |
 | Action retargeting (cross-skeleton animation reuse) | done | 5 |
 | Volumetrics (exponential height fog + god rays post-process) | done | (gpu/postprocess) |
 
@@ -88,10 +87,15 @@ The recipe contract (see `scripts/knight_recipe.json`):
   `lathe`, `extrude`
 * **action kinds**: `walk`, `idle`, `jump`, or `custom` with explicit keys
 * **exports**: `obj`, `glb` (`gltf` accepted as an alias), `spritesheet`,
-  `toon_sheet`, `am3d`
+  `toon_sheet`, `animation_sheet`, `am3d`
 
 Invalid recipes are rejected with human-readable problems before anything
 is written; runtime failures come back as structured errors with exit code 1.
+
+A packaged Windows build (`build_windows.ps1`) ships both the desktop editor
+and this recipe entry point as standalone `.exe` files (`3D MASTER 2005.exe`,
+`am3d-recipe.exe`) that need no installed Python, for an external process
+that only has the recipe contract to go on.
 
 ## Python API (headless)
 
@@ -121,7 +125,7 @@ print(result.ok, result.exports, result.errors)
 
 ```
 am3d/
-├── spline/      # geometry kernel (Numba-accelerated B-splines)
+├── spline/      # geometry kernel (vectorized NumPy B-splines)
 ├── core/        # data model, scripting, animation, rigging, serializer
 ├── renderer/    # tessellation + UVs + headless sprite rasterizer
 ├── export/      # OBJ and binary glTF writers
@@ -133,5 +137,6 @@ assets/          # sample .am3a/.am3d assets and demo output
 
 ## Dependencies
 
-Python 3.10+ with numpy, scipy, numba, moderngl(+window), msgpack, PySide6.
-See `requirements.txt`.
+Python 3.10+ with numpy, msgpack, PySide6, and Pillow. moderngl is optional —
+the app falls back to a software renderer when it's absent. See
+`requirements.txt`.

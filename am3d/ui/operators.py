@@ -454,6 +454,124 @@ class PoseBoneCommand(_SessionCommand):
         self.session.apply_pose(self.object_name)
 
 
+# -- skeleton editing (finding UI-01) ----------------------------------------
+class AddBoneCommand(_SessionCommand):
+    """Create one bone on an object's rig.
+
+    Finding UI-01: bones could only be created from a script or a recipe --
+    the GUI had a Bone tab that could edit an existing bone's endpoints and
+    nothing that could bring a bone into existence, so a model built in the
+    GUI could never be rigged there.
+    """
+
+    def __init__(self, session, object_name, name, head, tail, parent=None):
+        super().__init__(session, f"Add bone {name}")
+        self.object_name = object_name
+        self.name = name
+        self.head = np.asarray(head, dtype=np.float64).reshape(3)
+        self.tail = np.asarray(tail, dtype=np.float64).reshape(3)
+        self.parent = parent
+
+    def redo(self):
+        self.session.add_bone(self.object_name, self.name, self.head,
+                              self.tail, parent=self.parent)
+        self.session.apply_pose(self.object_name)
+
+    def undo(self):
+        self.session.remove_bone(self.object_name, self.name)
+        self.session.apply_pose(self.object_name)
+
+
+class SetBoneParentCommand(_SessionCommand):
+    def __init__(self, session, object_name, bone_name, parent):
+        super().__init__(session, f"Parent {bone_name}")
+        self.object_name = object_name
+        self.bone_name = bone_name
+        self.after = parent or None
+        self.before = session.project.skeletons.get(
+            object_name, {})[bone_name].parent
+
+    def _set(self, parent):
+        self.session.set_bone_parent(self.object_name, self.bone_name, parent)
+        self.session.apply_pose(self.object_name)
+
+    def redo(self):
+        self._set(self.after)
+
+    def undo(self):
+        self._set(self.before)
+
+
+class DeleteBoneCommand(_SessionCommand):
+    """Delete one bone; its children move up to its parent.
+
+    Undo restores the whole skeleton, the object's pose and every action
+    channel that referenced the bone, in their original order -- deleting a
+    bone otherwise silently discards its keyframes for good.
+    """
+
+    def __init__(self, session, object_name, bone_name):
+        super().__init__(session, f"Delete bone {bone_name}")
+        self.object_name = object_name
+        self.bone_name = bone_name
+        self._skeleton = None
+        self._pose = None
+        self._channels = None
+
+    def redo(self):
+        proj = self.session.project
+        self._skeleton = copy.deepcopy(proj.skeletons.get(self.object_name, {}))
+        self._pose = copy.deepcopy(
+            self.session.poses.get(self.object_name, {}))
+        self._channels = {name: list(action.channels)
+                          for name, action in self.session.actions.items()}
+        self.session.remove_bone(self.object_name, self.bone_name)
+        self.session.apply_pose(self.object_name)
+
+    def undo(self):
+        if self._skeleton is None:
+            return
+        self.session.project.skeletons[self.object_name] = copy.deepcopy(
+            self._skeleton)
+        if self._pose:
+            self.session.poses[self.object_name] = copy.deepcopy(self._pose)
+        for name, channels in (self._channels or {}).items():
+            action = self.session.actions.get(name)
+            if action is not None:
+                action.channels = list(channels)
+        self.session.apply_pose(self.object_name)
+
+
+class BindGeometryCommand(_SessionCommand):
+    """Bind an object's control points to its bones with proximity weights.
+
+    Finding UI-01: without this step every bone's ``cp_weights`` stayed
+    empty, so posing a bone in the GUI moved the bone and nothing else --
+    the geometry never followed the rig.
+    """
+
+    def __init__(self, session, object_name, max_influences=2):
+        super().__init__(session, f"Bind {object_name} to skeleton")
+        self.object_name = object_name
+        self.max_influences = int(max_influences)
+        self._before = None
+
+    def redo(self):
+        bones = self.session.get_bones(self.object_name)
+        self._before = {b.name: copy.deepcopy(b.cp_weights) for b in bones}
+        self.session.bind_geometry(self.object_name,
+                                   max_influences=self.max_influences)
+        self.session.apply_pose(self.object_name)
+
+    def undo(self):
+        if self._before is None:
+            return
+        for bone in self.session.get_bones(self.object_name):
+            if bone.name in self._before:
+                bone.cp_weights = copy.deepcopy(self._before[bone.name])
+        self.session.apply_pose(self.object_name)
+
+
 # -- spline control points ---------------------------------------------------
 class _CPCommand(_SessionCommand):
     def __init__(self, session, object_name, spline_name, index, text):

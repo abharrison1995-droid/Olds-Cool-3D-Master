@@ -298,6 +298,14 @@ class MainWindow(QMainWindow):
         cm = m.addMenu("&Create")
         self._build_create_menu(cm)
 
+        rm = m.addMenu("&Rig")
+        rm.addAction("Add &Bone", self._rig_add_bone)
+        rm.addAction("Add &Child Bone", self._rig_add_child_bone)
+        rm.addAction("&Delete Selected Bone", self._rig_delete_bone)
+        rm.addSeparator()
+        rm.addAction("Bind &Geometry to Skeleton", self._rig_bind_geometry)
+        rm.addAction("Clear &Pose", self._clear_pose)
+
         wm = m.addMenu("&Workspace")
         for name in WORKSPACE_NAMES:
             wm.addAction(name, lambda _=False, n=name: self.set_workspace(n))
@@ -341,6 +349,126 @@ class MainWindow(QMainWindow):
         push_or_apply(self, CreatePrimitiveCommand(
             self.session, obj_name, name, params))
         self._refresh_all()
+
+    # -- rigging (finding UI-01) ---------------------------------------------
+    def rig_target(self):
+        """``(object_name, bone_name)`` the Rig menu acts on.
+
+        A selected bone names both; a selected object names the object with
+        no bone; otherwise the viewport selection is used.
+        """
+        kind, oname, iname = self.current_context
+        if kind == "bone" and oname in self.session.project.objects:
+            return oname, iname
+        if kind != "object" or not oname:
+            sel = getattr(self.viewport, "selected", None) \
+                or getattr(self.viewport, "_selected", None)
+            if sel and sel[0] in self.session.project.objects:
+                oname = sel[0]
+        if oname in self.session.project.objects:
+            return oname, ""
+        return "", ""
+
+    def _rig_status(self, message):
+        self.statusBar().showMessage(message, 5000)
+
+    def _object_extent(self, object_name):
+        """``(center, size)`` of an object's control points, in object space."""
+        import numpy as np
+        from am3d.core.rigging import object_cp_positions
+        obj = self.session.project.objects[object_name]
+        positions, _ = object_cp_positions(obj)
+        positions = np.asarray(positions, dtype=np.float64).reshape(-1, 3)
+        if not len(positions):
+            return np.zeros(3), np.ones(3)
+        lo, hi = positions.min(axis=0), positions.max(axis=0)
+        return (lo + hi) / 2.0, np.maximum(hi - lo, 1e-6)
+
+    def _new_bone_name(self, object_name):
+        from am3d.core.naming import allocate_unique_name
+        existing = [b.name for b in self.session.get_bones(object_name)]
+        return allocate_unique_name(existing, "bone")
+
+    def _add_bone(self, object_name, head, tail, parent=None):
+        from .operators import AddBoneCommand, push_or_apply
+        name = self._new_bone_name(object_name)
+        push_or_apply(self, AddBoneCommand(self.session, object_name, name,
+                                           head, tail, parent=parent))
+        self._refresh_all()
+        self.current_context = ("bone", object_name, name)
+        self.properties_dock.set_context("bone", object_name, name)
+        self._rig_status(f"Added bone {name} on {object_name}")
+        return name
+
+    def _rig_add_bone(self):
+        """Add a root bone spanning the lower half of the selected object."""
+        import numpy as np
+        object_name, _ = self.rig_target()
+        if not object_name:
+            self._rig_status("Select an object first to add a bone to it")
+            return None
+        center, size = self._object_extent(object_name)
+        head = np.array([center[0], center[1] - size[1] / 2.0, center[2]])
+        tail = head + np.array([0.0, size[1] / 2.0, 0.0])
+        return self._add_bone(object_name, head, tail)
+
+    def _rig_add_child_bone(self):
+        """Add a bone continuing from the selected bone's tail."""
+        import numpy as np
+        object_name, bone_name = self.rig_target()
+        if not object_name:
+            self._rig_status("Select an object first to add a bone to it")
+            return None
+        if not bone_name:
+            self._rig_status(
+                "Select a bone first -- a child bone continues from its tail")
+            return None
+        bone = self.session.project.skeletons[object_name][bone_name]
+        head = np.asarray(bone.tail, dtype=np.float64)
+        direction = head - np.asarray(bone.head, dtype=np.float64)
+        if float(np.linalg.norm(direction)) < 1e-9:
+            direction = np.array([0.0, 1.0, 0.0])
+        return self._add_bone(object_name, head, head + direction,
+                              parent=bone_name)
+
+    def _rig_delete_bone(self):
+        from .operators import DeleteBoneCommand, push_or_apply
+        object_name, bone_name = self.rig_target()
+        if not object_name or not bone_name:
+            self._rig_status("Select a bone to delete")
+            return False
+        push_or_apply(self, DeleteBoneCommand(self.session, object_name,
+                                              bone_name))
+        self.current_context = ("object", object_name, "")
+        self.properties_dock.set_context("object", object_name, "")
+        self._refresh_all()
+        self._rig_status(f"Deleted bone {bone_name}; its children moved up")
+        return True
+
+    def _rig_bind_geometry(self):
+        """Bind the selected object's geometry to its bones."""
+        from am3d.core.script import ScriptingError
+        from .operators import BindGeometryCommand, push_or_apply
+        object_name, _ = self.rig_target()
+        if not object_name:
+            self._rig_status("Select an object to bind to its skeleton")
+            return False
+        if not self.session.get_bones(object_name):
+            self._rig_status(
+                f"{object_name} has no bones yet -- add a bone first")
+            return False
+        try:
+            push_or_apply(self, BindGeometryCommand(self.session, object_name))
+        except ScriptingError as exc:
+            self._rig_status(f"Could not bind: {exc}")
+            return False
+        self._refresh_all()
+        bound = sum(len(b.cp_weights)
+                    for b in self.session.get_bones(object_name))
+        self._rig_status(
+            f"Bound {object_name} to {len(self.session.get_bones(object_name))} "
+            f"bone(s); {bound} control-point weight(s) assigned")
+        return True
 
     def _build_create_menu_workaround(self, cm):
         # _build_create_menu is defined above

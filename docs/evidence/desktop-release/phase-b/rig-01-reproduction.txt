@@ -1,0 +1,59 @@
+RIG-01 -- a cleared pose stayed on the geometry
+===============================================
+
+Status: REPRODUCED, fixed, regression-tested.
+
+Found while writing the UI-01 acceptance test "rig, bind, pose, and the
+geometry follows".
+
+Reproduction (verbatim script, run against the checkout before the fix):
+
+    s = Session(); s.create_object("hero")
+    s.add_spline("hero", [(0,0,0),(0.4,0.5,0),(0.4,1.5,0),(0,2.0,0)],
+                 name="profile")
+    s.lathe_spline("hero", "profile", sections=8)
+    s.add_bone("hero", "lower", (0,0,0), (0,1,0))
+    s.add_bone("hero", "upper", (0,1,0), (0,2,0), parent="lower")
+    s.bind_geometry("hero")
+    rest  = evaluate_scene(s).meshes["hero"].vertices.copy()
+    s.pose_bone("hero", "upper", (0,0,40.0)); s.apply_pose("hero")
+    posed = evaluate_scene(s).meshes["hero"].vertices.copy()
+    s.clear_pose("hero")
+    after = evaluate_scene(s).meshes["hero"].vertices
+
+Output:
+
+    after clear_pose, back to rest: False | still posed: True
+
+Two symptoms, one cause:
+
+  1. `pose_bone` alone did not change the evaluated scene at all --
+
+        without apply_pose moved: False
+        after apply_pose moved:   True
+
+  2. `clear_pose` did not restore the rest shape.
+
+Cause
+-----
+`evaluate_scene` deforms from `session.posed_transforms`, which is written
+only by `apply_pose`. `pose_bone` and `clear_pose` mutated `session.poses`
+and left the cached FK result untouched, so the evaluated scene showed
+whatever pose happened to have been applied last. Every caller had to know
+to call `apply_pose` afterwards; the GUI's PoseBoneCommand did, so this was
+invisible from the GUI, but any script -- and the recipe pipeline -- could
+silently render the wrong pose, and clearing a pose was simply broken.
+
+Fix
+---
+`am3d/core/script.py`: `pose_bone` re-runs `apply_pose` for the object;
+`clear_pose` does the same, dropping the cached entry outright when the
+object has no skeleton left.
+
+Regression test
+---------------
+am3d/ui/test_rig_editing.py::test_bound_geometry_follows_a_posed_bone
+asserts, in one journey: unbound geometry does not move, a cleared pose
+returns to rest, and bound geometry does follow a posed bone.
+
+Full suite after the fix: 721 passed, 0 failed.

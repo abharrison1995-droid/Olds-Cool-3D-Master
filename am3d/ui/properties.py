@@ -12,7 +12,7 @@ import numpy as np
 from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
-    QCheckBox, QColorDialog, QDoubleSpinBox, QFormLayout,
+    QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFormLayout,
     QHBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QTabWidget,
     QVBoxLayout, QWidget,
 )
@@ -105,7 +105,31 @@ class PropertiesDock(QWidget):
         self.bone_tail = _Vec3Row(self._bone_changed)
         form.addRow("Head", self.bone_head)
         form.addRow("Tail", self.bone_tail)
+        # Finding UI-01: the rig could only be built from a script. Parenting
+        # and the create/delete/bind verbs now live next to the endpoints.
+        self.bone_parent = QComboBox()
+        self.bone_parent.currentIndexChanged.connect(self._bone_parent_changed)
+        form.addRow("Parent", self.bone_parent)
+        buttons = QHBoxLayout()
+        for label, slot in (("Add Bone", "_rig_add_bone"),
+                            ("Add Child", "_rig_add_child_bone"),
+                            ("Delete", "_rig_delete_bone"),
+                            ("Bind Geometry", "_rig_bind_geometry")):
+            btn = QPushButton(label)
+            btn.clicked.connect(
+                lambda _=False, name=slot: self._rig_action(name))
+            buttons.addWidget(btn)
+        form.addRow(buttons)
         self.tabs.addTab(w, "Bone")
+
+    def _rig_action(self, slot_name):
+        """Run one of the MainWindow rig verbs, then reload this tab."""
+        slot = getattr(self.main, slot_name, None)
+        if slot is None:
+            return
+        slot()
+        self.refresh()
+        self.data_changed.emit()
 
     def _build_material_tab(self):
         w = QWidget()
@@ -181,6 +205,7 @@ class PropertiesDock(QWidget):
                     self.bone_label.setText(f"{oname} / {iname}")
                     self.bone_head.set(bone.head)
                     self.bone_tail.set(bone.tail)
+                    self._load_parents(oname, iname, bone)
             elif kind == "material":
                 mat = proj.materials.get(iname)
                 if mat is not None:
@@ -251,6 +276,40 @@ class PropertiesDock(QWidget):
                       self.data_changed)
 
     # -- bone tab -------------------------------------------------------------
+    def _load_parents(self, object_name, bone_name, bone):
+        """Fill the parent combo with every bone that cannot make a cycle."""
+        session = self.main.session
+        descendants = {b.name for b in session.get_bones(object_name)
+                       if bone_name in session.bone_ancestors(
+                           object_name, b.name)}
+        choices = [b.name for b in session.get_bones(object_name)
+                   if b.name != bone_name and b.name not in descendants]
+        self.bone_parent.blockSignals(True)
+        self.bone_parent.clear()
+        self.bone_parent.addItem("(none)", None)
+        for name in choices:
+            self.bone_parent.addItem(name, name)
+        index = self.bone_parent.findData(bone.parent)
+        self.bone_parent.setCurrentIndex(max(index, 0))
+        self.bone_parent.blockSignals(False)
+
+    def _bone_parent_changed(self):
+        if self._loading:
+            return
+        kind, oname, iname = self._context
+        if kind != "bone":
+            return
+        bones = {b.name: b for b in self.main.session.get_bones(oname)}
+        bone = bones.get(iname)
+        parent = self.bone_parent.currentData()
+        if bone is None or bone.parent == parent:
+            return
+        from .operators import SetBoneParentCommand, push_or_apply
+        push_or_apply(self.main,
+                      SetBoneParentCommand(self.main.session, oname, iname,
+                                           parent),
+                      self.data_changed)
+
     def _bone_changed(self):
         if self._loading:
             return

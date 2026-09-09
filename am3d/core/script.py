@@ -212,7 +212,25 @@ class Session:
     # -- segment mode -------------------------------------------------------
     def add_bone(self, object_name: str, name: str, head, tail,
                  parent: str | None = None) -> Bone:
+        """Add one bone to *object_name*'s rig.
+
+        Finding UI-01: this used to accept anything -- an unknown object, an
+        empty or duplicate name (silently replacing the existing bone and
+        orphaning its children), or a parent that does not exist -- so a
+        typo in the GUI produced a broken rig with no error.
+        """
+        if object_name not in self.project.objects:
+            raise ScriptingError(f"no such object: {object_name!r}")
+        name = (name or "").strip()
+        if not name:
+            raise ScriptingError("bone name must not be empty")
         bones = self.project.skeletons.setdefault(object_name, {})
+        if name in bones:
+            raise ScriptingError(
+                f"object {object_name!r} already has a bone {name!r}")
+        if parent is not None and parent not in bones:
+            raise ScriptingError(
+                f"no bone {parent!r} on object {object_name!r} to parent to")
         bone = Bone(name=name, parent=parent,
                     head=np.asarray(head, dtype=np.float64),
                     tail=np.asarray(tail, dtype=np.float64))
@@ -222,6 +240,80 @@ class Session:
     def get_bones(self, object_name: str) -> list:
         """All bones of an object's rig, in insertion order."""
         return list(self.project.skeletons.get(object_name, {}).values())
+
+    def _bone(self, object_name, bone_name):
+        bones = self.project.skeletons.get(object_name, {})
+        if bone_name not in bones:
+            raise ScriptingError(
+                f"no bone {bone_name!r} on object {object_name!r}")
+        return bones[bone_name]
+
+    def bone_ancestors(self, object_name: str, bone_name: str) -> list:
+        """Parent chain of *bone_name*, nearest first. Cycle-safe."""
+        bones = self.project.skeletons.get(object_name, {})
+        out, seen = [], {bone_name}
+        cur = bones.get(bone_name)
+        while cur is not None and cur.parent:
+            if cur.parent in seen:
+                break
+            seen.add(cur.parent)
+            out.append(cur.parent)
+            cur = bones.get(cur.parent)
+        return out
+
+    def set_bone_parent(self, object_name: str, bone_name: str,
+                        parent: str | None) -> Bone:
+        """Reparent one bone. Rejects self-parenting and cycles."""
+        bone = self._bone(object_name, bone_name)
+        parent = parent or None
+        if parent is not None:
+            if parent == bone_name:
+                raise ScriptingError("a bone cannot be its own parent")
+            self._bone(object_name, parent)
+            if bone_name in self.bone_ancestors(object_name, parent):
+                raise ScriptingError(
+                    f"parenting {bone_name!r} to {parent!r} would make a cycle")
+        bone.parent = parent
+        return bone
+
+    def remove_bone(self, object_name: str, bone_name: str) -> None:
+        """Delete one bone, re-parenting its children to its own parent.
+
+        The bone's skin weights, pose and keyframe channels go with it;
+        children survive at the same place in the hierarchy rather than
+        being deleted along with it.
+        """
+        bones = self.project.skeletons.get(object_name, {})
+        bone = self._bone(object_name, bone_name)
+        for other in bones.values():
+            if other.parent == bone_name:
+                other.parent = bone.parent
+        del bones[bone_name]
+        if not bones:
+            self.project.skeletons.pop(object_name, None)
+        self.clear_pose(object_name, bone_name)
+        self.posed_transforms.get(object_name, {}).pop(bone_name, None)
+        for action in self.actions.values():
+            action.channels = [ch for ch in action.channels
+                               if ch.bone != bone_name]
+
+    def bind_geometry(self, object_name: str, max_influences: int = 2,
+                      falloff: float = 2.0) -> dict:
+        """Bind an object's geometry to its rig with proximity weights.
+
+        Returns ``{bone_name: {cp_index: weight}}``. This is the GUI's
+        "bind" step (finding UI-01): before it, every bone had empty
+        ``cp_weights`` and posing moved nothing at all.
+        """
+        from .rigging import auto_weight_object
+        if object_name not in self.project.objects:
+            raise ScriptingError(f"no such object: {object_name!r}")
+        bones = self.get_bones(object_name)
+        if not bones:
+            raise ScriptingError(f"object {object_name!r} has no bones to bind to")
+        return auto_weight_object(self.project.objects[object_name], bones,
+                                  max_influences=max_influences,
+                                  falloff=falloff, assign=True)
 
     # -- posing (Rig workspace) ----------------------------------------------
     def pose_bone(self, object_name: str, bone_name: str, rotation) -> None:
@@ -241,6 +333,11 @@ class Session:
         elif r.shape != (3, 3):
             raise ScriptingError("rotation must be 3x3 or Euler degrees")
         self.poses.setdefault(object_name, {})[bone_name] = r.copy()
+        # Finding RIG-01: evaluate_scene deforms from ``posed_transforms``,
+        # which only apply_pose writes. Leaving it stale meant a pose set
+        # here was invisible until something else happened to call
+        # apply_pose -- and, worse, a cleared pose stayed on screen.
+        self.apply_pose(object_name)
 
     def clear_pose(self, object_name: str, bone_name: str | None = None):
         """Drop pose rotations: one bone, or the whole object."""
@@ -250,6 +347,12 @@ class Session:
         else:
             self.poses.get(object_name, {}).pop(bone_name, None)
             self.pose_offsets.get(object_name, {}).pop(bone_name, None)
+        # Finding RIG-01: re-run FK so the cached transforms match the pose
+        # that is actually stored; otherwise the geometry stays deformed.
+        if object_name in self.project.skeletons:
+            self.apply_pose(object_name)
+        else:
+            self.posed_transforms.pop(object_name, None)
 
     def apply_pose(self, object_name: str | None = None) -> dict:
         """Run FK with the stored pose rotations.
@@ -508,6 +611,9 @@ add_spline = _propagate("add_spline")
 extrude_spline = _propagate("extrude_spline")
 lathe_spline = _propagate("lathe_spline")
 add_bone = _propagate("add_bone")
+remove_bone = _propagate("remove_bone")
+set_bone_parent = _propagate("set_bone_parent")
+bind_geometry = _propagate("bind_geometry")
 get_bones = _propagate("get_bones")
 pose_bone = _propagate("pose_bone")
 clear_pose = _propagate("clear_pose")
@@ -535,6 +641,7 @@ __all__ = [
     "create_object", "delete_object", "rename_object", "set_object_visible",
     "get_object",
     "add_spline", "extrude_spline", "lathe_spline", "add_bone", "get_bones",
+    "remove_bone", "set_bone_parent", "bind_geometry",
     "pose_bone", "clear_pose", "apply_pose",
     "create_material",
     "create_action", "get_action", "delete_action", "rename_action",

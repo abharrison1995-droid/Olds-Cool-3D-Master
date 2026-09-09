@@ -37,6 +37,7 @@ _SCRIPT_EXPORTS = frozenset({
     "create_object", "delete_object", "rename_object", "set_object_visible",
     "get_object",
     "add_spline", "extrude_spline", "lathe_spline", "add_bone", "get_bones",
+    "remove_bone", "set_bone_parent", "bind_geometry",
     "create_material", "create_action", "get_action", "save_action_file",
     "load_action_file", "apply_action_to_character", "reset_default",
     "delete_action", "rename_action", "set_active_action", "assign_action",

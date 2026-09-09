@@ -138,6 +138,7 @@ class LatheProfileCommand(_SessionCommand):
         self.sections = int(sections)
         self.source_spline = source_spline
         self._patch_names = []
+        self._patches = []
 
     def redo(self):
         from am3d.recipes.primitives import make_lathe_profile
@@ -152,17 +153,24 @@ class LatheProfileCommand(_SessionCommand):
                 "params": {"sections": self.sections}}
                if self.source_spline else None)
         for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net,
-                                     degree_u=int(du), degree_v=int(dv),
-                                     generator=dict(gen) if gen else None))
+            patch = Patch(name=pname, splines=[], interior=net,
+                          degree_u=int(du), degree_v=int(dv),
+                          generator=dict(gen) if gen else None)
+            obj.patches.append(patch)
+            self._patches.append(patch)
             self._patch_names.append(pname)
 
     def undo(self):
         obj = self.session.project.objects.get(self.object_name)
         if obj is None:
             return
-        keep = set(self._patch_names)
-        obj.patches = [p for p in obj.patches if p.name not in keep]
+        # Remove by identity, not by name. Every lathe produces a patch
+        # named "lathe" (every extrude, "extrude"), so undoing the second
+        # of two generate operations on one object used to delete the
+        # first one's patches as well and leave the object empty.
+        drop = {id(p) for p in self._patches}
+        obj.patches = [p for p in obj.patches if id(p) not in drop]
+        self._patches = []
         self._patch_names = []
 
 
@@ -178,6 +186,7 @@ class ExtrudeProfileCommand(_SessionCommand):
         self.rings = int(rings)
         self.source_spline = source_spline
         self._patch_names = []
+        self._patches = []
 
     def redo(self):
         from am3d.recipes.primitives import make_extrude_profile
@@ -191,17 +200,24 @@ class ExtrudeProfileCommand(_SessionCommand):
                 "params": {"height": self.height, "rings": self.rings}}
                if self.source_spline else None)
         for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net,
-                                     degree_u=int(du), degree_v=int(dv),
-                                     generator=dict(gen) if gen else None))
+            patch = Patch(name=pname, splines=[], interior=net,
+                          degree_u=int(du), degree_v=int(dv),
+                          generator=dict(gen) if gen else None)
+            obj.patches.append(patch)
+            self._patches.append(patch)
             self._patch_names.append(pname)
 
     def undo(self):
         obj = self.session.project.objects.get(self.object_name)
         if obj is None:
             return
-        keep = set(self._patch_names)
-        obj.patches = [p for p in obj.patches if p.name not in keep]
+        # Remove by identity, not by name. Every lathe produces a patch
+        # named "lathe" (every extrude, "extrude"), so undoing the second
+        # of two generate operations on one object used to delete the
+        # first one's patches as well and leave the object empty.
+        drop = {id(p) for p in self._patches}
+        obj.patches = [p for p in obj.patches if id(p) not in drop]
+        self._patches = []
         self._patch_names = []
 
 
@@ -519,16 +535,27 @@ class RemoveCPCommand(_CPCommand):
 
 # -- actions / keyframes -----------------------------------------------------
 class CreateActionCommand(_SessionCommand):
-    def __init__(self, session, name, duration=1.0):
+    """Create an action and make it the active one (finding UI-04).
+
+    Session.create_action only activated an action when there was no active
+    action at all, so creating a *second* action left the first one active:
+    the user named a new action, then keyed into the old one without any
+    indication. Activation is part of the same undo step, and undo restores
+    whichever action was active before.
+    """
+
+    def __init__(self, session, name, duration=1.0, activate=True):
         super().__init__(session, f"Add action {name}")
         self.name = name
         self.duration = float(duration)
+        self.activate = bool(activate)
         self._prev_active = session.active_action
 
     def redo(self):
-        if self.name in self.session.actions:      # idempotent redo
-            return
-        self.session.create_action(self.name, self.duration)
+        if self.name not in self.session.actions:  # idempotent redo
+            self.session.create_action(self.name, self.duration)
+        if self.activate:
+            self.session.set_active_action(self.name)
 
     def undo(self):
         self.session.delete_action(self.name)

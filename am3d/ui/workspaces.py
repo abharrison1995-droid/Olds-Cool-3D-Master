@@ -43,6 +43,12 @@ class Workspace:
     right_sizes: tuple = (300, 380)
     timeline_size: int = 110
     tool_hint: str = ""             # header strip text (Phase 4 tools)
+    # Properties tab to bring forward on entering this workspace, by title.
+    # Entering Render used to leave whatever tab was last selected showing,
+    # so the render settings the workspace exists for were hidden behind a
+    # tab the user had to know to click (finding UI-03). None means "leave
+    # the current tab alone".
+    properties_tab: str | None = None
     # Per-session saved layout (splitter sizes), restored on switch-back.
     state: dict = field(default_factory=dict)
 
@@ -53,11 +59,11 @@ WORKSPACES = {
         panels=(PANEL_OUTLINER, PANEL_PROPERTIES, PANEL_TIMELINE),
         tool_hint="General layout: scene overview, objects and playback."),
     "Model": Workspace(
-        name="Model", mode="object",
+        name="Model", mode="object", properties_tab="Object",
         panels=(PANEL_OUTLINER, PANEL_PROPERTIES),
         tool_hint="Model: edit spline CPs (select an object first)."),
     "Rig": Workspace(
-        name="Rig", mode="segment",
+        name="Rig", mode="segment", properties_tab="Bone",
         panels=(PANEL_OUTLINER, PANEL_PROPERTIES),
         right_sizes=(360, 320),
         tool_hint="Rig: select a bone in the outliner, drag rings to pose."),
@@ -68,7 +74,7 @@ WORKSPACES = {
         tool_hint="Animate: scrub the dope sheet, I keys the selected bone, "
                   "drag keys to move them."),
     "Render": Workspace(
-        name="Render", mode="material",
+        name="Render", mode="material", properties_tab="Render",
         panels=(PANEL_OUTLINER, PANEL_PROPERTIES),
         tool_hint="Render: material and render settings (Render tab)."),
 }

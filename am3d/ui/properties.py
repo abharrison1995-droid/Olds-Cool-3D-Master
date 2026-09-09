@@ -144,6 +144,14 @@ class PropertiesDock(QWidget):
         form.addRow(self.rnd_toon)
         self.tabs.addTab(w, "Render")
 
+    def show_tab(self, title):
+        """Bring the tab named *title* forward. Returns True if it existed."""
+        for index in range(self.tabs.count()):
+            if self.tabs.tabText(index) == title:
+                self.tabs.setCurrentIndex(index)
+                return True
+        return False
+
     # -- context ------------------------------------------------------------
     def set_context(self, kind, object_name="", item_name=""):
         """Select the tab matching *kind* and populate it from the model."""

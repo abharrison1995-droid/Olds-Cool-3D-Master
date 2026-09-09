@@ -382,6 +382,19 @@ class TimelineDock(QWidget):
                                      ("", "", ""))
         if kind == "bone":
             self.key_bone(oname, bname)
+        else:
+            self._status("Select a bone in the outliner before keying (I).")
+
+    def _status(self, message):
+        """Say why nothing happened, instead of failing silently."""
+        try:
+            self.main.statusBar().showMessage(message, 6000)
+        except Exception:                          # headless / no status bar
+            pass
+
+    def _warn_no_active_action(self):
+        self._status("No active action: create or select an action in the "
+                     "outliner before keying.")
 
     def key_bone(self, object_name, bone_name):
         """Undoably key one bone's pose into the active action now."""
@@ -390,6 +403,9 @@ class TimelineDock(QWidget):
         from .operators import InsertKeyCommand, push_or_apply
         s = self.main.session
         if not s.active_action:
+            # Keying used to return silently here, so pressing I simply did
+            # nothing and never said why (finding UI-04).
+            self._warn_no_active_action()
             return
         time = self.current_frame() / float(self.settings().get("fps", 30.0))
         rot = s.poses.get(object_name, {}).get(bone_name)

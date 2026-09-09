@@ -62,7 +62,21 @@ def encode_png(image) -> bytes:
 
 
 def texture_filename(stem: str, object_name: str) -> str:
-    """Sidecar image filename for one object's atlas, next to the export."""
-    safe = "".join(c if (c.isalnum() or c in "-_") else "_"
-                   for c in str(object_name)) or "object"
+    """Sidecar image filename for one object's atlas, next to the export.
+
+    Object names are sanitised for the filesystem, which is lossy: "a b" and
+    "a/b" both reduce to "a_b". A short digest of the *original* name is
+    appended whenever sanitising changed anything, so two objects can never
+    silently overwrite each other's atlas. The digest is a pure function of
+    the name, so repeated exports of the same scene produce the same
+    filenames.
+    """
+    import hashlib
+
+    name = str(object_name)
+    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in name)
+    if safe != name or not safe:
+        digest = hashlib.blake2s(name.encode("utf-8"),
+                                 digest_size=4).hexdigest()
+        safe = f"{safe or 'object'}_{digest}"
     return f"{stem}_{safe}.png"

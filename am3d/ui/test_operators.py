@@ -1034,3 +1034,85 @@ def test_content_after_an_empty_render_still_renders():
     finally:
         win.viewport._timer.stop()
         win.close()
+
+
+# --- UI-04: a new action becomes the active one -----------------------------
+
+def test_creating_a_second_action_makes_it_the_active_one():
+    """Regression: Session.create_action only activated an action when none
+    was active, so naming a second action left the first active and the user
+    keyed into the wrong action with no indication."""
+    from am3d.core.script import Session
+    from am3d.ui.operators import CreateActionCommand
+
+    session = Session()
+    CreateActionCommand(session, "Walk").redo()
+    assert session.active_action == "Walk"
+
+    second = CreateActionCommand(session, "Wave")
+    second.redo()
+    assert session.active_action == "Wave"
+
+    second.undo()
+    assert session.active_action == "Walk"
+    assert "Wave" not in session.actions
+
+    second.redo()
+    assert session.active_action == "Wave"
+
+
+def test_creating_the_first_action_still_activates_it():
+    from am3d.core.script import Session
+    from am3d.ui.operators import CreateActionCommand
+
+    session = Session()
+    cmd = CreateActionCommand(session, "Only")
+    cmd.redo()
+    assert session.active_action == "Only"
+    cmd.undo()
+    assert session.active_action is None
+
+
+def test_keying_without_an_active_action_says_why():
+    """Regression: pressing I with no active action returned silently."""
+    win = _make_main_window()
+    try:
+        win.session.actions.clear()
+        win.session.set_active_action(None)
+        dock = win.timeline_dock
+        dock.key_bone("obj", "bone")
+        message = win.statusBar().currentMessage()
+        assert "action" in message.lower(), (
+            f"keying failed silently; status bar said {message!r}")
+    finally:
+        win.close()
+
+
+# --- UI-03: entering a workspace shows the tab it exists for ----------------
+
+def test_entering_the_render_workspace_selects_the_render_tab():
+    """Regression: Render opened on whatever tab was last used, hiding the
+    render settings the workspace exists for."""
+    win = _make_main_window()
+    try:
+        tabs = win.properties_dock.tabs
+        win.set_workspace("Rig")
+        assert tabs.tabText(tabs.currentIndex()) == "Bone"
+        win.set_workspace("Render")
+        assert tabs.tabText(tabs.currentIndex()) == "Render"
+        win.set_workspace("Model")
+        assert tabs.tabText(tabs.currentIndex()) == "Object"
+    finally:
+        win.close()
+
+
+def test_workspaces_without_a_preferred_tab_leave_the_selection_alone():
+    win = _make_main_window()
+    try:
+        tabs = win.properties_dock.tabs
+        win.set_workspace("Render")
+        before = tabs.currentIndex()
+        win.set_workspace("Layout")
+        assert tabs.currentIndex() == before
+    finally:
+        win.close()

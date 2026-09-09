@@ -63,3 +63,24 @@ Both defects now have regression tests:
 and the `mtllib` assertion in
 `test_patch_materials.py::test_obj_export_keeps_the_two_patches_in_separate_material_groups`.
 
+## UI findings
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| UI-03 | medium | REPRODUCED | Entering the Render workspace left whatever properties tab was last selected showing, so the render settings the workspace exists for stayed hidden behind a tab the user had to know to click | `Workspace.properties_tab`; `set_workspace` calls the new `PropertiesDock.show_tab`. Model->Object, Rig->Bone, Render->Render; Layout/Animate deliberately leave the selection alone | `test_operators.py::test_entering_the_render_workspace_selects_the_render_tab`, `::test_workspaces_without_a_preferred_tab_leave_the_selection_alone` |
+| UI-04 | medium | REPRODUCED | Executed: `CreateActionCommand(s,"Walk")` then `("Wave")` left `active_action == "Walk"` -- `Session.create_action` only activates when nothing is active, so the user named a new action and then keyed into the old one. Separately, `key_bone` returned silently with no active action, so pressing I did nothing and never said why | `CreateActionCommand(activate=True)` activates within the same undo step and undo restores the previous active action; `key_bone`/`key_selected_bone` now report the reason in the status bar | `test_operators.py::test_creating_a_second_action_makes_it_the_active_one`, `::test_creating_the_first_action_still_activates_it`, `::test_keying_without_an_active_action_says_why` |
+
+## Review round 3 — EDIT/MAT batch (one Haiku agent)
+
+Two defects, both reproduced here before fixing:
+
+| Finding | Verified | Fix |
+| --- | --- | --- |
+| `am3d/ui/operators.py`: `LatheProfileCommand.undo`/`ExtrudeProfileCommand.undo` removed patches **by name**. Every lathe produces a patch named `lathe`, so undoing the second of two lathes on one object deleted the first one's patch too | Yes -- two lathes then one undo left **0** patches, not 1 | Track the created `Patch` objects and remove by identity |
+| `am3d/export/textures.py`: `texture_filename` sanitising is lossy, so objects `"a b"` and `"a/b"` both produced `m_a_b.png` and the second atlas silently overwrote the first | Yes -- `texture_filename('m','a b') == texture_filename('m','a/b')` | Append a short blake2s digest of the original name whenever sanitising changed it; already-safe names keep their plain filename, and filenames stay stable across exports |
+
+The agent's other checks came back clean: regeneration idempotency at 1e-12,
+generator/degree persistence, no code-execution path through a corrupt
+`generator` dict (`_OPS` is a fixed dispatch table), GLB chunk alignment and
+lengths, and the PNG vertical flip against both UV conventions.
+

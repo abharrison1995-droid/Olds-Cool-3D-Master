@@ -233,3 +233,42 @@ def test_an_uint8_atlas_is_passed_through_without_rescaling():
 def test_unusable_image_shapes_are_rejected_clearly(bad):
     with pytest.raises(ValueError):
         to_uint8_rgba(bad)
+
+
+# --- review round 3 regressions ---------------------------------------------
+
+def test_object_names_that_sanitise_alike_get_distinct_image_files(tmp_path):
+    """Regression: "a b" and "a/b" both reduced to `m_a_b.png`, so the second
+    object's atlas silently overwrote the first's."""
+    from am3d.core.project import Object3D, Patch
+
+    session = Session()
+    for name, shade in (("a b", 0.2), ("a/b", 0.8)):
+        obj = Object3D(name=name)
+        net = np.zeros((4, 4, 3))
+        net[..., 0] = np.arange(4)[:, None]
+        net[..., 1] = np.arange(4)[None, :]
+        obj.patches.append(Patch(name="p", interior=net))
+        session.project.objects[name] = obj
+
+    scene, meshes = _scene_meshes(session)
+    textures = {"a b": np.full((8, 8, 4), 0.2),
+                "a/b": np.full((8, 8, 4), 0.8)}
+    write_obj(str(tmp_path / "m.obj"), meshes, textures=textures)
+
+    pngs = sorted(p.name for p in tmp_path.glob("*.png"))
+    assert len(pngs) == 2, f"atlases collided into {pngs}"
+
+    mtl = (tmp_path / "m.mtl").read_text(encoding="utf-8")
+    refs = [l.split(None, 1)[1].strip() for l in mtl.splitlines()
+            if l.startswith("map_Kd ")]
+    assert len(set(refs)) == 2
+    for ref in refs:
+        assert (tmp_path / ref).exists()
+
+
+def test_texture_filenames_are_stable_across_repeated_exports(tmp_path):
+    from am3d.export.textures import texture_filename
+    assert texture_filename("m", "a b") == texture_filename("m", "a b")
+    # An already-safe name keeps its plain, readable filename.
+    assert texture_filename("m", "box") == "m_box.png"

@@ -504,6 +504,9 @@ class MainWindow(QMainWindow):
         self.tool_strip.set_workspace(name)
         for m, act in self.mode_actions.items():
             act.setChecked(m == ws.mode)
+        # Show the properties tab this workspace exists for (finding UI-03).
+        if ws.properties_tab and hasattr(self.properties_dock, "show_tab"):
+            self.properties_dock.show_tab(ws.properties_tab)
         self.status_workspace.setText(f"Workspace: {name}")
         self.statusBar().showMessage(
             f"Workspace: {name} (mode: {ws.mode})")

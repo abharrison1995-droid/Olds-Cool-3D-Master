@@ -182,3 +182,43 @@ def test_generator_and_degrees_survive_save_and_reopen(tmp_path):
     MoveCPCommand(reopened, "vase", "profile", 1,
                   [4.0, 1.0, 0.0], [1.5, 1.0, 0.0]).redo()
     assert _surface_radius(reopened) < expected - 0.5
+
+
+def test_undoing_one_lathe_leaves_an_earlier_lathe_intact():
+    """Regression: every lathe produces a patch named "lathe", and undo
+    removed patches *by name*, so undoing the second of two lathes on one
+    object deleted the first one's patch too and left the object empty."""
+    session, obj = _session()
+    profile = obj.splines["profile"].point_array()[:, [0, 1]]
+    first = LatheProfileCommand(session, "vase", profile, sections=8,
+                                source_spline="profile")
+    first.redo()
+    second = LatheProfileCommand(session, "vase", profile, sections=12,
+                                 source_spline="profile")
+    second.redo()
+    assert len(obj.patches) == 2
+
+    second.undo()
+    assert len(obj.patches) == 1, "undo destroyed the earlier lathe's patch"
+    assert len(evaluate_scene(session).meshes["vase"].indices) > 0
+
+    second.redo()
+    assert len(obj.patches) == 2
+    first.undo()
+    second.undo()
+    assert obj.patches == []
+
+
+def test_undoing_one_extrude_leaves_an_earlier_extrude_intact():
+    session, obj = _session([(0.0, 0.0, 0.0), (1.0, 0.0, 0.0),
+                             (1.0, 0.0, 1.0), (0.0, 0.0, 1.0)])
+    pts = obj.splines["profile"].point_array()
+    first = ExtrudeProfileCommand(session, "vase", pts, height=1.0,
+                                  source_spline="profile")
+    first.redo()
+    second = ExtrudeProfileCommand(session, "vase", pts, height=2.0,
+                                   source_spline="profile")
+    second.redo()
+    assert len(obj.patches) == 2
+    second.undo()
+    assert len(obj.patches) == 1

@@ -205,3 +205,15 @@ pages as the form widget, that the `Ignored` vertical policy cannot
 collapse the panel because `area_layout.py` puts it in a `QSplitter` with
 `setChildrenCollapsible(False)`, and that the new test fails without the
 fix. **No defects.**
+
+### PKG-05 -- found by the frozen acceptance run
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| PKG-05 | medium | REPRODUCED | `phase-e/frozen-acceptance.txt` §7 failed against the built bundle: `release/3D MASTER 2005 Beta/smoke_manifest.json` contained the absolute build-machine paths of every file the build's own smoke run touched. `smoke_stdout.txt`, `smoke_stderr.txt` and (once the run began keeping its working files) a `smoke_manifest_artifacts/` directory of scratch renders and projects shipped with it | Both build scripts run the packaged smoke test against a scratch directory outside the payload. Both also gained a step 7c that greps the staged folder for the build root and fails the build if anything matches, so the payload cannot silently pick up build artefacts again | Build step 7c (Linux and Windows); `frozen_acceptance.sh` §7 |
+
+The acceptance pass also grew a section 8: it re-reads the two OBJs the
+packaged smoke run exports at both ends of an action, with a parser that
+shares no code with the exporter, and requires the same vertex count with a
+real displacement -- 0.785 over 1536 vertices on the release artifact. That
+is the plan's "selected pose" check, performed on the frozen executable.

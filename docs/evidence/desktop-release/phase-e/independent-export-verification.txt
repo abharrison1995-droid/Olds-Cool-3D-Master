@@ -1,1 +1,35 @@
-error: invalid recipe: unknown field 'material' for ObjectRecipe
+recipe report: {
+  "ok": true,
+  "objects": [
+    "body",
+    "base"
+  ],
+  "materials": [
+    "mat_body",
+    "mat_base"
+  ],
+  "actions": [],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "/tmp/am3d_ex
+
+OBJ  /tmp/am3d_export_jgnA2w/scene.obj
+  vertices        : 1792
+  faces           : 3150
+  groups          : ['base', 'body']
+  mtllib          : ['scene.mtl']
+  usemtl          : ['mat_base', 'mat_body']
+  normals         : 1792
+  normal spread   : 2.000
+  mtl colours     : {'mat_body': (0.8, 0.2, 0.2), 'mat_base': (0.2, 0.4, 0.9)}
+  group centres   : {'body': (-0.036, 0.0, 0.0), 'base': (0.0, -1.2, 0.0)}
+GLB  /tmp/am3d_export_jgnA2w/scene.glb
+  asset.version   : 2.0
+  nodes/meshes    : 2/2
+  primitives      : 2
+  materials       : ['mat_body', 'mat_base']
+  BIN chunk bytes : 95144
+  total positions : 1792
+
+All independent checks passed.

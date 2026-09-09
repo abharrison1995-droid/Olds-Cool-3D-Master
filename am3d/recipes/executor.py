@@ -18,6 +18,8 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..core.paths import (classify_portable_relative_path,
+                          is_absolute_any_platform, normalize_separators)
 from .animation import generate_action
 from .primitives import build_primitive
 from .schema import (Recipe, RecipeValidationError, recipe_from_dict,
@@ -138,24 +140,23 @@ class RecipeExecutor:
 
     def _resolve_output_path(self, path: str, index: int = 0) -> str:
         raw = os.fspath(path)
-        drive, _ = os.path.splitdrive(raw)
         if self.output_root is not None:
-            if drive:
+            # The portable policy is deliberately host-independent: the same
+            # recipe must be accepted or rejected identically on Linux and on
+            # Windows, so syntax is judged by am3d.core.paths rather than by
+            # os.path (see am3d/core/paths.py for why).
+            verdict = classify_portable_relative_path(raw)
+            if verdict is not None:
+                reason, hint = verdict
                 raise RecipeValidationError(
                     "output_path_escape",
-                    f"export path {raw!r} must not specify a drive letter when --out is supplied",
+                    f"export {reason}",
                     path=f"recipe.exports[{index}].path",
-                    hint="Use a relative artifact name below the output root.",
-                    stage="resource")
-            if os.path.isabs(raw):
-                raise RecipeValidationError(
-                    "output_path_escape",
-                    "export path must be relative when --out is supplied",
-                    path=f"recipe.exports[{index}].path",
-                    hint="Use a relative artifact name below the output root.",
+                    hint=hint,
                     stage="resource")
             root = os.path.realpath(os.path.abspath(self.output_root))
-            candidate = os.path.realpath(os.path.abspath(os.path.join(root, raw)))
+            candidate = os.path.realpath(
+                os.path.abspath(os.path.join(root, normalize_separators(raw))))
             try:
                 common = os.path.commonpath((root, candidate))
             except ValueError as exc:
@@ -166,6 +167,8 @@ class RecipeExecutor:
                     hint="Use a relative path within the output root.",
                     stage="resource") from exc
             if candidate == root or common != root:
+                # Belt and braces: symlinked components can still resolve out
+                # of the root even after the syntactic check passed.
                 raise RecipeValidationError(
                     "output_path_escape",
                     f"export path {raw!r} escapes the requested output root",
@@ -173,8 +176,9 @@ class RecipeExecutor:
                     hint="Remove '..' segments or provide a child path within the output root.",
                     stage="resource")
             return candidate
-        if self.base_dir is not None and not os.path.isabs(raw):
-            return os.path.realpath(os.path.abspath(os.path.join(self.base_dir, raw)))
+        if self.base_dir is not None and not is_absolute_any_platform(raw):
+            return os.path.realpath(os.path.abspath(
+                os.path.join(self.base_dir, normalize_separators(raw))))
         return raw
 
     def _prepare_output_paths(self, recipe: Recipe) -> None:

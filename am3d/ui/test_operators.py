@@ -15,6 +15,7 @@ from am3d.core.project import ControlPoint
 from am3d.core.script import Session
 from am3d.ui.operators import (
     AddMaterialCommand, AddObjectCommand, ClearPoseCommand,
+    CreatePrimitiveCommand,
     DeleteMaterialCommand, DeleteObjectCommand, ImportActionCommand,
     InsertCPCommand, MoveCPCommand, PoseBoneCommand,
     RemoveCPCommand, RenameObjectCommand, SetActiveActionCommand,
@@ -938,6 +939,98 @@ def test_file_open_clears_undo_history(tmp_path, monkeypatch):
         assert win.undo_stack.count() == 0
         assert win.undo_stack.isClean()
         assert "cube" in win.session.project.objects
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+# --- LIFE-01 / LIFE-02: document lifecycle and empty-scene scheduling -------
+
+def test_close_project_stops_playback_and_clears_document_state():
+    """Finding LIFE-01: Close Project used to leave the playback timer
+    running and the Play button checked while Home was shown, with the
+    previous document's selection and properties context still live."""
+    win = _make_main_window()
+    try:
+        win.doc_ctrl.session.create_object("hero")
+        win._refresh_all()
+        win.viewport.set_selected("hero")
+        win.current_context = ("object", "hero", "")
+        win.properties_dock.set_context("object", "hero", "")
+        win.timeline_dock.play_button.setChecked(True)
+        assert win.timeline_dock._play_timer.isActive()
+
+        win.doc_ctrl._testing_discard = True
+        win._file_close_project()
+
+        assert not win.timeline_dock._play_timer.isActive(), "playback must stop"
+        assert not win.timeline_dock.play_button.isChecked()
+        assert win.current_context == ("", "", "")
+        assert win.viewport._drag is None
+        assert "hero" not in win.doc_ctrl.session.project.objects
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_cancelled_close_project_preserves_the_active_document(monkeypatch):
+    """A cancelled Save/Discard/Cancel gate must change nothing at all."""
+    win = _make_main_window()
+    try:
+        win.doc_ctrl.session.create_object("hero")
+        win.doc_ctrl.mark_dirty()
+        win.current_context = ("object", "hero", "")
+        monkeypatch.setattr(win.doc_ctrl, "maybe_abandon_document",
+                            lambda: False)
+        win._file_close_project()
+        assert "hero" in win.doc_ctrl.session.project.objects
+        assert win.current_context == ("object", "hero", "")
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_empty_scene_render_settles_and_stops_rescheduling():
+    """Finding LIFE-02: an empty scene left _dirty True forever, so every
+    paint event re-enqueued a render that could never produce a frame."""
+    from PySide6.QtCore import QRect
+    from PySide6.QtGui import QPaintEvent
+    win = _make_main_window()
+    try:
+        vp = win.viewport
+        win.doc_ctrl.session.project.objects.clear()
+        vp.refresh()
+        vp._render()
+        assert vp._frame is None, "nothing to draw in an empty scene"
+        assert vp._dirty is False, "the empty render is complete, not pending"
+
+        vp._timer.stop()
+        for _ in range(5):
+            vp.paintEvent(QPaintEvent(QRect(0, 0, max(vp.width(), 1),
+                                            max(vp.height(), 1))))
+            assert not vp._timer.isActive(), \
+                "a settled empty scene must not re-arm the render timer"
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_content_after_an_empty_render_still_renders():
+    """The LIFE-02 fix must not make the viewport go permanently inert."""
+    win = _make_main_window()
+    try:
+        vp = win.viewport
+        win.doc_ctrl.session.project.objects.clear()
+        vp.refresh(); vp._render()
+        assert vp._frame is None and vp._dirty is False
+
+        win.push_command(CreatePrimitiveCommand(
+            win.doc_ctrl.session, "box", "box"))
+        vp.refresh()
+        assert vp._dirty is True
+        assert vp._timer.isActive(), "new content must re-arm the render timer"
+        vp._render()
+        assert vp._frame is not None, "a non-empty scene must produce a frame"
     finally:
         win.viewport._timer.stop()
         win.close()

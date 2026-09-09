@@ -165,6 +165,81 @@ def toon_render_view(mesh, yaw_deg: float = 0.0, pitch_deg: float = 0.0,
     return frame.astype(np.float32)
 
 
+def toon_render_camera(mesh, camera, width: int, height: int,
+                       color=(0.85, 0.78, 0.55), bands: int = 4,
+                       ink: bool = True, ink_px_width: int = 2,
+                       ink_color=(0.05, 0.04, 0.03),
+                       supersample: int = 2) -> np.ndarray:
+    """One toon frame of *mesh* through *camera*'s own perspective projection.
+
+    Unlike :func:`toon_render_view`, the screen mapping comes entirely from
+    ``camera.world_to_screen`` -- the same call the viewport uses for picking
+    rays, control-point handles and gizmos -- so what the user sees and what
+    a click resolves to cannot drift apart (finding VIEW-01).
+
+    *camera* must provide ``world_to_screen(points, width, height)`` and
+    ``view_matrix()``. Returns float32 RGBA ``(height, width, 4)`` in 0..1.
+    """
+    from .sprite import _rasterize_screen
+
+    W, H = max(int(width), 1), max(int(height), 1)
+    verts = np.asarray(mesh.vertices, dtype=np.float64)
+    tris = np.asarray(mesh.indices, dtype=np.int64)
+    if len(verts) == 0 or len(tris) == 0:
+        return np.zeros((H, W, 4), dtype=np.float32)
+
+    xs, ys, valid = camera.world_to_screen(verts, W, H)
+    view = np.asarray(camera.view_matrix(), dtype=np.float64)
+    rot = view[:3, :3]
+    cam_verts = verts @ rot.T + view[:3, 3]
+    # Camera space looks down -Z, so distance from the eye is -z; feed the
+    # rasterizer "smaller == nearer" and mark points behind the eye as
+    # non-finite so it drops those triangles.
+    depths = -cam_verts[:, 2]
+    depths = np.where(valid & (depths > 1e-9), depths, np.inf)
+
+    normals = (np.asarray(mesh.normals, dtype=np.float64) @ rot.T
+               if mesh.normals is not None and len(mesh.normals) == len(verts)
+               else np.zeros_like(cam_verts))
+
+    light = np.array([0.45, 0.75, 0.55])
+    light /= np.linalg.norm(light)
+
+    ss = max(int(supersample), 1)
+    buffers = {"bands": int(bands)}
+    img = _rasterize_screen(np.column_stack([xs, ys]), depths, normals, tris,
+                            W, H, ss, color, silhouette=False, light=light,
+                            buffers=buffers)
+
+    alpha = img[..., 3]
+    if not (alpha > 0).any():
+        return np.zeros((H, W, 4), dtype=np.float32)
+
+    raw = buffers["_depth_raw"]
+    finite = np.isfinite(raw)
+    depth_norm = np.ones_like(raw)
+    if finite.any():
+        dmin = raw[finite].min()
+        drange = float(np.ptp(raw[finite]))
+        depth_norm[finite] = (raw[finite] - dmin) / max(drange, 1e-9)
+
+    ink_mask = detect_ink(depth_norm, buffers["normals"]) if ink else None
+    frame = composite_toon(img[..., :3] / 255.0, alpha / 255.0,
+                           cel_factors=np.where(finite, buffers["cel"], 1.0),
+                           ink_mask=ink_mask, ink_color=ink_color,
+                           ink_px_width=int(ink_px_width) * ss)
+
+    if ss > 1:
+        try:
+            from PIL import Image
+            pil = Image.fromarray(np.clip(frame * 255, 0, 255).astype(np.uint8))
+            return np.asarray(pil.resize((W, H), Image.LANCZOS),
+                              dtype=np.float32) / 255.0
+        except ImportError:          # pragma: no cover
+            return frame[::ss, ::ss][:H, :W].astype(np.float32)
+    return frame.astype(np.float32)
+
+
 def render_toon_sheet(mesh, views: int = 8, size: int = 256,
                       color=(0.85, 0.78, 0.55), bands: int = 4,
                       ink: bool = True, columns: int | None = None,

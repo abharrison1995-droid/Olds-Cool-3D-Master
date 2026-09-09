@@ -35,6 +35,112 @@ def _rotation_x(deg):
     return np.array([[1, 0, 0], [0, c, -s], [0, s, c]])
 
 
+def _rasterize_screen(screen_xy, depths, view_normals, tri_indices,
+                      width, height, ss, color, silhouette, light,
+                      buffers=None):
+    """Rasterize geometry that is **already projected to pixel coordinates**.
+
+    ``_rasterize`` auto-fits the mesh's own bounding box to a square canvas,
+    which makes its screen mapping a function of the geometry rather than of
+    the camera. The viewport's picking rays, control-point handles and gizmos
+    all use the perspective camera instead, so the two disagreed -- a box
+    drew roughly 4x smaller than where a click was resolved (finding
+    VIEW-01, docs/evidence/desktop-release/phase-b/view-01-reproduction.txt).
+
+    This variant takes ``screen_xy`` in *widget pixels* (whatever projection
+    the caller used, perspective included) and ``depths`` in camera space
+    (smaller = nearer), so the rendered image and the interaction model are
+    guaranteed to be the same mapping. Output is ``(height*ss, width*ss, 4)``.
+    """
+    W = int(width) * ss
+    H = int(height) * ss
+    img = np.zeros((H, W, 4), dtype=np.float32)
+    zbuf = np.full((H, W), np.inf, dtype=np.float32)
+    if buffers is not None:
+        nbuf = buffers.setdefault("normals", np.zeros((H, W, 3)))
+        cbuf = buffers.setdefault("cel", np.ones((H, W)))
+        depth_vals = buffers.setdefault("_depth_raw", np.full((H, W), np.inf))
+
+    screen_xy = np.asarray(screen_xy, dtype=np.float64)
+    px = screen_xy[:, 0] * ss
+    py = screen_xy[:, 1] * ss
+    zs = np.asarray(depths, dtype=np.float64)
+
+    base = np.asarray(color[:3], dtype=np.float32) * 255.0
+    cel_factors = None
+    if buffers is not None:
+        from .toon import cel_shade
+        cel_factors = cel_shade(view_normals, light=light,
+                                bands=buffers.get("bands", 4))
+
+    for tri in tri_indices:
+        i0, i1, i2 = int(tri[0]), int(tri[1]), int(tri[2])
+        # Any vertex behind the eye makes the projected triangle meaningless;
+        # dropping it is the same near-plane rejection the GPU path gets for
+        # free, and is why depths are required to be finite and positive.
+        if not (np.isfinite(zs[i0]) and np.isfinite(zs[i1])
+                and np.isfinite(zs[i2])):
+            continue
+        ax, ay, az = px[i0], py[i0], zs[i0]
+        bx, by, bz = px[i1], py[i1], zs[i1]
+        cx2, cy2, cz = px[i2], py[i2], zs[i2]
+
+        minx = max(int(math.floor(min(ax, bx, cx2))), 0)
+        maxx = min(int(math.ceil(max(ax, bx, cx2))), W - 1)
+        miny = max(int(math.floor(min(ay, by, cy2))), 0)
+        maxy = min(int(math.ceil(max(ay, by, cy2))), H - 1)
+        if minx > maxx or miny > maxy:
+            continue
+
+        area = (bx - ax) * (cy2 - ay) - (by - ay) * (cx2 - ax)
+        if abs(area) < 1e-9:
+            continue
+
+        gx, gy = np.meshgrid(np.arange(minx, maxx + 1) + 0.5,
+                             np.arange(miny, maxy + 1) + 0.5)
+        w0 = ((bx - ax) * (gy - ay) - (by - ay) * (gx - ax)) / area
+        w1 = ((cx2 - bx) * (gy - by) - (cy2 - by) * (gx - bx)) / area
+        w2 = 1.0 - w0 - w1
+        inside = (w0 >= -1e-6) & (w1 >= -1e-6) & (w2 >= -1e-6)
+        if not inside.any():
+            continue
+
+        depth = w1 * az + w2 * bz + w0 * cz
+        sub_z = zbuf[miny:maxy + 1, minx:maxx + 1]
+        nearer = inside & (depth < sub_z)
+        if not nearer.any():
+            continue
+
+        if silhouette:
+            shade = base
+        else:
+            n = view_normals[tri].mean(axis=0)
+            nn = float(np.linalg.norm(n))
+            n = n / nn if nn > 1e-9 else np.array([0.0, 0.0, 1.0])
+            lam = abs(float(np.dot(n, light)))
+            shade = base * (0.30 + 0.70 * lam)
+
+        sub_img = img[miny:maxy + 1, minx:maxx + 1]
+        for c in range(3):
+            ch = sub_img[..., c]
+            ch[nearer] = shade[c]
+            sub_img[..., c] = ch
+        sub_img[..., 3][nearer] = 255.0
+        sub_z[nearer] = depth[nearer]
+
+        if buffers is not None:
+            nmean = view_normals[tri].mean(axis=0)
+            nn = float(np.linalg.norm(nmean))
+            if nn > 1e-9:
+                nmean = nmean / nn
+            nbuf[miny:maxy + 1, minx:maxx + 1][nearer] = nmean
+            cbuf[miny:maxy + 1, minx:maxx + 1][nearer] = float(
+                cel_factors[tri].mean())
+            depth_vals[miny:maxy + 1, minx:maxx + 1][nearer] = depth[nearer]
+
+    return img
+
+
 def _rasterize(view_verts, view_normals, tri_indices, size, ss, color,
                silhouette, light, buffers=None):
     """Render one orthographic view into an ``(W, W, 4)`` float buffer.

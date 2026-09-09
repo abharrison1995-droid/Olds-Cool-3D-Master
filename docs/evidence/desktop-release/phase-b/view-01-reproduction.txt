@@ -1,0 +1,8 @@
+canvas 800x600  force_software=True
+RENDERED object pixel bbox : x 369..430  y 261..338
+RENDERED centroid          : (399.5, 299.5)
+PICKING  vertex pixel bbox : x 275..525  y 185..441
+PICKING  centroid          : (400.0, 300.0)
+centroid offset  : dx=0.5px dy=0.5px
+width ratio pick/render : 4.112 (1.000 == agreement)
+VERDICT: MISMATCH -- VIEW-01 reproduced

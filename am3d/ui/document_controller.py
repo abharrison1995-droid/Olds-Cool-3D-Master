@@ -11,7 +11,9 @@ rename over the destination.  On failure the original file remains intact.
 from __future__ import annotations
 
 import hashlib
+import json
 import os
+import time
 import uuid
 from pathlib import Path
 
@@ -158,10 +160,7 @@ class DocumentController:
         # that a future startup-recovery scan would offer for a document
         # that no longer exists in that form.
         if stale_autosave != self.autosave_path():
-            try:
-                Path(stale_autosave).unlink(missing_ok=True)
-            except OSError:
-                pass
+            self.clear_autosave(stale_autosave)
         return path
 
     def maybe_abandon_document(self) -> bool:
@@ -255,13 +254,87 @@ class DocumentController:
         stem = Path(self._path).stem if self._path else "untitled"
         return str(app_data / f"{stem}-{self._document_identity()}.autosave.am3d")
 
+    def _autosave_meta_path(self, autosave_path: str | None = None) -> str:
+        """Sidecar describing an autosave slot.
+
+        The autosave file name only carries a stem and an opaque identity
+        hash, so a recovery chooser cannot tell the user *which* document a
+        snapshot belongs to, where it came from, or when it was taken. The
+        sidecar records that explicitly (finding DATA-02).
+        """
+        return (autosave_path or self.autosave_path()) + ".meta.json"
+
     def do_autosave(self) -> None:
         """Write an autosave snapshot (best effort, never raises)."""
         try:
             path = self.autosave_path()
             self._ensure_atomic_save(path)
         except Exception:
+            return
+        # Written only after the snapshot itself succeeded, so a sidecar
+        # never advertises a recovery that does not exist.
+        try:
+            meta = {
+                "schema": 1,
+                "document_identity": self._document_identity(),
+                "display_name": self.display_name,
+                "project_name": (self.session.project.name
+                                 if self.session else ""),
+                "original_path": self._path,
+                "saved_at": time.time(),
+            }
+            tmp = self._autosave_meta_path(path) + ".tmp"
+            with open(tmp, "w", encoding="utf-8") as fh:
+                json.dump(meta, fh)
+            os.replace(tmp, self._autosave_meta_path(path))
+        except Exception:
             pass
+
+    def autosave_entries(self) -> list[dict]:
+        """Describe every recoverable snapshot, newest first.
+
+        Each entry carries ``path``, ``display_name``, ``original_path``,
+        ``saved_at`` (epoch seconds), ``size_bytes``, ``is_current`` and
+        ``corrupt``. Entries whose sidecar is missing or unreadable are still
+        listed -- with ``corrupt`` set and a best-effort name from the file
+        stem -- so a damaged sidecar can never hide a user's only recovery.
+        """
+        current = self.autosave_path()
+        entries = []
+        for path in self.list_autosave_files():
+            entry = {
+                "path": path,
+                "display_name": Path(path).name.split(".autosave")[0],
+                "original_path": None,
+                "saved_at": None,
+                "size_bytes": None,
+                "is_current": os.path.realpath(path) == os.path.realpath(current),
+                "corrupt": False,
+            }
+            try:
+                entry["size_bytes"] = os.path.getsize(path)
+                entry["saved_at"] = os.path.getmtime(path)
+            except OSError:
+                entry["corrupt"] = True
+            try:
+                with open(self._autosave_meta_path(path), encoding="utf-8") as fh:
+                    meta = json.load(fh)
+                if not isinstance(meta, dict):
+                    raise ValueError("meta is not an object")
+                entry["display_name"] = str(
+                    meta.get("display_name") or entry["display_name"])
+                entry["original_path"] = meta.get("original_path")
+                if isinstance(meta.get("saved_at"), (int, float)):
+                    entry["saved_at"] = float(meta["saved_at"])
+            except FileNotFoundError:
+                # A pre-sidecar snapshot, or one whose sidecar write failed.
+                # Recoverable, just less well described -- not corrupt.
+                pass
+            except Exception:
+                entry["corrupt"] = True
+            entries.append(entry)
+        entries.sort(key=lambda e: (e["saved_at"] or 0.0), reverse=True)
+        return entries
 
     def autosave_exists(self) -> bool:
         """Check if any autosave file exists."""
@@ -310,10 +383,26 @@ class DocumentController:
         except Exception:
             return False
 
-    def clear_autosave(self) -> None:
-        """Delete autosave files after a clean save/exit."""
-        for p in self.list_autosave_files():
+    def clear_autosave(self, path: str | None = None) -> None:
+        """Delete *this document's* autosave snapshot and its sidecar.
+
+        Finding DATA-01: this used to unlink every ``*.autosave.am3d`` in the
+        app-data directory. Quitting document A therefore destroyed the
+        unsaved recovery of document B -- another window, another instance,
+        or the snapshot left by an earlier crash -- because the sweep had no
+        notion of document identity. Only the slot named here (defaulting to
+        the current document's) may be removed, and only after the caller's
+        Save/Discard decision has been made.
+        """
+        target = path or self.autosave_path()
+        for candidate in (target, self._autosave_meta_path(target)):
             try:
-                Path(p).unlink(missing_ok=True)
+                Path(candidate).unlink(missing_ok=True)
             except OSError:
                 pass
+
+    def clear_all_autosaves(self) -> None:
+        """Remove every snapshot. Only for an explicit user-initiated purge
+        (or test cleanup) -- never for an ordinary quit; see clear_autosave."""
+        for p in self.list_autosave_files():
+            self.clear_autosave(p)

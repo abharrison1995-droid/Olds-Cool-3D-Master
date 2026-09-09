@@ -188,8 +188,12 @@ class Viewport(QWidget):
 
     # -- painting ---------------------------------------------------------
     def paintEvent(self, event):
-        if self._frame is None:
-            self._schedule_render()
+        # Only ask for a render that is genuinely still outstanding. The
+        # unconditional _schedule_render() this replaces re-armed the timer
+        # on every paint of an empty (or failed) scene, because those leave
+        # _frame at None permanently -- see _render() and finding LIFE-02.
+        if self._frame is None and self._dirty and not self._timer.isActive():
+            self._timer.start(0)
         painter = QPainter(self)
         if self._frame is not None:
             h, w = self._frame.shape[:2]
@@ -203,7 +207,11 @@ class Viewport(QWidget):
         else:
             painter.fillRect(self.rect(), Qt.darkGray)
             painter.setPen(Qt.white)
-            painter.drawText(self.rect(), Qt.AlignCenter, "3D MASTER:2005")
+            painter.drawText(
+                self.rect(), Qt.AlignCenter,
+                "Empty scene\n\n"
+                "Create an object from the Objects panel or the Create menu,\n"
+                "or open an example from Home.")
         self._draw_overlays(painter)
 
     def _project(self, points):
@@ -397,7 +405,13 @@ class Viewport(QWidget):
         try:
             mesh = self._merged
             if mesh is None:
+                # An empty scene is a *completed* render, not an unfinished
+                # one (finding LIFE-02). Returning here without clearing
+                # _dirty left every later paint event re-enqueueing a render
+                # that could never produce a frame.
                 self._frame = None
+                self._dirty = False
+                self.update()
                 return
 
             view = self.camera.view_matrix()
@@ -420,41 +434,35 @@ class Viewport(QWidget):
                 # convert to uint8 once, in paintEvent.
                 self._frame = np.asarray(rgba, dtype=np.float32)
         except Exception:
+            # A failed render is settled too: _dirty is cleared below, so the
+            # next paint shows the empty-state text instead of spinning.
             self._frame = None
         self._dirty = False
         self.update()
 
     def _render_toon(self, mesh, W, H):
-        """Toon-render *mesh* through the orbit camera.
+        """Toon-render *mesh* through the orbit camera's own projection.
 
-        The software rasterizer is orthographic and auto-fits the mesh, so
-        the world mesh is first transformed into camera space, then two
-        anchor vertices pin the view volume to the camera frustum — this
-        makes zoom (distance) and pan actually visible.
+        Finding VIEW-01: this used to feed the *orthographic*, auto-fitting
+        sprite rasterizer, whose screen mapping depends on the mesh's own
+        bounding box rather than on the camera. Picking rays, control-point
+        handles and gizmos meanwhile used camera.world_to_screen(), so in
+        software mode a box drew about 4x smaller than where a click on it
+        resolved (see docs/evidence/desktop-release/phase-b/
+        view-01-reproduction.txt). toon_render_camera() projects with exactly
+        the same call the interaction code uses, so image and input agree by
+        construction and there is nothing left to keep in sync.
         """
-        from am3d.renderer.tessellate import MeshData
-        from am3d.renderer.toon import toon_render_view
+        from am3d.renderer.toon import toon_render_camera
 
-        view = self.camera.view_matrix()
-        rot = view[:3, :3]
-        v = mesh.vertices @ rot.T + view[:3, 3]
-        n = mesh.normals @ rot.T
-        v[:, 2] *= -1.0                     # rasterizer: nearer = smaller z
-        n[:, 2] *= -1.0
-        v[:, 0] *= H / W                    # correct for the square canvas
-
-        d = self.camera.distance * 1.2
-        z_mid = float(v[:, 2].mean()) if len(v) else 0.0
-        anchors = np.array([[-d, -d, z_mid], [d, d, z_mid]])
-        pinned = MeshData(np.vstack([v, anchors]), mesh.indices,
-                          normals=np.vstack([n, np.zeros((2, 3))]))
         settings = getattr(self.main.session.project, "render_settings",
                            {}) or {}
         toon = bool(settings.get("toon", True))
-        return toon_render_view(pinned, size=max(W, H),
-                                supersample=int(settings.get("supersample", 2)),
-                                bands=4 if toon else 64,
-                                ink=toon)
+        return toon_render_camera(
+            mesh, self.camera, W, H,
+            supersample=int(settings.get("supersample", 2)),
+            bands=4 if toon else 64,
+            ink=toon)
 
     @staticmethod
     def _merge_meshes(meshes):

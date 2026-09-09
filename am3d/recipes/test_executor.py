@@ -1433,3 +1433,67 @@ def test_gui_lathe_and_recipe_lathe_geometry_agree():
     assert np.allclose(gui_mesh.normals, recipe_mesh.normals)
 
 
+
+
+# --- Cross-platform export path policy (finding ENV-03) ---------------------
+# These drive the real consumer (RecipeExecutor.execute), not the helper, so a
+# policy that is correct in am3d/core/paths.py but unwired here still fails.
+
+def _escape_recipe(path):
+    return {"name": "escape",
+            "objects": [{"name": "o", "primitive": "box"}],
+            "exports": [{"format": "obj", "path": path}]}
+
+
+@pytest.mark.parametrize("path", [
+    "D:outside_file",              # Windows drive-relative
+    "D:/outside_file",             # Windows drive-absolute
+    "D:\\outside_file",
+    "\\\\server\\share\\out",      # UNC
+    "//server/share/out",
+    "/tmp/outside",                # POSIX absolute
+    "\\windows\\out",              # Windows root-relative
+    "../outside",                  # traversal, POSIX separator
+    "..\\outside",                 # traversal, Windows separator
+    "sub/../../outside",
+    ".",
+    "NUL",                         # Windows reserved device name
+    "bad?name",                    # invalid on Windows
+])
+def test_export_path_policy_rejects_identically_on_every_platform(tmp_path, path):
+    root = tmp_path / "root"
+    root.mkdir()
+    res = RecipeExecutor(output_root=str(root)).execute(_escape_recipe(path))
+    assert not res.ok, f"{path!r} should be rejected on every platform"
+    assert res.error_records[0]["code"] == "output_path_escape"
+    # Nothing may be written anywhere for a rejected path.
+    assert list(root.iterdir()) == []
+
+
+@pytest.mark.parametrize("name", [
+    "plain",
+    "ünïcødé",
+    "日本語モデル",
+    "Ω-mesh_v2.final",
+    "with space/my model",
+])
+def test_export_path_policy_allows_legitimate_unicode_names(tmp_path, name):
+    root = tmp_path / "root"
+    root.mkdir()
+    res = RecipeExecutor(output_root=str(root)).execute(_escape_recipe(name))
+    assert res.ok, res.error_records
+    written = res.exports[0][1]
+    assert os.path.exists(written)
+    # Stays inside the root, and the extension is applied.
+    assert os.path.realpath(written).startswith(os.path.realpath(str(root)) + os.sep)
+    assert written.endswith(".obj")
+
+
+def test_export_backslash_is_treated_as_a_subdirectory_separator(tmp_path):
+    root = tmp_path / "root"
+    root.mkdir()
+    res = RecipeExecutor(output_root=str(root)).execute(_escape_recipe("sub\\out"))
+    assert res.ok, res.error_records
+    # A literal "sub\out.obj" file would mean this recipe produces a different
+    # tree on Linux than on Windows.
+    assert (root / "sub" / "out.obj").exists()

@@ -1,22 +1,24 @@
-# Pinned (not >=) so the packaged Windows build in build_windows.ps1 is
-# reproducible: `pip install -r requirements.txt` always resolves to the
-# same versions instead of drifting with whatever is newest on the day of
-# the build. Bump deliberately, not incidentally.
+# Runtime requirements only -- exactly what an installed/frozen am3d imports.
+# Pinned (not >=) so `pip install -r requirements.txt` resolves identically on
+# every build day instead of drifting with whatever is newest. Bump
+# deliberately, not incidentally. Test and build tooling lives in
+# requirements-dev.txt so it can never reach a release payload; the fully
+# resolved transitive set for a release build is captured in
+# requirements-lock-<platform>.txt.
+#
+# NOTE (ENV-01): numpy 2.4.6 declares Requires-Python >=3.11, so this pin set
+# cannot be installed on 3.10 even though a source install of am3d
+# (pyproject.toml, flexible lower bounds) supports a wider range. See
+# docs/SUPPORTED_PLATFORMS.md.
 
-# Runtime requirements. Pillow is NOT optional: the PNG export and texture
-# loading paths raise without it (am3d/renderer/sprite.py, materials.py).
+# Pillow is NOT optional: PNG export and texture loading raise without it
+# (am3d/renderer/sprite.py, am3d/renderer/materials.py).
 numpy==2.4.6
 msgpack==1.2.1
 PySide6==6.11.2
 Pillow==12.3.0
 
-# Optional GPU renderer. am3d falls back to the software toon path when
-# this is absent, so it is not required to run the app.
+# Optional GPU renderer. am3d falls back to the software toon path when this
+# is absent, so it is not required to run the app -- but it IS included in the
+# selected release configuration, so it is pinned here rather than left loose.
 moderngl==5.12.0
-
-# Build-time only (produces the packaged .exe in build_windows.ps1); not a
-# runtime import of am3d itself.
-pyinstaller==6.22.2
-
-# Tests
-pytest==9.1.1

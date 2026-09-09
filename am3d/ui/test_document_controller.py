@@ -8,6 +8,7 @@ that never partially mutates live state.
 
 from __future__ import annotations
 
+import os
 import sys
 
 import pytest
@@ -201,3 +202,195 @@ def test_do_new_falls_back_on_corrupt_settings_values(doc_ctrl, monkeypatch):
 def os_path_exists(path: str) -> bool:
     import os
     return os.path.exists(path)
+
+
+# --- DATA-01: quitting one document must not destroy another's recovery -----
+
+def test_clear_autosave_removes_only_the_current_documents_snapshot(
+        isolated_app_data):
+    """The DATA-01 blocker, reproduced end to end.
+
+    Before the fix, clear_autosave() unlinked every ``*.autosave.am3d`` in
+    the app-data directory, so closing document A on exit destroyed the
+    unsaved recovery snapshot of document B.
+    """
+    _qapp()
+    from am3d.ui.document_controller import DocumentController
+    a = DocumentController(None)
+    a.session.create_object("from_a")
+    a.do_autosave()
+    b = DocumentController(None)
+    b.session.create_object("from_b")
+    b.do_autosave()
+
+    a_snap, b_snap = a.autosave_path(), b.autosave_path()
+    assert a_snap != b_snap
+    assert os.path.exists(a_snap) and os.path.exists(b_snap)
+
+    a.clear_autosave()                      # what closeEvent() does on quit
+
+    assert not os.path.exists(a_snap), "A's own snapshot should be cleared"
+    assert os.path.exists(b_snap), "B's recovery must survive A's exit"
+
+    # And B is still genuinely recoverable, not merely present as a file.
+    fresh = DocumentController(None)
+    assert fresh.recover_from(b_snap) is True
+    assert "from_b" in fresh.session.project.objects
+
+
+def test_clear_autosave_removes_the_sidecar_with_the_snapshot(doc_ctrl):
+    doc_ctrl.do_autosave()
+    meta = doc_ctrl.autosave_path() + ".meta.json"
+    assert os.path.exists(meta)
+    doc_ctrl.clear_autosave()
+    assert not os.path.exists(meta)
+
+
+def test_clear_all_autosaves_is_the_explicit_opt_in_sweep(isolated_app_data):
+    _qapp()
+    from am3d.ui.document_controller import DocumentController
+    a, b = DocumentController(None), DocumentController(None)
+    a.do_autosave(); b.do_autosave()
+    a.clear_all_autosaves()
+    assert a.list_autosave_files() == []
+
+
+def test_main_window_exit_preserves_another_documents_recovery(
+        isolated_app_data, tmp_path):
+    """The plan's acceptance scenario driven through the real MainWindow:
+    create recoveries for A and B, close A, and prove B is still offered."""
+    _qapp()
+    from am3d.ui.app import MainWindow
+    from am3d.ui.document_controller import DocumentController
+
+    other = DocumentController(None)
+    other.session.create_object("document_b")
+    other.do_autosave()
+    b_snap = other.autosave_path()
+
+    win = MainWindow()
+    try:
+        win.doc_ctrl.session.create_object("document_a")
+        win.doc_ctrl.mark_dirty()
+        win.doc_ctrl._testing_discard = True
+        win.doc_ctrl.do_autosave()
+        a_snap = win.doc_ctrl.autosave_path()
+        assert os.path.exists(a_snap)
+        win.close()                      # closeEvent -> clear_autosave()
+    finally:
+        win.deleteLater()
+
+    assert not os.path.exists(a_snap)
+    assert os.path.exists(b_snap)
+    assert b_snap in [e["path"] for e in other.autosave_entries()]
+
+
+# --- DATA-02: the recovery chooser -----------------------------------------
+
+def test_autosave_entries_describe_document_identity_and_time(doc_ctrl,
+                                                              tmp_path):
+    target = tmp_path / "hero.am3d"
+    doc_ctrl.session.save_project(str(target))
+    doc_ctrl.path = str(target)
+    doc_ctrl.do_autosave()
+
+    entries = doc_ctrl.autosave_entries()
+    assert len(entries) == 1
+    entry = entries[0]
+    assert entry["display_name"] == "hero.am3d"
+    assert entry["original_path"] == str(target)
+    assert entry["saved_at"] > 0
+    assert entry["size_bytes"] > 0
+    assert entry["is_current"] is True
+    assert entry["corrupt"] is False
+
+
+def test_autosave_entries_are_newest_first_not_filename_sorted(
+        isolated_app_data):
+    """Home used to emit ``list_autosave_files()[0]`` -- filename order.
+    A name that sorts first must not outrank a newer snapshot."""
+    _qapp()
+    from am3d.ui.document_controller import DocumentController
+    old = DocumentController(None)
+    old.session.create_object("older")
+    old.do_autosave()
+    _age(old.autosave_path(), seconds=3600)
+
+    new = DocumentController(None)
+    new.session.create_object("newer")
+    new.do_autosave()
+
+    entries = old.autosave_entries()
+    assert len(entries) == 2
+    assert entries[0]["path"] == new.autosave_path()
+
+
+def test_autosave_entries_flag_corrupt_sidecars_without_hiding_the_snapshot(
+        doc_ctrl):
+    doc_ctrl.do_autosave()
+    with open(doc_ctrl.autosave_path() + ".meta.json", "w") as fh:
+        fh.write("{not json")
+    entries = doc_ctrl.autosave_entries()
+    assert len(entries) == 1, "a damaged sidecar must not hide the recovery"
+    assert entries[0]["corrupt"] is True
+
+
+def test_autosave_entries_tolerate_a_snapshot_with_no_sidecar(doc_ctrl):
+    doc_ctrl.do_autosave()
+    os.unlink(doc_ctrl.autosave_path() + ".meta.json")
+    entries = doc_ctrl.autosave_entries()
+    assert len(entries) == 1
+    assert entries[0]["corrupt"] is False       # recoverable, just less described
+
+
+def test_recovery_dialog_selects_a_specific_snapshot_and_keeps_the_rest(
+        isolated_app_data):
+    _qapp()
+    from am3d.ui.document_controller import DocumentController
+    from am3d.ui.recovery_dialog import RecoveryDialog
+
+    a, b = DocumentController(None), DocumentController(None)
+    a.session.create_object("alpha"); a.do_autosave()
+    b.session.create_object("beta"); b.do_autosave()
+
+    dlg = RecoveryDialog(a.autosave_entries())
+    try:
+        assert dlg.list.count() == 2
+        # Choose the *second* row explicitly, not whatever came first.
+        dlg.list.setCurrentRow(1)
+        chosen = dlg._current_entry()["path"]
+        dlg._accept_selection()
+        assert dlg.selected_path == chosen
+        # The unselected snapshot is untouched on disk.
+        others = [e["path"] for e in a.autosave_entries()]
+        assert len(others) == 2
+    finally:
+        dlg.deleteLater()
+
+
+def test_recovery_dialog_refuses_to_recover_a_corrupt_entry(isolated_app_data):
+    _qapp()
+    from am3d.ui.recovery_dialog import RecoveryDialog
+    dlg = RecoveryDialog([{"path": "/nonexistent/x.autosave.am3d",
+                           "display_name": "broken", "original_path": None,
+                           "saved_at": 1.0, "size_bytes": 1,
+                           "is_current": False, "corrupt": True}])
+    try:
+        dlg._accept_selection()
+        assert dlg.selected_path is None
+    finally:
+        dlg.deleteLater()
+
+
+def _age(path, seconds):
+    """Backdate a file's mtime and its sidecar's recorded time."""
+    import json
+    stamp = os.path.getmtime(path) - seconds
+    os.utime(path, (stamp, stamp))
+    meta = path + ".meta.json"
+    if os.path.exists(meta):
+        with open(meta) as fh:
+            data = json.load(fh)
+        data["saved_at"] = stamp
+        with open(meta, "w") as fh:
+            json.dump(data, fh)

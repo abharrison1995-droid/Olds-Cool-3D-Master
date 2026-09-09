@@ -1,0 +1,16 @@
+# Test and build tooling. Deliberately separate from requirements.txt: none of
+# these are imported by am3d at runtime and none may end up in a release
+# payload. Install with `pip install -r requirements-dev.txt` (which pulls the
+# runtime set in as well).
+-r requirements.txt
+
+# Tests
+pytest==9.1.1
+# am3d/recipes/test_schema.py asserts docs/recipes/recipe-v1.schema.json is
+# valid JSON Schema and stays in enum-parity with am3d/recipes/schema.py.
+# Undeclared before the desktop-release baseline (finding ENV-03).
+jsonschema==4.26.0
+
+# Build-time only (produces the frozen executables from am3d.spec /
+# am3d_recipe.spec); not a runtime import of am3d itself.
+pyinstaller==6.22.2

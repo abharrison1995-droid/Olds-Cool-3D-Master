@@ -1,0 +1,12 @@
+[default  ] render bbox x 272..527 y 184..441 | pick bbox x 275..525 y 185..441 | max edge delta 2.6px
+            click (400,312) -> ('box', 0)   click (4,4) -> None
+[orbit    ] render bbox x 257..553 y 156..416 | pick bbox x 259..551 y 158..415 | max edge delta 2.1px
+            click (405,293) -> ('box', 0)   click (4,4) -> None
+[pan      ] render bbox x 183..474 y 217..479 | pick bbox x 186..473 y 219..478 | max edge delta 2.7px
+            click (329,350) -> ('box', 0)   click (4,4) -> None
+[zoom in  ] render bbox x  15..539 y 118..599 | pick bbox x  17..537 y 120..599 | max edge delta 2.3px
+            click (276,380) -> ('box', 0)   click (4,4) -> None
+[zoom out ] render bbox x 220..461 y 234..442 | pick bbox x 222..459 y 236..441 | max edge delta 2.2px
+            click (341,340) -> ('box', 0)   click (4,4) -> None
+
+VERDICT: AGREE -- render, picking and overlays share one projection

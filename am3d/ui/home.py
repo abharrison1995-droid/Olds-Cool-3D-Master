@@ -211,14 +211,35 @@ class HomeWidget(QWidget):
             self.action_example.emit(path)
 
     def _on_recover(self):
-        from .document_controller import DocumentController
-        # Find the doc controller via parent chain
+        """Let the user choose *which* snapshot to recover (finding DATA-02).
+
+        This used to emit ``list_autosave_files()[0]`` -- the alphabetically
+        first file -- so with two recoverable documents on disk the user got
+        an arbitrary one with no indication of which, and no way to reach the
+        other. Snapshots that are not chosen are left on disk untouched.
+        """
+        ctrl = self._find_doc_controller()
+        if ctrl is None:
+            return
+        entries = ctrl.autosave_entries()
+        if not entries:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.information(
+                self, "Nothing to recover",
+                "No automatic snapshots were found.")
+            return
+        if len(entries) == 1 and not entries[0].get("corrupt"):
+            self.action_recover.emit(entries[0]["path"])
+            return
+        from .recovery_dialog import RecoveryDialog
+        dlg = RecoveryDialog(entries, self)
+        if dlg.exec() and dlg.selected_path:
+            self.action_recover.emit(dlg.selected_path)
+
+    def _find_doc_controller(self):
         parent = self.parent()
         while parent is not None:
-            if hasattr(parent, 'doc_ctrl'):
-                ctrl = parent.doc_ctrl
-                autosaves = ctrl.list_autosave_files()
-                if autosaves:
-                    self.action_recover.emit(autosaves[0])
-                break
+            if hasattr(parent, "doc_ctrl"):
+                return parent.doc_ctrl
             parent = parent.parent()
+        return None

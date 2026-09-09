@@ -548,8 +548,11 @@ class MainWindow(QMainWindow):
 
     def _reset_document_ui_state(self):
         """Reset viewport, selection, panels, and playback after doc replacement."""
-        # Stop playback
+        # Stop playback. setChecked(False) runs _on_play_toggled, which
+        # stops the dopesheet's play timer -- leaving it running would keep
+        # advancing frames on a document that is no longer open.
         self.timeline_dock.play_button.setChecked(False)
+        self.timeline_dock._play_timer.stop()
         # Clear selections and abandon any in-progress drag/modal transform --
         # those hold direct references into the document being replaced.
         self.viewport.set_selected(None)
@@ -716,10 +719,21 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Save failed", str(exc))
 
     def _file_close_project(self):
-        """Close current project and return to Home."""
-        if self.doc_ctrl.maybe_abandon_document():
-            self.doc_ctrl.do_new()
-            self.show_home()
+        """Close current project and return to Home.
+
+        Finding LIFE-01: this used to swap the document and show Home without
+        resetting the editor, so the playback timer kept ticking (and the Play
+        button stayed checked) against the replaced document, an in-progress
+        viewport drag kept a reference into it, and the stale selection and
+        properties context survived into the next document. A *cancelled*
+        close (maybe_abandon_document returning False) still changes nothing.
+        """
+        if not self.doc_ctrl.maybe_abandon_document():
+            return
+        self.doc_ctrl.do_new()
+        self._reset_document_ui_state()
+        self._refresh_all()
+        self.show_home()
 
     def _file_import_action(self):
         path, _ = QFileDialog.getOpenFileName(

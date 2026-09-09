@@ -10,6 +10,7 @@ from __future__ import annotations
 import io
 import math
 import os
+from .paths import is_absolute_any_platform
 import tempfile
 
 import msgpack
@@ -296,7 +297,9 @@ def resolve_resource_path(resource_path: str, base_dir: str | None = None) -> st
     """Resolve a resource path relative to base_dir if relative."""
     if not resource_path:
         return resource_path
-    if os.path.isabs(resource_path):
+    # A project saved on Windows may carry "C:/tex.png"; os.path.isabs would
+    # call that relative on POSIX and join it onto base_dir instead.
+    if is_absolute_any_platform(resource_path):
         return resource_path
     if base_dir:
         return os.path.normpath(os.path.join(base_dir, resource_path))

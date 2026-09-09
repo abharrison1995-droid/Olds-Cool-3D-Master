@@ -1,0 +1,24 @@
+GPU-05 / RENDER-01 -- reproduction and after-fix measurements
+============================================================
+
+Host: MX Linux 25.2 / Debian 13, KDE Plasma (Wayland), Ryzen 7 5700U,
+      integrated AMD Radeon (amdgpu/radeonsi), Mesa 26.1.4, OpenGL 4.6.
+Command:
+  QT_QPA_PLATFORM=offscreen .venv/bin/python \
+      docs/evidence/desktop-release/phase-e/gpu05_render01_check.py
+
+GPU-05  GPU vs forced-software silhouette IoU (two objects)
+  shipped code                 : 0.899
+  with the pre-fix fallback    : 0.183
+
+RENDER-01  mean brightness of a software-rendered sphere (0..255)
+  shipped code                 :   69.5
+  with the pre-fix detect_ink  :   18.6
+
+images written to /tmp/am3d_phase_e_c0jes66i
+
+Found by: the packaged smoke test's new GPU-vs-software parity step
+(am3d/ui/smoke.py::_still_render), which failed on this hardware with
+  AssertionError: GPU and software renders disagree: 2173 vs 8432 lit
+  pixels (ratio 0.26)
+and passes after both fixes with ratio 0.969.

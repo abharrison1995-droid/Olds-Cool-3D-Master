@@ -31,6 +31,7 @@ STEPS = [
     "still_render_to_png",
     "save_and_reopen",
     "transformed_export",
+    "recipe_output_opens_in_the_gui",
 ]
 
 
@@ -184,6 +185,56 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         manifest["artifacts"]["render_path"] = str(written[0])
         manifest["artifacts"]["render_lit_pixels"] = lit
 
+        # GPU-vs-software parity on whatever hardware this artifact is
+        # actually running on (finding GPU-04: the GPU path once rendered a
+        # uniformly blank frame while every software test passed). When no
+        # GL context can be created the comparison is recorded as skipped
+        # rather than quietly counted as a pass.
+        try:
+            from am3d.gpu import create_offscreen_context
+            probe = create_offscreen_context(16, 16)
+            has_gl = getattr(probe, "ctx", None) is not None
+            try:
+                probe.destroy()
+            except Exception:
+                pass
+        except Exception:
+            has_gl = False
+        if not has_gl:
+            manifest["artifacts"]["gpu_parity"] = "skipped: no GL context"
+            return
+        gpu_out = tmp_dir / "smoke_render_gpu.png"
+        gpu_written = run_render(win.session, None, mode=STILL,
+                                 path=str(gpu_out), width=160, height=120,
+                                 force_software=False)
+        with Image.open(gpu_written[0]) as im:
+            gpu_arr = np.asarray(im)
+        gpu_lit = int((gpu_arr[..., :3].sum(axis=2) > 8).sum())
+        if gpu_lit < 50:
+            raise AssertionError(
+                f"the GPU render is blank ({gpu_lit} lit pixels) while the "
+                f"software render has {lit}")
+        ratio = gpu_lit / max(lit, 1)
+        if not 0.4 <= ratio <= 2.5:
+            raise AssertionError(
+                f"GPU and software renders disagree: {gpu_lit} vs {lit} "
+                f"lit pixels (ratio {ratio:.2f})")
+        # Equal *amounts* of lit pixel are not equal pictures: the two paths
+        # must also put the geometry in the same place, which is what
+        # finding GPU-05 got wrong. Compare the silhouettes directly.
+        gpu_mask = gpu_arr[..., :3].sum(axis=2) > 8
+        sw_mask = arr[..., :3].sum(axis=2) > 8
+        union = int((gpu_mask | sw_mask).sum())
+        iou = int((gpu_mask & sw_mask).sum()) / max(union, 1)
+        if iou < 0.6:
+            raise AssertionError(
+                f"GPU and software renders place the scene differently "
+                f"(silhouette IoU {iou:.2f})")
+        manifest["artifacts"]["gpu_parity"] = {
+            "gpu_lit_pixels": gpu_lit, "software_lit_pixels": lit,
+            "ratio": round(ratio, 3), "silhouette_iou": round(iou, 3),
+        }
+
     def _multi_object_render():
         from .operators import CreatePrimitiveCommand
         win.push_command(CreatePrimitiveCommand(win.session, "Ball", "sphere", {}))
@@ -234,6 +285,42 @@ def run_smoke_test(tmp_dir: Path) -> dict:
             raise AssertionError("export produced an empty file")
         manifest["artifacts"]["export_size_bytes"] = size
 
+    def _recipe_output_opens_in_the_gui():
+        """Journey 6: build a project with the recipe engine the standalone
+        CLI runs, then open that output in the GUI. The two shipped
+        executables have to agree about what a project file is; nothing else
+        in this smoke run crosses that boundary."""
+        import json
+
+        from am3d.recipes.cli import main as recipe_main
+
+        recipe_path = tmp_dir / "smoke_recipe.json"
+        recipe_path.write_text(json.dumps({
+            "version": 1,
+            "name": "smoke_recipe",
+            "objects": [{"name": "recipe_cube", "primitive": "box",
+                         "params": {"width": 1.0, "height": 1.0,
+                                    "depth": 1.0}}],
+            "exports": [{"format": "am3d", "path": "recipe_project"}],
+        }), encoding="utf-8")
+        out_dir = tmp_dir / "recipe_out"
+        rc = recipe_main(["--recipe", str(recipe_path), "--out", str(out_dir)])
+        if rc != 0:
+            raise AssertionError(f"the recipe CLI failed (exit {rc})")
+        produced = sorted(out_dir.rglob("*.am3d"))
+        if not produced:
+            raise AssertionError(
+                f"the recipe wrote no project: {sorted(out_dir.rglob('*'))}")
+
+        win.doc_ctrl.do_open(str(produced[0]))
+        win._reset_document_ui_state()
+        win._refresh_all()
+        if "recipe_cube" not in win.session.project.objects:
+            raise AssertionError(
+                f"the GUI opened the recipe's project but it has no "
+                f"recipe_cube: {sorted(win.session.project.objects)}")
+        manifest["artifacts"]["recipe_project_path"] = str(produced[0])
+
     for name, fn in [
         ("blank_startup", _blank_startup),
         ("new_project", _new_project),
@@ -245,6 +332,7 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         ("still_render_to_png", _still_render),
         ("save_and_reopen", _save_and_reopen),
         ("transformed_export", _transformed_export),
+        ("recipe_output_opens_in_the_gui", _recipe_output_opens_in_the_gui),
     ]:
         if not step(name, fn):
             break

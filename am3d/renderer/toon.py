@@ -43,11 +43,28 @@ def _sobel_mag(buf: np.ndarray) -> np.ndarray:
 
 def detect_ink(depth, normals_img, depth_thresh: float = 0.05,
                normal_thresh: float = 0.6) -> np.ndarray:
-    """Binary ink-line mask from depth + normal discontinuities."""
-    depth_edges = _sobel_mag(np.asarray(depth, dtype=np.float64)) \
-        > depth_thresh
+    """Binary ink-line mask from depth + normal discontinuities.
 
+    *depth_thresh* is a floor, not the whole test. Finding RENDER-01: the
+    depth handed in is normalised over the frame's own depth range, so how
+    much a *smooth* surface changes from pixel to pixel depends on how large
+    it is on screen. A lone sphere spans the whole normalised range across
+    its own silhouette, so a fixed 0.05 marked most of its interior as an
+    outline and it rendered as a black disc in the software viewport and in
+    every forced-software render. An outline is a depth *discontinuity* --
+    an outlier against the smooth gradients of the surface around it -- so
+    the floor is raised to a multiple of the typical gradient over covered
+    pixels. Flat geometry has a near-zero typical gradient and keeps the
+    caller's threshold exactly.
+    """
+    d = np.asarray(depth, dtype=np.float64)
+    grad = _sobel_mag(d)
     n = np.asarray(normals_img, dtype=np.float64)
+    covered = np.abs(n).sum(axis=-1) > 0
+    surface = grad[covered] if covered.any() else grad
+    typical = float(np.median(surface)) if surface.size else 0.0
+    depth_edges = grad > max(float(depth_thresh), typical * 6.0)
+
     normal_edges = np.zeros(n.shape[:2], dtype=bool)
     dot_v = (n[1:, :] * n[:-1, :]).sum(axis=-1)
     normal_edges[1:, :] |= dot_v < 1.0 - normal_thresh

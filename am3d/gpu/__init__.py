@@ -230,7 +230,6 @@ def _software_render(meshes, W, H, camera=None):
     conversion to uint8 happens only at export/QImage edges.
     """
     from am3d.renderer.sprite import merge_meshes
-    from am3d.renderer.toon import toon_render_view
 
     result = None
     meshes = [m for m in (meshes or [])
@@ -239,10 +238,15 @@ def _software_render(meshes, W, H, camera=None):
     if meshes:
         try:
             merged = meshes[0] if len(meshes) == 1 else merge_meshes(meshes)
-            if camera is not None:
-                result = _toon_through_camera(merged, camera, W, H)
-            else:
-                result = toon_render_view(merged, size=max(W, H))
+            # Finding GPU-05: with no explicit camera this used to fall back
+            # to toon_render_view's own per-image fit, while the GPU path
+            # framed the same scene with scene_camera(). The two renders of
+            # one scene then disagreed about framing (measured silhouette
+            # IoU 0.18 on a two-object fixture). Derive the same scene
+            # camera the GPU path uses, so "the software fallback" means a
+            # slower renderer, not a different picture.
+            view = camera if camera is not None else scene_camera(meshes)
+            result = _toon_through_camera(merged, view, W, H)
         except Exception:
             result = None
     if result is None:

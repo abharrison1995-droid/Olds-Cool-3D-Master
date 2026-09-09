@@ -309,3 +309,45 @@ def test_gpu_and_software_renders_agree_on_where_the_geometry_is(two_objects):
 
     overlap = (gpu_cover & sw_cover).sum() / max(int(gpu_cover.sum()), 1)
     assert overlap > 0.5, f"GPU and software disagree on placement ({overlap:.2f})"
+
+
+# --- GPU-05 -----------------------------------------------------------------
+
+def test_software_fallback_with_no_camera_uses_the_shared_scene_camera(
+        two_objects):
+    """Finding GPU-05: with ``camera=None`` the fallback used to reframe the
+    scene with the toon renderer's own per-image fit while the GPU path
+    framed it with ``scene_camera``, so a still rendered with
+    ``force_software=True`` was a different picture of the same scene
+    (measured silhouette IoU 0.18 on this fixture)."""
+    from am3d.gpu import _software_render, resolve_scene, scene_camera
+
+    meshes = [m for m in resolve_scene(two_objects).meshes.values()
+              if len(m.indices)]
+    implicit = _software_render(meshes, SIZE[0], SIZE[1])
+    explicit = _software_render(meshes, SIZE[0], SIZE[1],
+                                camera=scene_camera(meshes))
+    assert np.array_equal(implicit, explicit)
+
+
+def test_forced_software_render_frames_the_scene_like_the_gpu_path(
+        two_objects):
+    """The same check one level up, through the render job the GUI calls."""
+    from am3d.gpu import resolve_scene, scene_camera
+    from am3d.render_job import render_frame_image
+
+    meshes = [m for m in resolve_scene(two_objects).meshes.values()
+              if len(m.indices)]
+    camera = scene_camera(meshes)
+    implicit = render_frame_image(two_objects, None, SIZE[0], SIZE[1],
+                                  force_software=True)
+    explicit = render_frame_image(two_objects, camera, SIZE[0], SIZE[1],
+                                  force_software=True)
+
+    def cover(img):
+        return img[..., 3] > 0.01
+
+    a, b = cover(implicit), cover(explicit)
+    assert a.sum() > 100
+    iou = (a & b).sum() / max((a | b).sum(), 1)
+    assert iou > 0.9, f"framing differs from the scene camera (IoU {iou:.2f})"

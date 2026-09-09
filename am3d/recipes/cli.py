@@ -18,9 +18,22 @@ import os
 import sys
 
 
+def _program_name() -> str:
+    """How this CLI was actually invoked.
+
+    Finding CLI-01: the frozen ``am3d-recipe`` executable printed usage for
+    ``python -m am3d.recipes``, a command a user with no Python installed
+    cannot run -- the shipped bundle told them to use something it does not
+    contain.
+    """
+    if getattr(sys, "frozen", False):
+        return os.path.basename(sys.argv[0]) or "am3d-recipe"
+    return "python -m am3d.recipes"
+
+
 def _build_parser() -> argparse.ArgumentParser:
     p = argparse.ArgumentParser(
-        prog="python -m am3d.recipes",
+        prog=_program_name(),
         description="Build 3D/sprite assets from a 3D MASTER:2005 recipe.",
     )
     p.add_argument("--recipe", required=True,

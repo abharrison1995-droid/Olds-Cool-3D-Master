@@ -160,6 +160,13 @@ cp -a "$GUI_DIST/." "$RELEASE_DIR/"
 cp -f "$DIST_DIR/am3d-recipe" "$RELEASE_DIR/am3d-recipe"
 chmod +x "$RELEASE_DIR/am3d-recipe" "$RELEASE_DIR/$APP_NAME"
 cp -a "$REPO_ROOT/assets" "$RELEASE_DIR/examples"
+# Finding PKG-04: examples/ carried recipe *outputs* but no recipe, so the
+# bundle could not perform the documented "run a recipe with the shipped
+# CLI, then open its output in the GUI" journey on its own.
+mkdir -p "$RELEASE_DIR/examples/recipes"
+cp -f "$REPO_ROOT/docs/recipes/examples/"*.json "$RELEASE_DIR/examples/recipes/"
+cp -f "$REPO_ROOT/docs/recipes/recipe-v1.schema.json" \
+      "$RELEASE_DIR/examples/recipes/"
 cp -f "$REPO_ROOT/README.md" "$RELEASE_DIR/README.txt"
 cp -f "$REPO_ROOT/docs/SUPPORTED_PLATFORMS.md" "$RELEASE_DIR/SUPPORTED_PLATFORMS.md"
 
@@ -230,10 +237,29 @@ if int(sys.argv[2]) != 0 or not manifest.get("ok") or bad:
 print(f"  Smoke test passed: {len(manifest['steps'])} steps, all ok.")
 PY
 
-step "Step 7b: Validating a recipe with the packaged CLI..."
-"$RELEASE_DIR/am3d-recipe" --recipe "$REPO_ROOT/docs/recipes/examples/minimal.json" \
+step "Step 7b: Running a recipe with the packaged CLI..."
+"$RELEASE_DIR/am3d-recipe" --recipe "$RELEASE_DIR/examples/recipes/minimal.json" \
     --validate-only || die "packaged recipe CLI could not validate the bundled example"
-ok "Recipe CLI validated the bundled example recipe."
+# Validation alone never touches the geometry, exporter or writer, so the
+# bundled recipe is also actually built (journey 6) into a scratch directory
+# outside the payload.
+RECIPE_OUT="$(mktemp -d "${TMPDIR:-/tmp}/am3d_recipe_run_XXXXXX")"
+"$RELEASE_DIR/am3d-recipe" --recipe "$RELEASE_DIR/examples/recipes/minimal.json" \
+    --out "$RECIPE_OUT" > "$RECIPE_OUT/report.json" \
+    || { cat "$RECIPE_OUT/report.json"; die "packaged recipe CLI failed to build the bundled example"; }
+"$PY" - "$RECIPE_OUT" <<'PY' || die "the packaged recipe produced no openable project"
+import json, pathlib, sys
+out = pathlib.Path(sys.argv[1])
+report = json.loads((out / "report.json").read_text())
+if report.get("errors"):
+    print(json.dumps(report, indent=2)); raise SystemExit(1)
+written = [p for p in out.rglob("*") if p.is_file() and p.name != "report.json"]
+if not written:
+    raise SystemExit("the recipe reported success but wrote nothing")
+print(f"  Recipe CLI built {len(written)} file(s) from the bundled example.")
+PY
+rm -rf "$RECIPE_OUT"
+ok "Recipe CLI validated and built the bundled example recipe."
 
 # ---- 7. Archive, checksum, provenance -------------------------------------
 step "Step 8: Packaging the release archive and checksum..."

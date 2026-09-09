@@ -138,3 +138,47 @@ def test_toon_render_view_unit_scale_contract():
         assert img.min() >= 0.0
         assert img.max() <= 1.0
         assert img[..., 3].max() == pytest.approx(1.0)
+
+def _curved_depth_and_normals(size=64, radius=24):
+    """A smooth hemisphere: normalised depth plus its unit normals, with a
+    flat far background around it (the shape a rendered lone sphere has)."""
+    ys, xs = np.mgrid[0:size, 0:size]
+    dx = (xs - size / 2.0) / radius
+    dy = (ys - size / 2.0) / radius
+    r2 = dx * dx + dy * dy
+    inside = r2 < 1.0
+    z = np.sqrt(np.clip(1.0 - r2, 0.0, None))
+    depth = np.ones((size, size))          # background sits at the far plane
+    depth[inside] = 1.0 - z[inside]        # nearer at the centre, 0..1
+    normals = np.zeros((size, size, 3))
+    normals[inside] = np.stack(
+        [dx[inside], dy[inside], z[inside]], axis=-1)
+    return depth, normals, inside
+
+
+def test_detect_ink_does_not_flood_a_smooth_curved_surface():
+    """Finding RENDER-01: a fixed threshold on range-normalised depth marked
+    most of a lone sphere's interior as outline, so the software renderer
+    (viewport and every forced-software render) drew it as a black disc."""
+    depth, normals, inside = _curved_depth_and_normals()
+    mask = detect_ink(depth, normals)
+
+    # The interior, away from the limb, must stay clear of ink.
+    core = np.zeros_like(inside)
+    size = depth.shape[0]
+    ys, xs = np.mgrid[0:size, 0:size]
+    core[((xs - size / 2.0) ** 2 + (ys - size / 2.0) ** 2) < (10 ** 2)] = True
+    inked_core = float(mask[core].mean())
+    assert inked_core < 0.1, f"{inked_core:.2%} of the surface core is ink"
+
+
+def test_detect_ink_still_outlines_that_curved_surface():
+    """The same frame must still get an outline where it meets background."""
+    depth, normals, inside = _curved_depth_and_normals()
+    mask = detect_ink(depth, normals)
+    # The limb: covered pixels with an uncovered neighbour.
+    outside = ~inside
+    limb = inside & (
+        np.roll(outside, 1, 0) | np.roll(outside, -1, 0)
+        | np.roll(outside, 1, 1) | np.roll(outside, -1, 1))
+    assert mask[limb].mean() > 0.5, "the silhouette lost its outline"

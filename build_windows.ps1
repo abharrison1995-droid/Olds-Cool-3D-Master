@@ -119,6 +119,14 @@ if (Test-Path $examplesSrc) {
     Copy-Item -Recurse -Force $examplesSrc $examplesDst
 }
 
+# Finding PKG-04: examples/ carried recipe *outputs* but no recipe, so the
+# bundle could not perform the documented "run a recipe with the shipped
+# CLI, then open its output in the GUI" journey on its own.
+$recipeExamplesDst = Join-Path $examplesDst "recipes"
+New-Item -ItemType Directory -Force -Path $recipeExamplesDst | Out-Null
+Copy-Item -Force (Join-Path $RepoRoot "docs\recipes\examples\*.json") $recipeExamplesDst
+Copy-Item -Force (Join-Path $RepoRoot "docs\recipes\recipe-v1.schema.json") $recipeExamplesDst
+
 # Copy README
 Copy-Item -Force (Join-Path $RepoRoot "README.md") (Join-Path $releaseDir "README.txt")
 
@@ -162,13 +170,34 @@ if (Test-Path $exePath) {
 $recipeExePath = Join-Path $releaseDir "am3d-recipe.exe"
 if (Test-Path $recipeExePath) {
     Write-Host "  Recipe CLI found: $recipeExePath" -ForegroundColor Green
-    $minimalRecipe = Join-Path $RepoRoot "docs\recipes\examples\minimal.json"
+    $minimalRecipe = Join-Path $recipeExamplesDst "minimal.json"
     Invoke-Native { & $recipeExePath --recipe $minimalRecipe --validate-only }
     if ($LASTEXITCODE -ne 0) {
         Write-Error "Packaged recipe CLI failed to validate the bundled example recipe!"
         exit 1
     }
-    Write-Host "  Recipe CLI validated the bundled example recipe." -ForegroundColor Green
+
+    # Validation never touches geometry, exporters or writers, so the bundled
+    # recipe is also actually built (journey 6) into a scratch directory
+    # outside the release payload.
+    $recipeOut = Join-Path ([System.IO.Path]::GetTempPath()) ("am3d_recipe_run_" + [System.Guid]::NewGuid().ToString("N"))
+    New-Item -ItemType Directory -Force -Path $recipeOut | Out-Null
+    $recipeReport = Join-Path $recipeOut "report.json"
+    Invoke-Native { & $recipeExePath --recipe $minimalRecipe --out $recipeOut } |
+        Out-File -Encoding utf8 $recipeReport
+    if ($LASTEXITCODE -ne 0) {
+        Get-Content $recipeReport
+        Write-Error "Packaged recipe CLI failed to build the bundled example recipe!"
+        exit 1
+    }
+    $produced = Get-ChildItem -Recurse -File $recipeOut |
+        Where-Object { $_.Name -ne "report.json" }
+    if ($produced.Count -eq 0) {
+        Write-Error "The packaged recipe reported success but wrote nothing!"
+        exit 1
+    }
+    Remove-Item -Recurse -Force $recipeOut
+    Write-Host "  Recipe CLI validated and built the bundled example recipe ($($produced.Count) file(s))." -ForegroundColor Green
 } else {
     Write-Error "Recipe CLI executable not found at $recipeExePath"
     exit 1

@@ -1497,3 +1497,26 @@ def test_export_backslash_is_treated_as_a_subdirectory_separator(tmp_path):
     # A literal "sub\out.obj" file would mean this recipe produces a different
     # tree on Linux than on Windows.
     assert (root / "sub" / "out.obj").exists()
+
+
+# --- CLI-01 -----------------------------------------------------------------
+
+def test_frozen_cli_usage_names_the_shipped_executable(monkeypatch):
+    """A user of the bundle has no Python, so usage must not tell them to
+    run ``python -m am3d.recipes`` (finding CLI-01)."""
+    import sys as _sys
+
+    from am3d.recipes.cli import _build_parser
+
+    monkeypatch.setattr(_sys, "frozen", True, raising=False)
+    monkeypatch.setattr(_sys, "argv", ["/opt/app/am3d-recipe", "--help"])
+    assert _build_parser().prog == "am3d-recipe"
+
+
+def test_source_cli_usage_still_names_the_module_form(monkeypatch):
+    import sys as _sys
+
+    from am3d.recipes.cli import _build_parser
+
+    monkeypatch.delattr(_sys, "frozen", raising=False)
+    assert _build_parser().prog == "python -m am3d.recipes"

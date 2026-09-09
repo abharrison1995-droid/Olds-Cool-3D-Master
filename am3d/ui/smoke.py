@@ -52,7 +52,10 @@ def run_smoke_test(tmp_dir: Path) -> dict:
     }
     by_name = {s["name"]: s for s in manifest["steps"]}
 
-    app = QApplication.instance() or QApplication([])
+    from .app import configure_application_identity
+
+    app = configure_application_identity(
+        QApplication.instance() or QApplication([]))
     win = None
 
     def step(name, fn):

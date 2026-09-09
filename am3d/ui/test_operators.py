@@ -1116,3 +1116,13 @@ def test_workspaces_without_a_preferred_tab_leave_the_selection_alone():
         assert tabs.currentIndex() == before
     finally:
         win.close()
+
+
+def test_the_main_window_has_an_application_icon():
+    """A desktop application with no icon gets a generic placeholder in the
+    task switcher and in the .desktop entry the quick start documents."""
+    from am3d.ui.app import ASSETS_DIR, application_icon
+
+    assert (ASSETS_DIR / "icon.png").is_file()
+    assert not application_icon().isNull()
+    assert not _make_main_window().windowIcon().isNull()

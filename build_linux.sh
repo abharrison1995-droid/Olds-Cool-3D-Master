@@ -169,6 +169,9 @@ cp -f "$REPO_ROOT/docs/recipes/recipe-v1.schema.json" \
       "$RELEASE_DIR/examples/recipes/"
 cp -f "$REPO_ROOT/README.md" "$RELEASE_DIR/README.txt"
 cp -f "$REPO_ROOT/docs/SUPPORTED_PLATFORMS.md" "$RELEASE_DIR/SUPPORTED_PLATFORMS.md"
+cp -f "$REPO_ROOT/docs/QUICK_START.md" "$RELEASE_DIR/QUICK_START.md"
+cp -f "$REPO_ROOT/docs/CAPABILITY_MATRIX.md" "$RELEASE_DIR/CAPABILITY_MATRIX.md"
+cp -f "$REPO_ROOT/docs/USER_GUIDE.md" "$RELEASE_DIR/USER_GUIDE.md"
 
 # Launcher covering the three documented graphics routes, so a user whose
 # session cannot run the default does not have to know the environment

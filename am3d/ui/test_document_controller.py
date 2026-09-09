@@ -394,3 +394,49 @@ def _age(path, seconds):
         data["saved_at"] = stamp
         with open(meta, "w") as fh:
             json.dump(data, fh)
+
+
+# --- PATH-01 ----------------------------------------------------------------
+
+def test_application_identity_moves_user_data_out_of_the_generic_location():
+    """Nothing named the application, so every autosave landed in the
+    generic ``PySideApp`` directory Qt hands an unnamed PySide program --
+    shared with any other such program on the machine (finding PATH-01)."""
+    app = _qapp()
+    from am3d.ui.app import APP_NAME, ORG_NAME, configure_application_identity
+
+    previous = (app.organizationName(), app.applicationName())
+    try:
+        configure_application_identity(app)
+        assert app.organizationName() == ORG_NAME
+        assert app.applicationName() == APP_NAME
+        location = QStandardPaths.writableLocation(
+            QStandardPaths.AppLocalDataLocation)
+        assert not location.endswith("PySideApp"), location
+        assert ORG_NAME in location or APP_NAME in location, location
+    finally:
+        app.setOrganizationName(previous[0])
+        app.setApplicationName(previous[1])
+
+
+def test_a_snapshot_left_in_the_old_location_is_still_offered(
+        tmp_path, monkeypatch):
+    """Moving the data location must not strand work an earlier build
+    autosaved in the old one."""
+    _qapp()
+    from am3d.ui.document_controller import DocumentController
+
+    new_dir = tmp_path / "new"
+    legacy_dir = tmp_path / "legacy"
+    new_dir.mkdir()
+    legacy_dir.mkdir()
+    (new_dir / "current-aaaaaaaaaa.autosave.am3d").write_bytes(b"x")
+    (legacy_dir / "older-bbbbbbbbbb.autosave.am3d").write_bytes(b"y")
+
+    monkeypatch.setattr(DocumentController, "autosave_dirs",
+                        staticmethod(lambda: [new_dir, legacy_dir]))
+    ctrl = DocumentController(None)
+    found = [os.path.basename(p) for p in ctrl.list_autosave_files()]
+    assert "current-aaaaaaaaaa.autosave.am3d" in found
+    assert "older-bbbbbbbbbb.autosave.am3d" in found
+    assert ctrl.autosave_exists()

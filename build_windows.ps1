@@ -129,6 +129,9 @@ Copy-Item -Force (Join-Path $RepoRoot "docs\recipes\recipe-v1.schema.json") $rec
 
 # Copy README
 Copy-Item -Force (Join-Path $RepoRoot "README.md") (Join-Path $releaseDir "README.txt")
+foreach ($doc in @("QUICK_START.md", "CAPABILITY_MATRIX.md", "USER_GUIDE.md", "SUPPORTED_PLATFORMS.md")) {
+    Copy-Item -Force (Join-Path $RepoRoot (Join-Path "docs" $doc)) (Join-Path $releaseDir $doc)
+}
 
 # Create LICENSES placeholder
 $licenseDir = Join-Path $releaseDir "LICENSES"

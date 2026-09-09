@@ -336,19 +336,36 @@ class DocumentController:
         entries.sort(key=lambda e: (e["saved_at"] or 0.0), reverse=True)
         return entries
 
+    @staticmethod
+    def autosave_dirs() -> list[Path]:
+        """Every directory a recovery snapshot may live in, newest scheme
+        first.
+
+        Finding PATH-01 moved the data location from the generic
+        ``PySideApp`` directory Qt hands an unnamed application to this
+        application's own. A snapshot written by an earlier build is still
+        the user's unsaved work, so the old directory is still *read* (never
+        written) as long as it exists.
+        """
+        from PySide6.QtCore import QStandardPaths
+        dirs = [Path(QStandardPaths.writableLocation(
+            QStandardPaths.AppLocalDataLocation))]
+        legacy = Path(QStandardPaths.writableLocation(
+            QStandardPaths.GenericDataLocation)) / "PySideApp"
+        if legacy.is_dir() and legacy not in dirs:
+            dirs.append(legacy)
+        return dirs
+
     def autosave_exists(self) -> bool:
         """Check if any autosave file exists."""
-        from PySide6.QtCore import QStandardPaths
-        app_data = Path(QStandardPaths.writableLocation(
-            QStandardPaths.AppLocalDataLocation))
-        return len(list(app_data.glob("*.autosave.am3d"))) > 0
+        return bool(self.list_autosave_files())
 
     def list_autosave_files(self) -> list[str]:
-        """List all autosave files in the app data directory."""
-        from PySide6.QtCore import QStandardPaths
-        app_data = Path(QStandardPaths.writableLocation(
-            QStandardPaths.AppLocalDataLocation))
-        return sorted(str(p) for p in app_data.glob("*.autosave.am3d"))
+        """List all autosave files in the app data directories."""
+        found = []
+        for directory in self.autosave_dirs():
+            found += [str(p) for p in directory.glob("*.autosave.am3d")]
+        return sorted(found)
 
     def do_open_example(self, path: str) -> None:
         """Load a bundled example (Home screen's Examples list) as pathless

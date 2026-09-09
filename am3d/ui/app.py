@@ -40,6 +40,20 @@ __all__ = ["MainWindow", "main", "MODES", "load_theme", "apply_theme"]
 
 THEME_DIR = Path(__file__).resolve().parent
 DEFAULT_THEME = "am2005"
+ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets"
+
+
+def application_icon():
+    """The window/taskbar icon, or a null icon if the asset is missing.
+
+    Resolved the same way as the bundled examples, so it follows the
+    package into the frozen bundle rather than being looked up in a
+    system icon theme that has never heard of this application.
+    """
+    from PySide6.QtGui import QIcon
+
+    path = ASSETS_DIR / "icon.png"
+    return QIcon(str(path)) if path.is_file() else QIcon()
 
 
 def load_theme(name=DEFAULT_THEME):
@@ -76,6 +90,9 @@ class MainWindow(QMainWindow):
     def __init__(self):
         super().__init__()
         self.setWindowTitle("3D MASTER:2005")
+        icon = application_icon()
+        if not icon.isNull():
+            self.setWindowIcon(icon)
         self.resize(1280, 820)
 
         # Document controller owns the session, dirty state, and file ops.
@@ -739,7 +756,7 @@ class MainWindow(QMainWindow):
         degrades to an empty list instead of a broken entry if the assets
         directory isn't present alongside the installed package.
         """
-        assets = Path(__file__).resolve().parents[2] / "assets"
+        assets = ASSETS_DIR
         candidates = [
             ("Vase (lathed spline)", assets / "vase_demo.am3d"),
             ("Generated character (knight)", assets / "demo" / "knight_project.am3d"),
@@ -1085,6 +1102,33 @@ class MainWindow(QMainWindow):
             f"App data directory: {app_data}")
 
 
+ORG_NAME = "3DMASTER2005"
+APP_NAME = "3D MASTER 2005"
+
+
+def configure_application_identity(app):
+    """Name the application so Qt's per-user locations belong to it.
+
+    Finding PATH-01: nothing set the organisation/application name, so
+    ``QStandardPaths.AppLocalDataLocation`` -- where every autosave and
+    recovery snapshot is written -- resolved to the generic
+    ``~/.local/share/PySideApp``, a directory any other PySide application
+    on the machine resolves to as well. Preferences already used an
+    explicit ``QSettings("3DMASTER2005", "app")`` scope; this makes the
+    data location agree with it.
+    """
+    import am3d
+
+    # Set unconditionally: Qt otherwise derives the application name from
+    # argv[0], so where a user's recovery snapshots live would depend on
+    # what the launcher happened to be called.
+    app.setOrganizationName(ORG_NAME)
+    app.setApplicationName(APP_NAME)
+    if not app.applicationVersion():
+        app.setApplicationVersion(am3d.__version__)
+    return app
+
+
 def main(argv=None) -> int:
     """Launch the application, or run packaged smoke-test mode.
 
@@ -1109,6 +1153,10 @@ def main(argv=None) -> int:
         del raw_argv[i:i + 2]
 
     app = QApplication.instance() or QApplication(raw_argv)
+    configure_application_identity(app)
+    icon = application_icon()
+    if not icon.isNull():
+        app.setWindowIcon(icon)
     apply_theme(app)
 
     if smoke_test:

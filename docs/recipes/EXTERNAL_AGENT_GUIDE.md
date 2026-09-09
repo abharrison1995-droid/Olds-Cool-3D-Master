@@ -63,11 +63,11 @@ the same -- only the invocation differs.
 
 Supported primitives under `objects[].primitive`:
 - `sphere`: `radius` (float), `sections` (int, longitude divisions), `rings` (int, latitude divisions).
-- `box`: `width` (float), `height` (float), `depth` (float).
-- `cylinder`: `radius` (float), `height` (float), `sections` (int).
-- `cone`: `radius` (float), `height` (float), `sections` (int).
+- `box`: `width` (float), `height` (float), `depth` (float), `n` (int, optional, default 4, grid density per face).
+- `cylinder`: `radius` (float), `height` (float), `sections` (int), `capped` (bool, optional, default true), `rings` (int, optional, default 4, axial tessellation density).
+- `cone`: `radius` (float), `height` (float), `sections` (int), `rings` (int, optional, default 5, axial tessellation density).
 - `torus`: `major_radius` (float), `minor_radius` (float), `major_sections` (int, revolutions around the ring), `minor_sections` (int, divisions of the tube cross-section).
-- `plane`: `width` (float), `height` (float).
+- `plane`: `width` (float), `height` (float), `n` (int, optional, default 4, grid density).
 - `lathe`: revolves an explicit profile around the Y-axis. Params: `profile` (required, array of `[radius, axial]` pairs, at least 2), `axis` (str, default `"y"`), `sections` (int).
 - `extrude`: sweeps an explicit profile along +Y. Params: `profile` (required, array of `[x, y, z]` points, at least 2), `height` (float), `twist_deg` (float), `rings` (int).
 

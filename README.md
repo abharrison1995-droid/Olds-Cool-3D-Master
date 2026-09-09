@@ -20,26 +20,26 @@ and Render workspaces around the spline-patch viewport.
 
 | Subsystem | State | Tests |
 |-----------|-------|-------|
-| B-spline kernel (de Boor, NURBS, clamped knots, patches) | done | 10 |
+| B-spline kernel (de Boor, NURBS, clamped knots, patches) | done | 12 |
 | Core document model (Project / Object / Spline / Patch / Hook) | done | (via facade) |
-| Scriptable facade (`am3d.core.script`) — agentic pipeline ready | done | 8 |
+| Scriptable facade (`am3d.core.script`) — agentic pipeline ready | done | 9 |
 | Animation & Action-reuse system | done | 6 |
 | Rigging: FK, analytic 2-bone IK, SmartSkins | done | 6 |
 | Serializer (`.am3a` actions, `.am3d` projects) | done | 4 |
 | Renderer tessellation bridge + UV mapping & atlas packing | done | 7 |
 | Headless sprite-sheet renderer (software rasterizer → PNG) | done | 5 |
 | Exporters: Wavefront OBJ + binary glTF 2.0 (`.glb`) | done | 3 |
-| Recipe schema — the LLM contract (validated JSON) | done | 10 |
-| Procedural primitives (sphere/box/cylinder/cone/torus/plane) | done | 18 |
+| Recipe schema — the LLM contract (validated JSON) | done | 16 |
+| Procedural primitives (sphere/box/cylinder/cone/torus/plane) | done | 19 |
 | Procedural actions (walk / idle / jump generators) | done | 6 |
-| Recipe executor + CLI (`python -m am3d.recipes`) | done | 13 |
+| Recipe executor + CLI (`python -m am3d.recipes`) | done | 70 |
 | Project serializer: patches, bones, hooks, transforms (`.am3d`) | done | 7 |
 | Thread-isolated scripting sessions (`reset_default`) | done | 2 |
 | Procedural textures + atlas baking (checker/bricks/noise/…) | done | 17 |
 | Toon shader: cel bands + ink lines (headless NPR) | done | 10 |
 | Material node graph (mix/tint/noise_overlay chains) | done | 10 |
 | Qt UI (four-mode workspace, viewport, timeline, file I/O, recovery) | done | 161 |
-| GPU multi-pass renderer (ModernGL headless G-buffer → PBR) | done | 6 |
+| GPU multi-pass renderer (ModernGL headless G-buffer → PBR) | done | 13 |
 | Action retargeting (cross-skeleton animation reuse) | done | 5 |
 | Volumetrics (exponential height fog + god rays post-process) | done | (gpu/postprocess) |
 
@@ -125,7 +125,7 @@ print(result.ok, result.exports, result.errors)
 
 ```
 am3d/
-├── spline/      # geometry kernel (vectorized NumPy B-splines)
+├── spline/      # geometry kernel (NumPy B-splines, optional Numba JIT)
 ├── core/        # data model, scripting, animation, rigging, serializer
 ├── renderer/    # tessellation + UVs + headless sprite rasterizer
 ├── export/      # OBJ and binary glTF writers
@@ -137,6 +137,8 @@ assets/          # sample .am3a/.am3d assets and demo output
 
 ## Dependencies
 
-Python 3.10+ with numpy, msgpack, PySide6, and Pillow. moderngl is optional —
-the app falls back to a software renderer when it's absent. See
-`requirements.txt`.
+Python 3.10+ with numpy, msgpack, PySide6, and Pillow. `moderngl` (GPU
+rendering) and `numba` (JIT-accelerated spline evaluation) are both optional
+— the app falls back to a software renderer and pure NumPy respectively when
+either is absent. See `requirements.txt` (pinned runtime set used by the
+packaged build) and `pyproject.toml`'s `renderer`/`accel` extras.

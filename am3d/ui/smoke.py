@@ -32,6 +32,9 @@ STEPS = [
     "save_and_reopen",
     "transformed_export",
     "recipe_output_opens_in_the_gui",
+    "autosave_snapshot_and_recovery",
+    "damaged_project_is_reported_not_swallowed",
+    "posed_export_carries_the_pose",
 ]
 
 
@@ -324,6 +327,140 @@ def run_smoke_test(tmp_dir: Path) -> dict:
                 f"recipe_cube: {sorted(win.session.project.objects)}")
         manifest["artifacts"]["recipe_project_path"] = str(produced[0])
 
+    def _autosave_snapshot_and_recovery():
+        """Crash recovery, in the bundle: take a snapshot of an unsaved
+        document, prove it is listed with an identity a user can recognise,
+        and load it back. Recovery is the one journey whose failure costs
+        work that cannot be redone, so it is checked in the shipped
+        executable rather than only in the test suite."""
+        from .operators import CreatePrimitiveCommand
+
+        win.doc_ctrl.do_new()
+        win._reset_document_ui_state()
+        win.push_command(CreatePrimitiveCommand(
+            win.session, "Unsaved", "box", {}))
+        win.doc_ctrl.mark_dirty()
+        win.doc_ctrl.do_autosave()
+
+        snapshot = win.doc_ctrl.autosave_path()
+        if not Path(snapshot).is_file():
+            raise AssertionError(f"no autosave was written at {snapshot}")
+        entries = win.doc_ctrl.autosave_entries()
+        mine = [e for e in entries if e["path"] == snapshot]
+        if not mine:
+            raise AssertionError(
+                f"the snapshot is not offered for recovery: "
+                f"{[e['path'] for e in entries]}")
+        if not mine[0].get("display_name"):
+            raise AssertionError("the recovery entry has no name to choose by")
+
+        # Lose the document the way a crash would, then recover it.
+        win.doc_ctrl.do_new()
+        win._reset_document_ui_state()
+        if "Unsaved" in win.session.project.objects:
+            raise AssertionError("the new document kept the old objects")
+        if not win.doc_ctrl.recover_from(snapshot):
+            raise AssertionError("recover_from() refused the snapshot")
+        win._refresh_all()
+        if "Unsaved" not in win.session.project.objects:
+            raise AssertionError(
+                f"recovery lost the work: {sorted(win.session.project.objects)}")
+        if win.doc_ctrl.has_path:
+            raise AssertionError(
+                "a recovered document must be pathless so Save cannot "
+                "overwrite the snapshot in place")
+        manifest["artifacts"]["autosave_dir"] = str(Path(snapshot).parent)
+        manifest["artifacts"]["autosave_recovered_objects"] = sorted(
+            win.session.project.objects)
+        win.doc_ctrl.clear_autosave(snapshot)
+
+    def _damaged_project_is_reported():
+        """A corrupt project file must fail loudly and leave the open
+        document alone -- not half-load, and not be silently swallowed."""
+        from .operators import CreatePrimitiveCommand
+
+        win.doc_ctrl.do_new()
+        win._reset_document_ui_state()
+        win.push_command(CreatePrimitiveCommand(win.session, "Keep", "box", {}))
+
+        damaged = tmp_dir / "damaged_project.am3d"
+        damaged.write_bytes(b"this is not a project file\x00\xff")
+        try:
+            win.doc_ctrl.do_open(str(damaged))
+        except Exception as exc:
+            manifest["artifacts"]["damaged_open_error"] = \
+                f"{type(exc).__name__}: {exc}"[:200]
+        else:
+            raise AssertionError(
+                "opening a corrupt project reported success")
+        if "Keep" not in win.session.project.objects:
+            raise AssertionError(
+                "the failed open destroyed the document that was open: "
+                f"{sorted(win.session.project.objects)}")
+
+        missing = tmp_dir / "no_such_project.am3d"
+        try:
+            win.doc_ctrl.do_open(str(missing))
+        except Exception:
+            pass
+        else:
+            raise AssertionError("opening a missing project reported success")
+
+    def _posed_export_carries_the_pose():
+        """A GUI export must write the pose that is on screen, not the bind
+        pose. Exported at two different times of the same action, the files
+        have to differ -- and differ only in where the vertices are, not in
+        how many there are."""
+        import numpy as np
+
+        from am3d.export.obj import write_obj
+        from .operators import (
+            CreateActionCommand, InsertKeyCommand, AssignActionCommand,
+            CreatePrimitiveCommand,
+        )
+
+        win.doc_ctrl.do_new()
+        win._reset_document_ui_state()
+        win.show_editor()
+        win.push_command(CreatePrimitiveCommand(win.session, "Arm", "box", {}))
+        win.session.add_bone("Arm", "root", head=(0, 0, 0), tail=(0, 1, 0))
+        win.session.bind_geometry("Arm")
+        win.push_command(CreateActionCommand(win.session, "Bend", duration=2.0))
+        win.push_command(InsertKeyCommand(
+            win.session, "Bend", "root", "rotate", 0.0, (0.0, 0.0, 0.0)))
+        win.push_command(InsertKeyCommand(
+            win.session, "Bend", "root", "rotate", 2.0, (0.0, 0.0, 1.2)))
+        win.push_command(AssignActionCommand(win.session, "Bend", "Arm"))
+
+        def export_at(t, name):
+            win.session.apply_action_frame("Arm", t, action_name="Bend")
+            win._refresh_all()
+            meshes, mat_colors, patch_colors, atlases = win._export_scene()
+            path = str(tmp_dir / name)
+            write_obj(path, meshes, materials=mat_colors or None,
+                      patch_materials=patch_colors or None,
+                      textures=atlases or None)
+            verts = np.asarray(
+                [v for m in meshes.values() for v in np.asarray(m.vertices)],
+                dtype=np.float64)
+            return path, verts
+
+        rest_path, rest = export_at(0.0, "posed_export_rest.obj")
+        bent_path, bent = export_at(2.0, "posed_export_bent.obj")
+        if rest.shape != bent.shape:
+            raise AssertionError(
+                f"the two poses exported different geometry: "
+                f"{rest.shape} vs {bent.shape}")
+        moved = float(np.abs(rest - bent).max())
+        if moved < 1e-3:
+            raise AssertionError(
+                "the exported mesh is identical at both ends of the action: "
+                "the export is writing the bind pose, not the pose on screen")
+        manifest["artifacts"]["posed_export"] = {
+            "rest": rest_path, "bent": bent_path,
+            "max_vertex_shift": round(moved, 4),
+        }
+
     for name, fn in [
         ("blank_startup", _blank_startup),
         ("new_project", _new_project),
@@ -336,6 +473,10 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         ("save_and_reopen", _save_and_reopen),
         ("transformed_export", _transformed_export),
         ("recipe_output_opens_in_the_gui", _recipe_output_opens_in_the_gui),
+        ("autosave_snapshot_and_recovery", _autosave_snapshot_and_recovery),
+        ("damaged_project_is_reported_not_swallowed",
+         _damaged_project_is_reported),
+        ("posed_export_carries_the_pose", _posed_export_carries_the_pose),
     ]:
         if not step(name, fn):
             break

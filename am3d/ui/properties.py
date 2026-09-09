@@ -13,8 +13,8 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QColor
 from PySide6.QtWidgets import (
     QCheckBox, QColorDialog, QComboBox, QDoubleSpinBox, QFormLayout,
-    QHBoxLayout, QLabel, QLineEdit, QPushButton, QSpinBox, QTabWidget,
-    QVBoxLayout, QWidget,
+    QHBoxLayout, QLabel, QLineEdit, QPushButton, QScrollArea, QSpinBox,
+    QSizePolicy, QTabWidget, QVBoxLayout, QWidget,
 )
 
 from am3d.core.mathutil import compose_trs, decompose_trs
@@ -79,6 +79,30 @@ class PropertiesDock(QWidget):
         layout.addWidget(self.tabs)
 
     # -- tabs ---------------------------------------------------------------
+    def _add_tab(self, page, title):
+        """Add *page* as a scrollable tab.
+
+        The panel is short whenever the window is: at 200% scaling on the
+        1920x1080 reference display the compositor hands the application a
+        window barely 500 logical pixels tall, and an unscrolled form was
+        clipped -- the visibility checkbox and the bottom of the transform
+        rows were simply unreachable.  A resizable scroll area keeps every
+        control reachable at any dock height while still filling the space
+        when there is room.
+        """
+        area = QScrollArea()
+        area.setWidgetResizable(True)
+        area.setFrameShape(QScrollArea.NoFrame)
+        area.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        # Ignore the page's own height when the panel is measured: taking
+        # the form's full sizeHint as the panel's makes the window ask the
+        # compositor to grow, which at 200% scaling it cannot grant, and the
+        # two loop forever on resize.  The scroll bar exists precisely so the
+        # panel does not need the height it would like.
+        area.setSizePolicy(QSizePolicy.Preferred, QSizePolicy.Ignored)
+        area.setWidget(page)
+        self.tabs.addTab(area, title)
+
     def _build_object_tab(self):
         w = QWidget()
         form = QFormLayout(w)
@@ -94,7 +118,7 @@ class PropertiesDock(QWidget):
         self.obj_visible = QCheckBox("Visible in viewport")
         self.obj_visible.toggled.connect(self._object_visible_changed)
         form.addRow(self.obj_visible)
-        self.tabs.addTab(w, "Object")
+        self._add_tab(w, "Object")
 
     def _build_bone_tab(self):
         w = QWidget()
@@ -120,7 +144,7 @@ class PropertiesDock(QWidget):
                 lambda _=False, name=slot: self._rig_action(name))
             buttons.addWidget(btn)
         form.addRow(buttons)
-        self.tabs.addTab(w, "Bone")
+        self._add_tab(w, "Bone")
 
     def _rig_action(self, slot_name):
         """Run one of the MainWindow rig verbs, then reload this tab."""
@@ -154,7 +178,7 @@ class PropertiesDock(QWidget):
         form.addRow("Bump map", self.mat_bump)
         form.addRow("Transparency", self.mat_transp)
         form.addRow("Specular", self.mat_spec)
-        self.tabs.addTab(w, "Material")
+        self._add_tab(w, "Material")
 
     def _build_render_tab(self):
         w = QWidget()
@@ -166,7 +190,7 @@ class PropertiesDock(QWidget):
         self.rnd_toon = QCheckBox("Toon shading (cel bands + ink)")
         self.rnd_toon.toggled.connect(self._render_changed)
         form.addRow(self.rnd_toon)
-        self.tabs.addTab(w, "Render")
+        self._add_tab(w, "Render")
 
     def show_tab(self, title):
         """Bring the tab named *title* forward. Returns True if it existed."""

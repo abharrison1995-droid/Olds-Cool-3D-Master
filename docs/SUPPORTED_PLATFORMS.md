@@ -44,6 +44,19 @@ others.
 | XCB / XWayland | `QT_QPA_PLATFORM=xcb` |
 | Forced software rendering | `LIBGL_ALWAYS_SOFTWARE=1` (and the app's own software rasterizer fallback, which engages automatically when no GL context can be created) |
 
+The xcb route additionally needs the host's `libxcb-cursor0` (present on the
+reference machine); Qt's xcb plugin warns and refuses to start without it.
+The native Wayland route does not need it. A route launched from a context
+that does not export `XAUTHORITY` (some `sudo` and systemd units) will fail
+with "could not connect to display" -- that is the environment, not the
+package.
+
+Scaling: the GUI was exercised on the reference display at `QT_SCALE_FACTOR`
+1, 1.5 and 2 (100/150/200%), on both the Wayland and the xcb route, with
+screenshots in `docs/evidence/desktop-release/phase-e/`. At 200% the
+compositor grants a window only about 500 logical pixels tall, which is what
+exposed finding UI-05; the panels scroll rather than clip since that fix.
+
 Older or non-KDE Linux desktops are not a supported target for this release.
 The frozen build bundles its own Qt, so the host's Qt version does not matter,
 but a working `libGL`/`libwayland-client` from the host is still required.

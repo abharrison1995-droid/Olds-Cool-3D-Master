@@ -1126,3 +1126,34 @@ def test_the_main_window_has_an_application_icon():
     assert (ASSETS_DIR / "icon.png").is_file()
     assert not application_icon().isNull()
     assert not _make_main_window().windowIcon().isNull()
+
+
+# --- UI-05: the properties panel stays usable in a short window -------------
+
+def test_the_properties_tabs_scroll_when_the_panel_is_short():
+    """Regression (UI-05): at 200% scaling on a 1920x1080 screen the window
+    is only ~500 logical pixels tall, and the unscrolled Object form was
+    clipped -- the transform rows overlapped and 'Visible in viewport' was
+    cut off with no way to reach it."""
+    from PySide6.QtWidgets import QApplication, QScrollArea
+
+    win = _make_main_window()
+    try:
+        dock = win.properties_dock
+        page = dock.tabs.widget(dock.tabs.currentIndex())
+        assert isinstance(page, QScrollArea)
+        assert page.widgetResizable()
+        assert page.widget().isAncestorOf(dock.obj_visible)
+
+        wanted = page.widget().sizeHint().height()
+        # Show the panel on its own, sized like the short dock a 200%-scaled
+        # window leaves room for, so the layout actually runs at that height.
+        dock.setParent(None)
+        dock.resize(420, max(60, wanted // 3))
+        dock.show()
+        QApplication.processEvents()
+        assert wanted > page.viewport().height(), "the form was not squeezed"
+        assert page.verticalScrollBar().maximum() > 0, \
+            "no way to scroll to the clipped controls"
+    finally:
+        win.close()

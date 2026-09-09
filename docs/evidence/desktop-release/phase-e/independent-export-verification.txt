@@ -1,15 +1,1 @@
-OBJ  /tmp/am3d_phase_e/scene.obj
-  vertices        : 512
-  faces           : 900
-  groups          : ['base', 'body']
-  mtllib          : ['scene.mtl']
-  usemtl          : ['mat_base', 'mat_body']
-GLB  /tmp/am3d_phase_e/scene.glb
-  asset.version   : 2.0
-  nodes/meshes    : 2/2
-  primitives      : 2
-  materials       : ['mat_body', 'mat_base']
-  BIN chunk bytes : 27184
-  total positions : 512
-
-All independent checks passed.
+error: invalid recipe: unknown field 'material' for ObjectRecipe

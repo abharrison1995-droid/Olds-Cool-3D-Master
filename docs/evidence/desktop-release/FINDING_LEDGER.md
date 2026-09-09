@@ -20,6 +20,13 @@ A historical PASS label from the V3 plan is *not* evidence for this release.
 | `phase-b/view01_check.py` | Re-runnable VIEW-01 probe |
 | `phase-b/gpu-reproduction.txt` | GPU-01/02/03 before the fix |
 | `phase-b/mat-02-reproduction.txt` | MAT-02 before the fix (patch colours lost) |
+| `phase-e/gpu05-render01-reproduction.txt` | GPU-05 / RENDER-01, before and after |
+| `phase-e/gpu05_render01_check.py` | Re-runnable probe for both, old behaviour restored by monkeypatch |
+| `phase-e/frozen-launch-routes.txt` | The frozen bundle on Wayland, xcb/XWayland and forced software |
+| `phase-e/independent-export-verification.txt` | OBJ/GLB read back by parsers that share no code with the writers |
+| `phase-e/verify_exports.py` | Those independent parsers |
+| `phase-e/interactive_session_check.py` | Real-session interactive checks (click, drag, undo/redo, screenshot) |
+| `phase-e/acceptance-matrix.md` | The plan's phase-E matrix, row by row, with what was executed |
 
 ## Findings
 
@@ -132,3 +139,69 @@ canonical control-point ordering for objects mixing patches and splines.
 Regression tests: `test_rig_editing.py::test_a_stale_bone_selection_does_not_crash_the_rig_verbs`,
 `::test_a_recipe_may_list_a_child_bone_before_its_parent`,
 `::test_bones_in_parent_order_keeps_the_written_order_otherwise`.
+
+
+## Phase E findings (release-candidate acceptance)
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| GPU-05 | high | REPRODUCED | `phase-e/gpu05-render01-reproduction.txt`. `_software_render(camera=None)` framed the scene with `toon_render_view`'s own per-image fit while the GPU path used `scene_camera()`, so a forced-software render was a *different picture* of the same scene: silhouette IoU **0.183** on a two-object fixture. Found by the smoke test's new GPU-vs-software parity step failing on the reference AMD machine (2173 vs 8432 lit pixels) | The fallback derives `scene_camera(meshes)` when the caller gives no camera, so "software" means a slower renderer, not a different framing. IoU 0.183 -> **0.899** | `test_scene_render.py::test_software_fallback_with_no_camera_uses_the_shared_scene_camera`, `::test_forced_software_render_frames_the_scene_like_the_gpu_path` |
+| RENDER-01 | high | REPRODUCED | Same file. `detect_ink` thresholded a *range-normalised* depth at a fixed 0.05, so how much a smooth surface changes per pixel depended on its size on screen. A lone sphere's interior was 87.9% ink and rendered as a black disc in the software viewport and every forced-software render: mean brightness **18.6** of 255 | The depth-edge threshold is a floor raised to 6x the typical gradient over covered pixels, so an outline stays a *discontinuity*. Brightness 18.6 -> **69.5**; the silhouette outline is retained | `test_toon.py::test_detect_ink_does_not_flood_a_smooth_curved_surface`, `::test_detect_ink_still_outlines_that_curved_surface` |
+| PATH-01 | high | REPRODUCED | Executed: with nothing setting the Qt application identity, `QStandardPaths.AppLocalDataLocation` resolved to `/home/swarm/.local/share/PySideApp` -- the generic directory *any* unnamed PySide application gets, where a second such application's files sit beside (and can collide with) this one's autosaves and recovery snapshots | `configure_application_identity()` sets organisation `3DMASTER2005` / application `3D MASTER 2005` (matching the existing `QSettings` scope) in both the GUI entry point and packaged smoke; snapshots in the old directory are still *read* so an earlier build's unsaved work is not stranded | `test_document_controller.py::test_application_identity_moves_user_data_out_of_the_generic_location`, `::test_a_snapshot_left_in_the_old_location_is_still_offered` |
+| PKG-04 | medium | REPRODUCED | Executed against the shipped bundle: `examples/` contained recipe *outputs* (`knight.obj`, atlases, ...) but no recipe file, so journey 6 -- "execute a recipe using the bundled CLI, then open its output in the GUI" -- could not be performed with the bundle alone | Both build scripts stage `docs/recipes/examples/*.json` plus the schema into `examples/recipes/`, and both now *build* the bundled recipe during the build instead of only `--validate-only` | Build-script step 7b (Linux) and its Windows counterpart; smoke step `recipe_output_opens_in_the_gui` |
+| CLI-01 | low | REPRODUCED | Executed: `./am3d-recipe --help` in the frozen bundle printed `usage: python -m am3d.recipes ...` -- a command a user with no Python cannot run | `prog` follows the invocation: the executable's own name when frozen, the module form from a source checkout | `test_executor.py::test_frozen_cli_usage_names_the_shipped_executable`, `::test_source_cli_usage_still_names_the_module_form` |
+| ICON-01 | low | REPRODUCED | Executed: no icon file existed anywhere in the tree, so the window, the task switcher and the documented `.desktop` entry all had a generic placeholder | `assets/icon.png`, rendered by this engine's own software renderer and reproducible with `scripts/make_icon.py`; set on the application and the main window | `test_operators.py::test_the_main_window_has_an_application_icon` |
+
+### Review round 5 -- GPU-05/RENDER-01 (one Haiku agent)
+
+Bounded to the two fixes, their callers and their tests, with a required
+reproduction. The agent independently reproduced both numbers (IoU
+0.183 -> 0.899; brightness 18.6 -> 69.5), verified every `_software_render`
+caller, confirmed the new `detect_ink` still finds silhouettes, occlusion
+edges and creases, checked the empty/NaN/single-pixel paths, checked the
+smoke block's GL probe for context leaks, and confirmed by reverting the
+sources in a scratch copy that the new tests actually fail without the
+fixes. **No defects.**
+
+Two observations were acted on:
+
+- the smoke parity check compared *how much* was lit but not *where*, which
+  is precisely the class of defect GPU-05 was; it now also requires a
+  silhouette IoU >= 0.6 (measured 0.806 on the reference machine);
+- `test_detect_ink_still_outlines_that_curved_surface` passes with or
+  without the fix. It is kept deliberately, as a guard against a future
+  over-suppression of outlines, and is recorded here as a guard rather
+  than a regression test.
+
+### UI-05 -- found by the real-session acceptance run
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| UI-05 | medium | REPRODUCED | `phase-e/session-wayland-200.png` (before/after). At `QT_SCALE_FACTOR=2` on the 1920x1080 reference display the compositor grants a window only ~500 logical pixels tall. The Properties form was not scrollable, so its rows overlapped and "Visible in viewport" -- along with the bottom of Location/Rotation/Scale -- was clipped off with no way to reach it. Offscreen tests never saw this: they lay the panel out at whatever height they ask for | Each properties tab is wrapped in a resizable `QScrollArea`. The vertical size policy is `Ignored` deliberately: with the page's full height as the panel's size hint, the window kept asking the Wayland compositor for a height it could not grant at 200% and the two looped forever on resize -- a **hang at startup**, observed while fixing the clipping and fixed with it | `test_operators.py::test_the_properties_tabs_scroll_when_the_panel_is_short` (confirmed to fail with the wrapper removed) |
+
+### Packaged-smoke coverage added for Phase E
+
+The plan requires restart/crash recovery and corrupt-resource handling to
+be exercised *on the packaged platform*, not only in the suite. Two steps
+were added to the shipped smoke run, so they execute inside the frozen
+executable on every build and in every acceptance run:
+
+- `autosave_snapshot_and_recovery` -- snapshot an unsaved document, assert
+  it is listed for recovery with a name a user can choose by, lose it the
+  way a crash would, recover it, and assert the recovered document is
+  pathless so the next Save cannot overwrite the snapshot in place. The
+  run records the directory used (`~/.local/share/3DMASTER2005/3D MASTER
+  2005`, i.e. the PATH-01 fix, verified in the bundle).
+- `damaged_project_is_reported_not_swallowed` -- opening a corrupt file
+  raises (`ProjectFormatError: Malformed msgpack data...`) and leaves the
+  open document intact; a missing file likewise fails rather than
+  reporting success.
+
+### Review round 6 -- UI-05 (one Haiku agent)
+
+Bounded to the scroll-area change, its callers and its test. The agent
+confirmed nothing else in the repository treats `PropertiesDock.tabs`
+pages as the form widget, that the `Ignored` vertical policy cannot
+collapse the panel because `area_layout.py` puts it in a `QSplitter` with
+`setChildrenCollapsible(False)`, and that the new test fails without the
+fix. **No defects.**

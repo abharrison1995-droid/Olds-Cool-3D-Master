@@ -1,0 +1,90 @@
+=== wayland, QT_SCALE_FACTOR=1 (100%)
+Qt platform plugin : wayland
+devicePixelRatio   : 1.0
+window size        : 1280x800
+  [PASS] a real (non-offscreen) platform plugin is in use -- wayland
+  [PASS] the window is visible on the session
+  [PASS] creating an object updates the scene
+  [PASS] the viewport produced a non-blank frame -- 91051 lit pixels, backend=gpu-or-fallback
+  [PASS] clicking the visible object selects it -- clicked (273,252) -> ('object', 'Ball', '')
+  [PASS] a middle-button drag orbits the camera -- (0.0, 15.0) -> (20.0, 15.0)
+  [PASS] the scene is still drawn after orbiting -- 92123 lit pixels
+  [PASS] undo reverses the creation
+  [PASS] redo restores it
+  [PASS] captured a screenshot of the window -- /home/swarm/Desktop/Olds-Cool-3D-Master/docs/evidence/desktop-release/phase-e/session-wayland-100.png 1280x800 px, dpr=1.0
+
+10/10 checks passed
+rc=0
+
+=== wayland, QT_SCALE_FACTOR=1.5 (150%)
+Qt platform plugin : wayland
+devicePixelRatio   : 1.5
+window size        : 1280x800
+  [PASS] a real (non-offscreen) platform plugin is in use -- wayland
+  [PASS] the window is visible on the session
+  [PASS] creating an object updates the scene
+  [PASS] the viewport produced a non-blank frame -- 50476 lit pixels, backend=gpu-or-fallback
+  [PASS] clicking the visible object selects it -- clicked (271,188) -> ('object', 'Ball', '')
+  [PASS] a middle-button drag orbits the camera -- (0.0, 15.0) -> (20.0, 15.0)
+  [PASS] the scene is still drawn after orbiting -- 51075 lit pixels
+  [PASS] undo reverses the creation
+  [PASS] redo restores it
+  [PASS] captured a screenshot of the window -- /home/swarm/Desktop/Olds-Cool-3D-Master/docs/evidence/desktop-release/phase-e/session-wayland-150.png 1919x1007 px, dpr=1.5
+
+10/10 checks passed
+rc=0
+
+=== wayland, QT_SCALE_FACTOR=2 (200%)
+Qt platform plugin : wayland
+devicePixelRatio   : 2.0
+window size        : 1280x800
+  [PASS] a real (non-offscreen) platform plugin is in use -- wayland
+  [PASS] the window is visible on the session
+  [PASS] creating an object updates the scene
+  [PASS] the viewport produced a non-blank frame -- 20564 lit pixels, backend=gpu-or-fallback
+  [PASS] clicking the visible object selects it -- clicked (202,120) -> ('object', 'Ball', '')
+  [PASS] a middle-button drag orbits the camera -- (0.0, 15.0) -> (20.0, 15.0)
+  [PASS] the scene is still drawn after orbiting -- 20809 lit pixels
+  [PASS] undo reverses the creation
+  [PASS] redo restores it
+  [PASS] captured a screenshot of the window -- /home/swarm/Desktop/Olds-Cool-3D-Master/docs/evidence/desktop-release/phase-e/session-wayland-200.png 1918x1008 px, dpr=2.0
+
+10/10 checks passed
+rc=0
+
+=== xcb/XWayland, QT_SCALE_FACTOR=1
+Qt platform plugin : xcb
+devicePixelRatio   : 1.0
+window size        : 1280x800
+  [PASS] a real (non-offscreen) platform plugin is in use -- xcb
+  [PASS] the window is visible on the session
+  [PASS] creating an object updates the scene
+  [PASS] the viewport produced a non-blank frame -- 91051 lit pixels, backend=gpu-or-fallback
+  [PASS] clicking the visible object selects it -- clicked (273,252) -> ('object', 'Ball', '')
+  [PASS] a middle-button drag orbits the camera -- (0.0, 15.0) -> (20.0, 15.0)
+  [PASS] the scene is still drawn after orbiting -- 92123 lit pixels
+  [PASS] undo reverses the creation
+  [PASS] redo restores it
+  [PASS] captured a screenshot of the window -- /home/swarm/Desktop/Olds-Cool-3D-Master/docs/evidence/desktop-release/phase-e/session-xcb-100.png 1280x800 px, dpr=1.0
+
+10/10 checks passed
+rc=0
+
+=== wayland, forced software rendering
+Qt platform plugin : wayland
+devicePixelRatio   : 1.0
+window size        : 1280x800
+  [PASS] a real (non-offscreen) platform plugin is in use -- wayland
+  [PASS] the window is visible on the session
+  [PASS] creating an object updates the scene
+  [PASS] the viewport produced a non-blank frame -- 91051 lit pixels, backend=gpu-or-fallback
+  [PASS] clicking the visible object selects it -- clicked (273,252) -> ('object', 'Ball', '')
+  [PASS] a middle-button drag orbits the camera -- (0.0, 15.0) -> (20.0, 15.0)
+  [PASS] the scene is still drawn after orbiting -- 92124 lit pixels
+  [PASS] undo reverses the creation
+  [PASS] redo restores it
+  [PASS] captured a screenshot of the window -- /home/swarm/Desktop/Olds-Cool-3D-Master/docs/evidence/desktop-release/phase-e/session-software.png 1280x800 px, dpr=1.0
+
+10/10 checks passed
+rc=0
+

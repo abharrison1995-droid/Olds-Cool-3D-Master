@@ -32,10 +32,18 @@ Method    : launched with `env -i` -- no PATH, no PYTHON*, no virtualenv on
 3. Forced software GL (LIBGL_ALWAYS_SOFTWARE=1)
    RUNNING after 12 s, exited cleanly on TERM.
 
-What this does NOT establish
-----------------------------
+What this establishes, and what it does not
+-------------------------------------------
 That the app starts, stays up and shuts down cleanly on each route is
-verified. Interactive usability -- that the viewport draws correctly, that
-the gizmos track the cursor, that HiDPI scaling looks right -- is NOT
-established by a launch test and has not been visually verified on this
-machine. It is recorded as a remaining manual check.
+verified here. A launch test says nothing about interactive usability, so
+that was checked separately and afterwards, on the live KDE/Wayland
+session: see `interactive-session.txt` and the `session-*.png` screenshots
+in this directory -- a visible window, a real click that selects the object
+under the cursor, a middle-button orbit that moves the camera and keeps the
+scene drawn, undo/redo, and screenshots at 100/150/200% scaling on both the
+Wayland and the xcb route. That run is what found UI-05.
+
+`frozen_acceptance.sh` supersedes the launch runs recorded above: it
+repeats them (10 s per route) as part of a wider acceptance pass, and its
+`env -i` keeps XAUTHORITY and the session variables, so the xcb note below
+does not apply to it.

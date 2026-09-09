@@ -14,8 +14,25 @@ import sys
 from pathlib import Path
 
 
+def read_mtl(path):
+    """name -> diffuse colour, from a Wavefront .mtl written beside the OBJ."""
+    colors, current = {}, None
+    if not Path(path).is_file():
+        return colors
+    for line in Path(path).read_text().splitlines():
+        parts = line.split()
+        if not parts:
+            continue
+        if parts[0] == "newmtl":
+            current = parts[1]
+        elif parts[0] == "Kd" and current:
+            colors[current] = tuple(float(x) for x in parts[1:4])
+    return colors
+
+
 def read_obj(path):
     verts, faces, groups, mtllib, usemtl = [], [], {}, [], []
+    normals = []
     current = None
     for line in Path(path).read_text().splitlines():
         parts = line.split()
@@ -24,6 +41,8 @@ def read_obj(path):
         tag, rest = parts[0], parts[1:]
         if tag == "v":
             verts.append(tuple(float(x) for x in rest[:3]))
+        elif tag == "vn":
+            normals.append(tuple(float(x) for x in rest[:3]))
         elif tag == "f":
             idx = [int(p.split("/")[0]) for p in rest]
             faces.append(idx)
@@ -34,7 +53,7 @@ def read_obj(path):
             mtllib += rest
         elif tag == "usemtl":
             usemtl += rest
-    return dict(verts=verts, faces=faces, groups=groups,
+    return dict(verts=verts, faces=faces, groups=groups, normals=normals,
                 mtllib=mtllib, usemtl=usemtl)
 
 
@@ -77,6 +96,60 @@ def main(obj_path, glb_path):
                 break
     if obj["usemtl"] and not obj["mtllib"]:
         problems.append("OBJ uses materials but declares no mtllib")
+
+    # Normals: present, unit length, and not all pointing the same way (a
+    # constant normal field renders flat and is a classic exporter bug).
+    print(f"  normals         : {len(obj['normals'])}")
+    if not obj["normals"]:
+        problems.append("OBJ carries no vertex normals")
+    else:
+        bad = [n for n in obj["normals"]
+               if abs(sum(c * c for c in n) ** 0.5 - 1.0) > 1e-3]
+        if bad:
+            problems.append(
+                f"{len(bad)} OBJ normals are not unit length, e.g. {bad[0]}")
+        spread = max(max(n[i] for n in obj["normals"])
+                     - min(n[i] for n in obj["normals"]) for i in range(3))
+        print(f"  normal spread   : {spread:.3f}")
+        if spread < 0.5:
+            problems.append("every OBJ normal points nearly the same way")
+
+    # Materials: the .mtl beside the OBJ must define every material the OBJ
+    # uses, and two differently coloured materials must stay different.
+    mtl_colors = {}
+    for lib in obj["mtllib"]:
+        mtl_colors.update(read_mtl(Path(obj_path).parent / lib))
+    print(f"  mtl colours     : "
+          f"{ {k: tuple(round(c, 3) for c in v) for k, v in mtl_colors.items()} }")
+    for name in sorted(set(obj["usemtl"])):
+        if name not in mtl_colors:
+            problems.append(f"OBJ uses material {name!r} the .mtl never defines")
+    if len(mtl_colors) > 1 and len(set(mtl_colors.values())) == 1:
+        problems.append(
+            "every material in the .mtl has the same colour -- distinct "
+            "materials collapsed on the way out")
+
+    # Geometry placement: object groups must not sit on top of each other
+    # when the scene placed them apart (i.e. transforms were baked in).
+    if len(obj["groups"]) > 1:
+        centres = {}
+        for name, face_ids in obj["groups"].items():
+            if not name:
+                continue
+            idx = {i for fid in face_ids for i in obj["faces"][fid]}
+            pts = [obj["verts"][i - 1] for i in idx]
+            centres[name] = tuple(sum(p[k] for p in pts) / len(pts)
+                                  for k in range(3))
+        print(f"  group centres   : "
+              f"{ {k: tuple(round(c, 3) for c in v) for k, v in centres.items()} }")
+        if len(centres) > 1:
+            far = max(abs(a[k] - b[k])
+                      for a in centres.values() for b in centres.values()
+                      for k in range(3))
+            if far < 1e-6:
+                problems.append(
+                    "all object groups share one centre -- per-object "
+                    "transforms were not baked into the export")
 
     doc, binary = read_glb(glb_path)
     meshes = doc.get("meshes", [])

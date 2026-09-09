@@ -1,0 +1,34 @@
+=== Frozen bundle acceptance: /home/swarm/Desktop/Olds-Cool-3D-Master/release/3D MASTER 2005 Beta
+=== 2026-09-09T21:01:08+01:00  host: Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
+
+1. The bundle carries its own runtime
+  [PASS] packaged smoke test (all workflows) exits 0
+  [note] smoke steps: 13, not ok: none
+  [note] gpu/software parity: {'gpu_lit_pixels': 2173, 'software_lit_pixels': 2243, 'ratio': 0.969, 'silhouette_iou': 0.806}
+
+2. Graphics routes (each launched for 10 s, then TERM)
+  [PASS] native-session: still running after 10 s, exited on TERM
+  [PASS] xcb-xwayland: still running after 10 s, exited on TERM
+  [PASS] forced-software: still running after 10 s, exited on TERM
+
+3. Recipe CLI (journey 6)
+  [PASS] bundled recipe builds with the packaged CLI
+  [PASS] the recipe wrote output files
+  [PASS] a failing recipe exits non-zero
+  [PASS] the failure names a machine-readable error code
+
+4. Unicode and space in the working paths
+  [PASS] the CLI handles non-ASCII recipe and output paths
+
+5. Read-only installation directory
+  [PASS] the CLI runs from a read-only install, writing elsewhere
+  [PASS] the GUI's full workflow run works from a read-only install
+
+6. Relocation to a path with spaces and non-ASCII characters
+  [PASS] the relocated bundle passes the full workflow run
+
+7. No source-tree references in the payload
+  [PASS] no build-location references in the payload's text files
+
+13 passed, 0 failed
+artifacts under /tmp/am3d_accept_R0RG9A

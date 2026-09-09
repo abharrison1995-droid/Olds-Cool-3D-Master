@@ -124,20 +124,34 @@ class ShaderProgram:
             raise RuntimeError(f"shader compilation error: {exc}")
 
     def uniform(self, name, value):
-        """Set a uniform value, tolerating missing uniforms."""
+        """Set a uniform value, tolerating missing uniforms.
+
+        Matrices are accepted row-major -- the convention every matrix
+        helper in this codebase uses, where ``m[:3, 3]`` is the translation
+        -- and transposed on the way to GL, which reads a raw uniform block
+        as column-major. Without the transpose every matrix arrived
+        transposed, `gl_Position` was garbage and the whole scene was
+        clipped away, so the GPU pipeline silently produced blank frames on
+        real hardware (finding GPU-04).
+        """
         try:
             if isinstance(value, (float, int)):
                 self.prog[name].value = value
             elif isinstance(value, np.ndarray):
                 if value.shape == (4, 4):
-                    self.prog[name].write(value.astype("f4").tobytes())
+                    self.prog[name].write(
+                        np.ascontiguousarray(value.T, dtype="f4").tobytes())
                 elif value.shape == (3,):
                     self.prog[name].value = tuple(value)
                 elif value.shape == (4,):
                     self.prog[name].value = tuple(value)
             elif isinstance(value, (tuple, list)):
                 if len(value) == 16:
-                    self.prog[name].write(np.array(value, dtype="f4").tobytes())
+                    # Flat 16-tuples are row-major too; same transpose.
+                    self.prog[name].write(
+                        np.ascontiguousarray(
+                            np.array(value, dtype="f4").reshape(4, 4).T
+                        ).tobytes())
                 elif len(value) == 3:
                     self.prog[name].value = tuple(value)
                 elif len(value) == 4:

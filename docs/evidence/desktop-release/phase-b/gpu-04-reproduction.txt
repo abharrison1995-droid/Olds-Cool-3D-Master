@@ -1,0 +1,68 @@
+GPU-04 -- the deferred GPU pipeline rendered a blank frame on real hardware
+==========================================================================
+
+Status: REPRODUCED on the reference machine, fixed, regression-tested.
+
+Hardware / driver actually used (not an offscreen stub):
+
+    GL version : 4.6 (Core Profile) Mesa 26.1.4-1~mx25ahs
+    Renderer   : AMD Radeon Graphics (radeonsi, renoir, ...)
+
+1. Symptom
+----------
+While finishing UI-02 (final still/animation render), the new test
+`test_moving_the_camera_changes_the_image` failed: moving the camera nearer
+changed nothing.
+
+    gpu      alpha cover: 2304 2304 | differs: False | lum cover: 0 0
+    software alpha cover:  800   84  | differs: True
+
+The GPU path produced an image with zero lit pixels, identical at both camera
+distances. The software path responded to the camera correctly. Every
+offscreen/software test in the suite passed throughout -- this defect is
+invisible without a real GL context.
+
+2. Localisation
+---------------
+Reading the G-buffer attachments directly after the geometry pass: the
+fraction of nonzero bytes in attachment 0 was exactly 12.5%, which is the
+float clear pattern for (0, 0, 0, 1). Nothing had been drawn at all.
+
+`u_albedo` read back with the value that was written, so the uniform
+mechanism itself worked -- the problem was confined to the matrices.
+
+3. Cause, isolated by A/B experiment
+------------------------------------
+Uploading the same matrices with and without a transpose at the boundary:
+
+    transpose=False : albedo pixels drawn =   0
+    transpose=True  : albedo pixels drawn = 404
+
+This codebase stores row-major matrices (`m[:3, 3]` is the translation).
+GLSL reads a raw uniform block as column-major. `ShaderProgram.uniform` wrote
+the buffer straight through, so every matrix arrived transposed and
+`gl_Position` was meaningless -- the geometry was projected off-screen.
+
+4. Fix
+------
+`am3d/gpu/shaders.py`, `ShaderProgram.uniform`: transpose at the upload
+boundary, for both the (4, 4) ndarray form and the flat 16-element form.
+
+5. Verification after the fix
+-----------------------------
+    gpu      lit pixels near/far: 1124 72 | differs: True
+    software lit pixels near/far: 1206 88 | differs: True
+
+GPU and forced-software now agree that the scene is present, and both
+respond to camera distance in the same direction and to a comparable degree.
+
+6. Regression tests
+-------------------
+am3d/gpu/test_scene_render.py
+  - test_matrix_uniforms_are_transposed_for_gl
+        pure unit test, no GL needed, pins the byte order
+  - test_the_gpu_pipeline_actually_draws_on_real_hardware
+        skipped without a context; asserts the frame is not blank
+  - test_gpu_and_software_renders_agree_on_where_the_geometry_is
+        skipped without a context; both paths must find each of the two
+        objects in its own half of the frame and overlap by >50%

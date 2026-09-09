@@ -84,3 +84,16 @@ generator/degree persistence, no code-execution path through a corrupt
 `generator` dict (`_OPS` is a fixed dispatch table), GLB chunk alignment and
 lengths, and the PNG vertical flip against both UV conventions.
 
+
+## Render findings (phase B, priority 6)
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| UI-02 | high | IMPLEMENTED | There was no way to produce a final image or an animation from the GUI at all -- the app could model, rig and export geometry but never render a picture | New headless render core `am3d/render_job.py` (still + sequence, destination/size validation, zero-padded frame names, progress callback, cancel that keeps already-written frames, forced-software switch) and `am3d/ui/render_dialog.py`, wired to **File -> Render Image / Sequence... (F12)** | `am3d/ui/test_render_dialog.py` (20 tests) |
+| GPU-04 | critical | REPRODUCED ON HARDWARE | `phase-b/gpu-04-reproduction.txt`. With a real GL 4.6 context (Mesa 26.1.4, AMD radeonsi renoir) the deferred pipeline produced a **uniformly blank frame**; the G-buffer held nothing but its clear value. Matrices were uploaded row-major while GLSL reads a uniform block column-major, so all geometry projected off-screen. A/B: `transpose=False -> 0` pixels drawn, `transpose=True -> 404` | Transpose at the upload boundary in `ShaderProgram.uniform`, for both the (4,4) ndarray and flat-16 forms | `test_scene_render.py::test_matrix_uniforms_are_transposed_for_gl` (no GL needed), `::test_the_gpu_pipeline_actually_draws_on_real_hardware`, `::test_gpu_and_software_renders_agree_on_where_the_geometry_is` |
+
+GPU-04 is the clearest case so far for the plan's insistence on hardware
+testing: the whole suite passed, offscreen and software rendering were
+correct, and the GPU path nevertheless rendered nothing. It was found only
+because UI-02's acceptance test compared a GPU render against a
+forced-software render of the same scene.

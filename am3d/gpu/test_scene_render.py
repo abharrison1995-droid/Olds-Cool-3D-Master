@@ -224,3 +224,88 @@ def test_gbuffer_is_not_released_twice_when_release_itself_fails(
     out = gpu.render_frame(two_objects, size=(16, 16))
     assert out.shape == (16, 16, 4)
     assert len(calls) == 1, f"gbuf.release() called {len(calls)} times"
+
+
+# --- GPU-04: matrices must reach GL in the order GL reads them --------------
+
+def _has_gl():
+    try:
+        from am3d.gpu import create_offscreen_context
+        ctx = create_offscreen_context(16, 16)
+        ok = getattr(ctx, "ctx", None) is not None
+        try:
+            ctx.destroy()
+        except Exception:
+            pass
+        return ok
+    except Exception:
+        return False
+
+
+def test_matrix_uniforms_are_transposed_for_gl():
+    """Regression: row-major bytes were written straight into a GLSL mat4,
+    which reads a uniform block as column-major, so every matrix arrived
+    transposed and gl_Position was garbage."""
+    from am3d.gpu.shaders import ShaderProgram
+
+    written = {}
+
+    class _Uniform:
+        def __init__(self, name):
+            self.name = name
+
+        def write(self, data):
+            written[self.name] = np.frombuffer(data, dtype="f4").reshape(4, 4)
+
+    program = ShaderProgram.__new__(ShaderProgram)
+    program.prog = {"m": _Uniform("m")}
+
+    matrix = np.arange(16, dtype=np.float64).reshape(4, 4)
+    program.uniform("m", matrix)
+    assert np.allclose(written["m"], matrix.T)
+
+    program.uniform("m", tuple(range(16)))
+    assert np.allclose(written["m"],
+                       np.arange(16, dtype="f4").reshape(4, 4).T)
+
+
+@pytest.mark.skipif(not _has_gl(), reason="no offscreen GL context available")
+def test_the_gpu_pipeline_actually_draws_on_real_hardware(two_objects):
+    """Regression: on a machine with a working GL 4.6 context the deferred
+    pipeline produced a uniformly blank frame -- the G-buffer held nothing
+    but its clear value, because the geometry was projected off-screen."""
+    from am3d.gpu import render_frame
+
+    image = render_frame(two_objects, size=SIZE)
+    lit = (image[..., :3].sum(axis=2) > 0.02).sum()
+    assert lit > 100, f"the GPU frame is blank ({lit} lit pixels)"
+
+
+@pytest.mark.skipif(not _has_gl(), reason="no offscreen GL context available")
+def test_gpu_and_software_renders_agree_on_where_the_geometry_is(two_objects):
+    """GPU and forced-software output must place the scene in the same part
+    of the frame; they shade differently, so only coverage is compared."""
+    from am3d.gpu import _software_render, render_frame, resolve_scene, \
+        scene_camera
+
+    scene = resolve_scene(two_objects)
+    meshes = [m for m in scene.meshes.values() if len(m.indices)]
+    camera = scene_camera(meshes)
+
+    gpu_image = render_frame(two_objects, camera=camera, size=SIZE)
+    sw_image = _software_render(meshes, SIZE[0], SIZE[1], camera=camera)
+
+    def cover(img):
+        return img[..., :3].sum(axis=2) > 0.02
+
+    gpu_cover, sw_cover = cover(gpu_image), cover(sw_image)
+    assert gpu_cover.sum() > 100 and sw_cover.sum() > 100
+
+    # Both must find geometry in each half of the frame (two objects).
+    half = SIZE[0] // 2
+    for name, mask in (("gpu", gpu_cover), ("software", sw_cover)):
+        assert mask[:, :half].any(), f"{name}: left object missing"
+        assert mask[:, half:].any(), f"{name}: right object missing"
+
+    overlap = (gpu_cover & sw_cover).sum() / max(int(gpu_cover.sum()), 1)
+    assert overlap > 0.5, f"GPU and software disagree on placement ({overlap:.2f})"

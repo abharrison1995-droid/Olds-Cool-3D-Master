@@ -281,6 +281,7 @@ class MainWindow(QMainWindow):
         _add("Close &Editor", self.show_home)
         fm.addSeparator()
         _add("&Import Action (.am3a)...", self._file_import_action)
+        _add("&Render Image / Sequence...", self._file_render, "F12")
         _add("Export O&BJ...", self._file_export_obj)
         _add("Export &GLB...", self._file_export_glb)
         fm.addSeparator()
@@ -778,6 +779,16 @@ class MainWindow(QMainWindow):
                    if n in meshes}
         return (meshes, scene_material_colors(scene),
                 scene_patch_material_colors(scene), atlases)
+
+    def _file_render(self):
+        """Open the render dialog (finding UI-02)."""
+        from .render_dialog import RenderDialog
+        dialog = RenderDialog(self)
+        dialog.exec()
+        if dialog.written:
+            self.statusBar().showMessage(
+                f"Rendered {len(dialog.written)} file(s): "
+                f"{dialog.written[0]}", 8000)
 
     def _file_export_obj(self):
         path, _ = QFileDialog.getSaveFileName(

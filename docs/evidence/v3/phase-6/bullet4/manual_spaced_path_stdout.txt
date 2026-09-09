@@ -1,0 +1,52 @@
+﻿{
+  "ok": true,
+  "version": "0.2.0b1",
+  "steps": [
+    {
+      "name": "blank_startup",
+      "status": "ok",
+      "duration_ms": 189.7
+    },
+    {
+      "name": "new_project",
+      "status": "ok",
+      "duration_ms": 4.4
+    },
+    {
+      "name": "primitive_and_profile_creation",
+      "status": "ok",
+      "duration_ms": 13.5
+    },
+    {
+      "name": "material_reference",
+      "status": "ok",
+      "duration_ms": 1.5
+    },
+    {
+      "name": "rig_and_weighted_action_playback",
+      "status": "ok",
+      "duration_ms": 4.5
+    },
+    {
+      "name": "multi_object_software_rendering",
+      "status": "ok",
+      "duration_ms": 1130.5
+    },
+    {
+      "name": "save_and_reopen",
+      "status": "ok",
+      "duration_ms": 28.5
+    },
+    {
+      "name": "transformed_export",
+      "status": "ok",
+      "duration_ms": 158.3
+    }
+  ],
+  "artifacts": {
+    "rendered_objects": 3,
+    "saved_project_path": "C:\\Users\\P50\\AppData\\Local\\Temp\\am3d_smoke__znlyi3_\\smoke_project.am3d",
+    "export_size_bytes": 330393
+  }
+}
+

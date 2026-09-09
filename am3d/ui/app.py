@@ -903,9 +903,43 @@ class MainWindow(QMainWindow):
 
 
 def main(argv=None) -> int:
-    """Launch the application."""
-    app = QApplication(argv if argv is not None else sys.argv)
+    """Launch the application, or run packaged smoke-test mode.
+
+    ``--smoke-test`` drives a real MainWindow through a representative
+    workflow (see :mod:`am3d.ui.smoke`) instead of entering the interactive
+    event loop, and returns without ever opening a persistent window --
+    for a packaged build's own CI-style self-check (build_windows.ps1).
+    ``--out PATH`` additionally writes the machine-readable manifest there
+    (it is always printed to stdout).
+    """
+    raw_argv = list(argv if argv is not None else sys.argv)
+    smoke_test = "--smoke-test" in raw_argv
+    if smoke_test:
+        raw_argv.remove("--smoke-test")
+    out_path = None
+    if "--out" in raw_argv:
+        i = raw_argv.index("--out")
+        if i + 1 >= len(raw_argv):
+            print("error: --out requires a PATH argument", file=sys.stderr)
+            return 2
+        out_path = raw_argv[i + 1]
+        del raw_argv[i:i + 2]
+
+    app = QApplication.instance() or QApplication(raw_argv)
     apply_theme(app)
+
+    if smoke_test:
+        import json
+        import tempfile
+        from .smoke import run_smoke_test
+        with tempfile.TemporaryDirectory(prefix="am3d_smoke_") as td:
+            manifest = run_smoke_test(Path(td))
+        text = json.dumps(manifest, indent=2)
+        if out_path:
+            Path(out_path).write_text(text, encoding="utf-8")
+        print(text)
+        return 0 if manifest["ok"] else 1
+
     win = MainWindow()
     win.show()
     return app.exec()

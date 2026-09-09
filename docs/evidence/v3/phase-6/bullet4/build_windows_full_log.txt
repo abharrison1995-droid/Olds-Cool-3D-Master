@@ -1,0 +1,436 @@
+=== 3D MASTER:2005 Windows Build ===
+
+Step 1: Verifying Python environment...
+  Python: Python 3.14.6
+Step 2: Installing pinned dependencies from requirements.txt...
+Defaulting to user installation because normal site-packages is not writeable
+Requirement already satisfied: numpy==2.4.6 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 8)) (2.4.6)
+Requirement already satisfied: msgpack==1.2.1 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 9)) (1.2.1)
+Requirement already satisfied: PySide6==6.11.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 10)) (6.11.2)
+Requirement already satisfied: Pillow==12.3.0 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 11)) (12.3.0)
+Requirement already satisfied: moderngl==5.12.0 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 15)) (5.12.0)
+Requirement already satisfied: pyinstaller==6.22.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (6.22.2)
+Requirement already satisfied: pytest==9.1.1 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from -r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 22)) (9.1.1)
+Requirement already satisfied: shiboken6==6.11.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from PySide6==6.11.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 10)) (6.11.2)
+Requirement already satisfied: PySide6_Essentials==6.11.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from PySide6==6.11.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 10)) (6.11.2)
+Requirement already satisfied: PySide6_Addons==6.11.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from PySide6==6.11.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 10)) (6.11.2)
+Requirement already satisfied: glcontext>=3.0.0 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from moderngl==5.12.0->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 15)) (3.0.0)
+Requirement already satisfied: altgraph in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (0.17.5)
+Requirement already satisfied: packaging>=22.0 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (26.2)
+Requirement already satisfied: pefile>=2022.5.30 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (2024.8.26)
+Requirement already satisfied: pyinstaller-hooks-contrib>=2026.6 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (2026.6)
+Requirement already satisfied: pywin32-ctypes>=0.2.1 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (0.2.3)
+Requirement already satisfied: setuptools>=42.0.0 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pyinstaller==6.22.2->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 19)) (84.0.0)
+Requirement already satisfied: colorama>=0.4 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pytest==9.1.1->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 22)) (0.4.6)
+Requirement already satisfied: iniconfig>=1.0.1 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pytest==9.1.1->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 22)) (2.3.0)
+Requirement already satisfied: pluggy<2,>=1.5 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pytest==9.1.1->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 22)) (1.6.0)
+Requirement already satisfied: pygments>=2.7.2 in C:\Users\P50\AppData\Roaming\Python\Python314\site-packages (from pytest==9.1.1->-r C:\Users\P50\Desktop\Olds-Cool-3D-Master\requirements.txt (line 22)) (2.21.0)
+python.exe : 
+At C:\Users\P50\Desktop\Olds-Cool-3D-Master\build_windows.ps1:51 char:17
++ Invoke-Native { & $py -m pip install -r $reqPath }
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+[notice] A new release of pip is available: 26.1.2 -> 26.2.1
+[notice] To update, run: python.exe -m pip install --upgrade pip
+
+Step 3: Running all tests...
+........................................................................ [ 14%]
+........................................................................ [ 29%]
+........................................................................ [ 44%]
+........................................................................ [ 59%]
+........................................................................ [ 74%]
+........................................................................ [ 89%]
+....................................................                     [100%]
+============================== warnings summary ===============================
+am3d/ui/test_dopesheet.py::test_ruler_click_seeks
+  C:\Users\P50\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:97: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    ev = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x, 5),
+
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+  C:\Users\P50\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:152: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    return QMouseEvent(kind, QPointF(x_, y_), Qt.LeftButton,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+484 passed, 4 warnings in 54.18s
+All tests passed.
+
+Step 4: Building executable with PyInstaller...
+python.exe : 375 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.6
+At C:\Users\P50\Desktop\Olds-Cool-3D-Master\build_windows.ps1:75 char:17
++ Invoke-Native { & $py -m PyInstaller --clean am3d.spec }
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (375 INFO: PyIns...b hooks: 2026.6:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+375 INFO: Python: 3.14.6
+428 INFO: Platform: Windows-10-10.0.19044-SP0
+428 INFO: Python environment: C:\Python314
+434 INFO: Removing temporary files and cleaning cache in C:\Users\P50\AppData\Local\pyinstaller
+450 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master',
+ 'C:\\Python314\\python314.zip',
+ 'C:\\Python314\\DLLs',
+ 'C:\\Python314\\Lib',
+ 'C:\\Python314',
+ 'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages',
+ 'C:\\Python314\\Lib\\site-packages',
+ 'C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master']
+pygame-ce 2.5.8 (SDL 2.32.10, Python 3.14.6)
+1435 INFO: Appending 'datas' from .spec
+1438 INFO: checking Analysis
+1439 INFO: Building Analysis because Analysis-00.toc is non existent
+1439 INFO: Looking for Python shared library...
+1439 INFO: Using Python shared library: C:\Python314\python314.dll
+1439 INFO: Running Analysis Analysis-00.toc
+1439 INFO: Target bytecode optimization level: 0
+1439 INFO: Initializing module dependency graph...
+1441 INFO: Initializing module graph hook caches...
+1490 INFO: Analyzing modules for base_library.zip ...
+4942 INFO: Processing standard module hook 'hook-encodings.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+5927 INFO: Processing standard module hook 'hook-pickle.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6104 INFO: Processing standard module hook 'hook-math.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6428 INFO: Processing standard module hook 'hook-difflib.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6449 INFO: Processing standard module hook 'hook-heapq.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+11529 INFO: Caching module dependency graph...
+11635 INFO: Analyzing C:\Users\P50\Desktop\Olds-Cool-3D-Master\am3d\ui\__main__.py
+11735 INFO: Processing standard module hook 'hook-numpy.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+12685 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+12689 INFO: SetuptoolsInfo: initializing cached setuptools info...
+14932 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+15117 INFO: Processing standard module hook 'hook-xml.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+15705 INFO: Processing standard module hook 'hook-sysconfig.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+15713 INFO: Processing standard module hook 'hook-_ctypes.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+17955 INFO: Processing standard module hook 'hook-platform.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+19130 INFO: Processing standard module hook 'hook-webbrowser.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+19256 INFO: Processing standard module hook 'hook-psutil.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+21992 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+22747 INFO: Processing standard module hook 'hook-numba.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+22797 INFO: Processing standard module hook 'hook-llvmlite.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24164 INFO: Processing standard module hook 'hook-pygments.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+28282 INFO: Processing standard module hook 'hook-sqlite3.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+29773 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+31542 INFO: Processing standard module hook 'hook-setuptools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+31568 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31644 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31646 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.jaraco'!
+31671 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+31673 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.more_itertools'!
+31998 INFO: Processing standard module hook 'hook-_osx_support.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+32035 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+32612 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+32615 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+32640 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+32642 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.backports'!
+33676 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+33677 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.tomli'!
+34815 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+34816 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.wheel'!
+40522 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from 'C:\\Users\\P50\\AppData\\Roaming\\Python\\P
+ython314\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+43610 INFO: Processing standard module hook 'hook-PIL.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+43881 INFO: Processing standard module hook 'hook-PIL.Image.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+44721 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+45219 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+46119 INFO: Processing standard module hook 'hook-PySide6.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+46470 INFO: Processing standard module hook 'hook-shiboken6.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+47121 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+53394 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+61942 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+84875 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+90421 INFO: Processing module hooks (post-graph stage)...
+91141 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+96515 INFO: Performing binary vs. data reclassification (140 entries)
+96614 INFO: Looking for ctypes DLLs
+97169 INFO: Analyzing run-time hooks ...
+97180 INFO: Including run-time hook 'pyi_rth_inspect.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+97185 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+97190 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+97196 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+97201 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+97206 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+97214 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+97256 INFO: Creating base_library.zip...
+97299 INFO: Looking for dynamic libraries
+100635 INFO: Extra DLL search directories (AddDllDirectory): 
+['C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\shiboken6', 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\numpy.libs', 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\scipy.libs', 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\llvmlite.libs']
+100635 INFO: Extra DLL search directories (PATH): 
+['C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PySide6']
+104053 WARNING: Library not found: could not resolve 'tbb12.dll', dependency of 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\numba\\np\\ufunc\\tbbpool.cp314-win_amd64.pyd'.
+104191 INFO: Warnings written to C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d\warn-am3d.txt
+104447 INFO: Graph cross-reference written to C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d\xref-am3d.html
+104538 INFO: checking PYZ
+104538 INFO: Building PYZ because PYZ-00.toc is non existent
+104538 INFO: Building PYZ (ZlibArchive) C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d\PYZ-00.pyz
+106033 INFO: Building PYZ (ZlibArchive) C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d\PYZ-00.pyz completed 
+successfully.
+106113 INFO: checking PKG
+106113 INFO: Building PKG because PKG-00.toc is non existent
+106113 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg
+106161 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg completed successfully.
+106163 INFO: Bootloader 
+C:\Users\P50\AppData\Roaming\Python\Python314\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+106163 INFO: checking EXE
+106163 INFO: Building EXE because EXE-00.toc is non existent
+106163 INFO: Building EXE from EXE-00.toc
+106164 INFO: Copying bootloader EXE to C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d\3D MASTER 2005.exe
+106224 INFO: Copying icon to EXE
+106277 INFO: Copying 0 resources to EXE
+106277 INFO: Embedding manifest in EXE
+106327 INFO: Appending PKG archive to EXE
+106424 INFO: Fixing EXE headers
+106899 INFO: Building EXE from EXE-00.toc completed successfully.
+106904 INFO: checking COLLECT
+106905 INFO: Building COLLECT because COLLECT-00.toc is non existent
+106905 INFO: Building COLLECT COLLECT-00.toc
+107908 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+107921 INFO: Build complete! The results are available in: C:\Users\P50\Desktop\Olds-Cool-3D-Master\dist
+Build completed.
+
+Step 4b: Building packaged recipe CLI with PyInstaller...
+python.exe : 364 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.6
+At C:\Users\P50\Desktop\Olds-Cool-3D-Master\build_windows.ps1:87 char:17
++ Invoke-Native { & $py -m PyInstaller --clean am3d_recipe.spec }
++                 ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+    + CategoryInfo          : NotSpecified: (364 INFO: PyIns...b hooks: 2026.6:String) [], RemoteException
+    + FullyQualifiedErrorId : NativeCommandError
+ 
+364 INFO: Python: 3.14.6
+413 INFO: Platform: Windows-10-10.0.19044-SP0
+413 INFO: Python environment: C:\Python314
+418 INFO: Removing temporary files and cleaning cache in C:\Users\P50\AppData\Local\pyinstaller
+445 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master',
+ 'C:\\Python314\\python314.zip',
+ 'C:\\Python314\\DLLs',
+ 'C:\\Python314\\Lib',
+ 'C:\\Python314',
+ 'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages',
+ 'C:\\Python314\\Lib\\site-packages',
+ 'C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master']
+pygame-ce 2.5.8 (SDL 2.32.10, Python 3.14.6)
+1400 INFO: Appending 'datas' from .spec
+1400 INFO: checking Analysis
+1401 INFO: Building Analysis because Analysis-00.toc is non existent
+1401 INFO: Looking for Python shared library...
+1401 INFO: Using Python shared library: C:\Python314\python314.dll
+1401 INFO: Running Analysis Analysis-00.toc
+1401 INFO: Target bytecode optimization level: 0
+1401 INFO: Initializing module dependency graph...
+1405 INFO: Initializing module graph hook caches...
+1462 INFO: Analyzing modules for base_library.zip ...
+4740 INFO: Processing standard module hook 'hook-encodings.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+5586 INFO: Processing standard module hook 'hook-pickle.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6511 INFO: Processing standard module hook 'hook-math.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6816 INFO: Processing standard module hook 'hook-difflib.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+6844 INFO: Processing standard module hook 'hook-heapq.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+11978 INFO: Caching module dependency graph...
+12046 INFO: Analyzing C:\Users\P50\Desktop\Olds-Cool-3D-Master\am3d\recipes\__main__.py
+12112 INFO: Processing standard module hook 'hook-numpy.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+13082 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+13085 INFO: SetuptoolsInfo: initializing cached setuptools info...
+15351 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+15532 INFO: Processing standard module hook 'hook-xml.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+16134 INFO: Processing standard module hook 'hook-sysconfig.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+16145 INFO: Processing standard module hook 'hook-_ctypes.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+18716 INFO: Processing standard module hook 'hook-platform.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+20284 INFO: Processing standard module hook 'hook-webbrowser.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+20445 INFO: Processing standard module hook 'hook-psutil.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+23687 INFO: Processing standard module hook 'hook-charset_normalizer.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24640 INFO: Processing standard module hook 'hook-numba.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+24703 INFO: Processing standard module hook 'hook-llvmlite.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+26352 INFO: Processing standard module hook 'hook-pygments.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+31436 INFO: Processing standard module hook 'hook-sqlite3.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+33310 INFO: Processing standard module hook 'hook-xml.dom.domreg.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+35312 INFO: Processing standard module hook 'hook-setuptools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+35352 INFO: Processing pre-safe-import-module hook 'hook-distutils.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+35455 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+35457 INFO: Setuptools: 'jaraco' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.jaraco'!
+35489 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+35491 INFO: Setuptools: 'more_itertools' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.more_itertools'!
+35857 INFO: Processing standard module hook 'hook-_osx_support.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+35891 INFO: Processing pre-safe-import-module hook 'hook-packaging.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+36523 INFO: Processing standard module hook 'hook-setuptools._vendor.jaraco.text.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+36526 INFO: Processing pre-safe-import-module hook 'hook-importlib_resources.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+36546 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+36547 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 
+'setuptools._vendor.backports'!
+37694 INFO: Processing pre-safe-import-module hook 'hook-tomli.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+37696 INFO: Setuptools: 'tomli' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.tomli'!
+38918 INFO: Processing pre-safe-import-module hook 'hook-wheel.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+38920 INFO: Setuptools: 'wheel' appears to be a setuptools-vendored copy - creating alias to 
+'setuptools._vendor.wheel'!
+45016 INFO: Processing pre-safe-import-module hook 'hook-win32com.py' from 'C:\\Users\\P50\\AppData\\Roaming\\Python\\P
+ython314\\site-packages\\_pyinstaller_hooks_contrib\\pre_safe_import_module'
+48078 INFO: Processing standard module hook 'hook-PIL.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+48349 INFO: Processing standard module hook 'hook-PIL.Image.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+49311 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+49803 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+51090 INFO: Processing module hooks (post-graph stage)...
+51875 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks'
+57523 INFO: Performing binary vs. data reclassification (7 entries)
+57530 INFO: Looking for ctypes DLLs
+58130 INFO: Analyzing run-time hooks ...
+58144 INFO: Including run-time hook 'pyi_rth_inspect.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+58155 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+58160 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+58167 INFO: Including run-time hook 'pyi_rth_setuptools.py' from 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\PyInstaller\\hooks\\rthooks'
+58210 INFO: Creating base_library.zip...
+58259 INFO: Looking for dynamic libraries
+60922 INFO: Extra DLL search directories (AddDllDirectory): 
+['C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\numpy.libs', 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\scipy.libs', 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\llvmlite.libs']
+60922 INFO: Extra DLL search directories (PATH): []
+62402 WARNING: Library not found: could not resolve 'tbb12.dll', dependency of 
+'C:\\Users\\P50\\AppData\\Roaming\\Python\\Python314\\site-packages\\numba\\np\\ufunc\\tbbpool.cp314-win_amd64.pyd'.
+62476 INFO: Warnings written to C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d_recipe\warn-am3d_recipe.txt
+62731 INFO: Graph cross-reference written to 
+C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d_recipe\xref-am3d_recipe.html
+62833 INFO: checking PYZ
+62833 INFO: Building PYZ because PYZ-00.toc is non existent
+62833 INFO: Building PYZ (ZlibArchive) C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d_recipe\PYZ-00.pyz
+63957 INFO: Building PYZ (ZlibArchive) C:\Users\P50\Desktop\Olds-Cool-3D-Master\build\am3d_recipe\PYZ-00.pyz completed 
+successfully.
+64019 INFO: checking PKG
+64020 INFO: Building PKG because PKG-00.toc is non existent
+64020 INFO: Building PKG (CArchive) am3d-recipe.pkg
+74740 INFO: Building PKG (CArchive) am3d-recipe.pkg completed successfully.
+74745 INFO: Bootloader 
+C:\Users\P50\AppData\Roaming\Python\Python314\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+74746 INFO: checking EXE
+74746 INFO: Building EXE because EXE-00.toc is non existent
+74746 INFO: Building EXE from EXE-00.toc
+74746 INFO: Copying bootloader EXE to C:\Users\P50\Desktop\Olds-Cool-3D-Master\dist\am3d-recipe.exe
+74796 INFO: Copying icon to EXE
+74845 INFO: Copying 0 resources to EXE
+74845 INFO: Embedding manifest in EXE
+74890 INFO: Appending PKG archive to EXE
+75006 INFO: Fixing EXE headers
+75731 INFO: Building EXE from EXE-00.toc completed successfully.
+75738 INFO: Build complete! The results are available in: C:\Users\P50\Desktop\Olds-Cool-3D-Master\dist
+Recipe CLI build completed.
+
+Step 5: Staging release folder...
+Release staged at: C:\Users\P50\Desktop\Olds-Cool-3D-Master\release\3D MASTER 2005 Beta
+
+Step 6: Running packaged smoke test...
+  Executable found: C:\Users\P50\Desktop\Olds-Cool-3D-Master\release\3D MASTER 2005 Beta\3D MASTER 2005.exe
+  File size: 12 MB
+  Recipe CLI found: C:\Users\P50\Desktop\Olds-Cool-3D-Master\release\3D MASTER 2005 Beta\am3d-recipe.exe
+{"ok": true, "validated": true, "name": "minimal_cube", "version": 1, "error_records": []}
+  Recipe CLI validated the bundled example recipe.
+
+Step 7: Running packaged GUI smoke mode...
+  Smoke test passed: 8 steps, all ok.
+
+=== Build complete! ===
+Release folder: C:\Users\P50\Desktop\Olds-Cool-3D-Master\release\3D MASTER 2005 Beta
+Executable: C:\Users\P50\Desktop\Olds-Cool-3D-Master\release\3D MASTER 2005 Beta\3D MASTER 2005.exe
+
+To smoke test manually, run the executable from the release folder.
+Next steps: verify Home screen, New Empty, Create Primitive, Save, and relaunch.

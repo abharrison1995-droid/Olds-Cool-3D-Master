@@ -174,6 +174,81 @@ if (Test-Path $recipeExePath) {
     exit 1
 }
 
+# ---- 6. Packaged GUI smoke mode ----
+# Drives the actual packaged .exe through a real workflow (blank startup,
+# primitive/profile creation through undo commands, material reference,
+# weighted action playback, multi-object software render, save/reopen,
+# transformed export) via its own --smoke-test flag (see am3d/ui/smoke.py
+# and MainWindow.main() in am3d/ui/app.py), instead of only checking that
+# the file exists. Runs under QT_QPA_PLATFORM=offscreen so it works on a
+# headless build machine; a timeout guards against a hang blocking CI
+# forever, and the manifest is checked for completeness (every step "ok"),
+# not just the process exit code, so a partially-run smoke test still
+# fails the build instead of shipping as silent "missing evidence".
+Write-Host ""
+Write-Host "Step 7: Running packaged GUI smoke mode..." -ForegroundColor Yellow
+$manifestPath = Join-Path $releaseDir "smoke_manifest.json"
+if (Test-Path $manifestPath) {
+    Remove-Item -Force $manifestPath
+}
+$prevQtPlatform = $env:QT_QPA_PLATFORM
+$env:QT_QPA_PLATFORM = "offscreen"
+$smokeTimeoutMs = 60000
+$smokeStdout = Join-Path $releaseDir "smoke_stdout.txt"
+$smokeStderr = Join-Path $releaseDir "smoke_stderr.txt"
+try {
+    # Raw System.Diagnostics.Process, not Start-Process -PassThru: the
+    # cmdlet has two sharp edges that both bit here empirically. (1) its
+    # -ArgumentList joins array elements into a single command-line string
+    # WITHOUT auto-quoting elements that contain spaces -- and $manifestPath
+    # does, since the release folder is "3D MASTER 2005 Beta" -- so the
+    # packaged exe's argv split "--out" from a truncated "...\release\3D",
+    # and the smoke test (which ran and passed) silently wrote its real
+    # manifest to that truncated path (a stray file literally named "3D"
+    # next to the release folder) while this script reported "no manifest
+    # produced" at the real path. (2) even after quoting fixed that, the
+    # -PassThru process object's .ExitCode read back empty/unreliable
+    # specifically when this script's own output was itself piped (e.g.
+    # through Tee-Object, as a CI wrapper commonly does) -- constructing
+    # and owning the Process object directly avoids both.
+    $psi = New-Object System.Diagnostics.ProcessStartInfo
+    $psi.FileName = $exePath
+    $psi.Arguments = "--smoke-test --out `"$manifestPath`""
+    $psi.UseShellExecute = $false
+    $psi.CreateNoWindow = $true
+    $psi.RedirectStandardOutput = $true
+    $psi.RedirectStandardError = $true
+    $smokeProc = [System.Diagnostics.Process]::Start($psi)
+    $stdoutTask = $smokeProc.StandardOutput.ReadToEndAsync()
+    $stderrTask = $smokeProc.StandardError.ReadToEndAsync()
+    $finished = $smokeProc.WaitForExit($smokeTimeoutMs)
+    if (-not $finished) {
+        Stop-Process -Id $smokeProc.Id -Force -ErrorAction SilentlyContinue
+        Write-Error "Packaged smoke test timed out after $($smokeTimeoutMs / 1000)s!"
+        exit 1
+    }
+    $stdoutTask.Result | Out-File -FilePath $smokeStdout -Encoding utf8
+    $stderrTask.Result | Out-File -FilePath $smokeStderr -Encoding utf8
+    $smokeExitCode = $smokeProc.ExitCode
+} finally {
+    $env:QT_QPA_PLATFORM = $prevQtPlatform
+}
+
+if (-not (Test-Path $manifestPath)) {
+    Write-Error "Packaged smoke test produced no manifest at $manifestPath (exit code $smokeExitCode)!"
+    if (Test-Path $smokeStdout) { Write-Host "--- stdout ---"; Get-Content $smokeStdout | Write-Host }
+    if (Test-Path $smokeStderr) { Write-Host "--- stderr ---"; Get-Content $smokeStderr | Write-Host }
+    exit 1
+}
+$smokeManifest = Get-Content $manifestPath -Raw | ConvertFrom-Json
+$incompleteSteps = $smokeManifest.steps | Where-Object { $_.status -ne "ok" }
+if ($smokeExitCode -ne 0 -or $smokeManifest.ok -ne $true -or $incompleteSteps) {
+    Write-Error "Packaged smoke test failed or is incomplete (exit code $smokeExitCode)!"
+    Get-Content $manifestPath | Write-Host
+    exit 1
+}
+Write-Host "  Smoke test passed: $($smokeManifest.steps.Count) steps, all ok." -ForegroundColor Green
+
 Write-Host ""
 Write-Host "=== Build complete! ===" -ForegroundColor Cyan
 Write-Host "Release folder: $releaseDir"

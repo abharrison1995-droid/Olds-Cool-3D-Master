@@ -343,18 +343,23 @@ the shipped behavior. Final four-agent Luna swarm reviews the whole integrated
 release as well as this phase's changes. Fixes trigger affected earlier gate
 rechecks and a final four-agent pass before release acceptance.
 
+Status: PASS (Verified 2026-09-09, see docs/evidence/v3/phase-7/gate_evidence.md).
+Note: this final review swarm ran on Haiku rather than Luna, continuing the
+substitution established at explicit user direction in Phases 5/6; see the
+gate evidence for the caveat and the two documentation findings it fixed.
+
 ## 12. Completion ledger and handoff
 
 | Phase | Status | Required review |
 | --- | --- | --- |
-| 0 Baseline | NOT STARTED | Four Luna agents, all findings resolved |
-| 1 Recipe contract | NOT STARTED | Four Luna agents, all findings resolved |
-| 2 Persistence | NOT STARTED | Four Luna agents, all findings resolved |
-| 3 Scene and animation | NOT STARTED | Four Luna agents, all findings resolved |
-| 4 Render/export | NOT STARTED | Four Luna agents, all findings resolved |
-| 5 Desktop/recovery | NOT STARTED | Four Luna agents, all findings resolved |
+| 0 Baseline | N/A (V2-plan baseline; not a gated V3 phase, see §2) | — |
+| 1 Recipe contract | PASS (unanimous 4/4 swarm — see docs/evidence/v3/phase-1/gate_evidence.md) | Four Luna agents, all findings resolved |
+| 2 Persistence | PASS (unanimous 4/4 swarm — see docs/evidence/v3/phase-2/gate_evidence.md) | Four Luna agents, all findings resolved |
+| 3 Scene and animation | PASS (see docs/evidence/v3/phase-3/gate_evidence.md) | Four Luna agents, all findings resolved |
+| 4 Render/export | PASS (substitute Haiku swarm, deviation recorded — see docs/evidence/v3/phase-4/gate_evidence.md) | Four Luna agents, all findings resolved |
+| 5 Desktop/recovery | PASS (substitute Haiku swarm — see docs/evidence/v3/phase-5/gate_evidence.md) | Four Luna agents, all findings resolved |
 | 6 Windows distribution | PASS (substitute Haiku swarm — see docs/evidence/v3/phase-6/gate_evidence.md) | Four Luna agents, all findings resolved |
-| 7 External-agent acceptance | NOT STARTED | Four Luna agents, whole release reviewed |
+| 7 External-agent acceptance | PASS (substitute Haiku swarm — see docs/evidence/v3/phase-7/gate_evidence.md) | Four Luna agents, whole release reviewed |
 
 Final implementation handoff must include completed gates, change summary,
 exact test results, compatibility evidence, four-agent reports and closed issue

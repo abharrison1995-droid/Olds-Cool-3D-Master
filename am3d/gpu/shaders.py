@@ -152,7 +152,7 @@ class ShaderProgram:
         self.uniform(name, value)
 
 
-def _build_vao(ctx, program, mesh, view_matrix=None):
+def _build_vao(ctx, program, mesh, view_matrix=None, albedo=None):
     """Upload mesh vertex data and build/return a VAO."""
     verts = np.asarray(mesh.vertices, dtype="f4")
     normals = np.asarray(mesh.normals, dtype="f4")
@@ -173,15 +173,19 @@ def _build_vao(ctx, program, mesh, view_matrix=None):
          (vbo_uv, "2f", "in_uv")],
         ibo)
 
-    proj = _perspective(45, mesh.vertices, size=_viewport_size(ctx)) \
-        if len(verts) > 0 else np.eye(4)
+    # One projection for the whole frame: it depends only on the FOV and the
+    # viewport aspect, never on this mesh's own extent, so every mesh in a
+    # scene is projected identically (finding GPU-03).
+    proj = _perspective(45, size=_viewport_size(ctx)) if len(verts) > 0 \
+        else np.eye(4)
     view = view_matrix if view_matrix is not None else np.eye(4)
     model = np.eye(4, dtype="f4")
 
     program.uniform("u_proj", proj)
     program.uniform("u_view", view)
     program.uniform("u_model", model)
-    program.uniform("u_albedo", (0.7, 0.7, 0.75, 1.0))
+    program.uniform("u_albedo", tuple(albedo) if albedo is not None
+                    else (0.7, 0.7, 0.75, 1.0))
 
     vao.render()
     return vao
@@ -198,8 +202,13 @@ def _viewport_size(ctx):
     return (1, 1)
 
 
-def _perspective(fov_deg, verts, size=(1, 1), near=0.1, far=100.0):
-    """Simple perspective projection fitting the mesh."""
+def _perspective(fov_deg, size=(1, 1), near=0.1, far=100.0):
+    """Perspective projection for a viewport of *size*.
+
+    Deliberately independent of any mesh: the framing is the camera's job
+    (see am3d.gpu.scene_camera), so that all meshes in a scene share one
+    projection and keep their relative placement and depth (finding GPU-03).
+    """
     fov = float(fov_deg) * np.pi / 180.0
     if isinstance(size, (tuple, list)):
         w, h = float(size[0]), float(size[1])

@@ -547,10 +547,12 @@ class RecipeExecutor:
                             hint="Check that the project state is valid.")
                     continue
 
-                from am3d.core.scene import scene_material_colors
+                from am3d.core.scene import (scene_material_colors,
+                                             scene_patch_material_colors)
                 scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
                 meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
                 mat_colors = scene_material_colors(scene)
+                patch_colors = scene_patch_material_colors(scene)
 
                 if fmt == "obj":
                     from am3d.export.obj import write_obj
@@ -561,9 +563,11 @@ class RecipeExecutor:
                     # must match what actually lands next to final_path.
                     staged_path = os.path.join(stage_dir, os.path.basename(final_path))
                     try:
-                        write_obj(staged_path, meshes, materials=mat_colors or None)
+                        write_obj(staged_path, meshes,
+                                  materials=mat_colors or None,
+                                  patch_materials=patch_colors or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "obj", "mesh_count": len(meshes)}))
-                        if mat_colors:
+                        if mat_colors or patch_colors:
                             mtl_staged = os.path.splitext(staged_path)[0] + ".mtl"
                             mtl_final = os.path.splitext(final_path)[0] + ".mtl"
                             staged_items.append((mtl_staged, mtl_final, "mtl", {"format": "mtl", "sidecar_of": final_path}))
@@ -577,7 +581,9 @@ class RecipeExecutor:
                     final_path = _with_ext(base, ".glb")
                     staged_path = os.path.join(stage_dir, f"export_{index}.glb")
                     try:
-                        write_glb(staged_path, meshes, materials=mat_colors or None)
+                        write_glb(staged_path, meshes,
+                                  materials=mat_colors or None,
+                                  patch_materials=patch_colors or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "glb", "mesh_count": len(meshes)}))
                     except Exception as exc:
                         res.add_error(

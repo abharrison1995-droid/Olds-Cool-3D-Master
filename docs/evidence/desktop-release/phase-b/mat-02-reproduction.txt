@@ -1,0 +1,8 @@
+patches on 'box': ['box_front', 'box_back', 'box_right', 'box_left', 'box_top', 'box_bottom']
+patch.material set: [('box_front', 'red'), ('box_back', 'blue'), ('box_right', None)]
+
+evaluated mesh attrs carrying patch identity: NONE
+scene.object_materials : {'box': None}
+scene_material_colors  : {}
+
+-> per-patch material assignment is dropped entirely: True

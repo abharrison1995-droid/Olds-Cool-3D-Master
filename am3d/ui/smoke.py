@@ -174,9 +174,10 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         win.push_command(SetObjectTransformCommand(
             win.session, "Box", before, after))
 
-        meshes, mat_colors = win._export_scene()
+        meshes, mat_colors, patch_colors = win._export_scene()
         export_path = str(tmp_dir / "smoke_export.obj")
-        write_obj(export_path, meshes, materials=mat_colors or None)
+        write_obj(export_path, meshes, materials=mat_colors or None,
+                  patch_materials=patch_colors or None)
         size = Path(export_path).stat().st_size
         if size <= 0:
             raise AssertionError("export produced an empty file")

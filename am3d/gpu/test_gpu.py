@@ -89,8 +89,8 @@ def test_perspective_respects_aspect():
     """Regression: _perspective must derive aspect from the size parameter."""
     import pytest
     from am3d.gpu.shaders import _perspective
-    m_wide = _perspective(45, None, size=(64, 32))
-    m_square = _perspective(45, None, size=(32, 32))
+    m_wide = _perspective(45, size=(64, 32))
+    m_square = _perspective(45, size=(32, 32))
     assert m_wide[0, 0] == pytest.approx(m_square[0, 0] / 2.0)  # aspect 2
     assert m_wide[1, 1] == pytest.approx(m_square[1, 1])
 
@@ -208,7 +208,7 @@ def test_render_frame_accepts_ndarray_camera(monkeypatch):
 
     seen = []
 
-    def _fake_render_mesh(ctx, prog, mesh, view_matrix=None):
+    def _fake_render_mesh(ctx, prog, mesh, view_matrix=None, albedo=None):
         seen.append(view_matrix)
         return None
 

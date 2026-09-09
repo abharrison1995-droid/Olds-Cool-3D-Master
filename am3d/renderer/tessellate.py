@@ -22,7 +22,8 @@ from am3d.core.project import Project
 class MeshData:
     """A triangulated result ready for GPU upload."""
 
-    def __init__(self, vertices, indices, normals=None, uvs=None, name="mesh"):
+    def __init__(self, vertices, indices, normals=None, uvs=None, name="mesh",
+                 tri_groups=None, group_names=None):
         self.vertices = np.asarray(vertices, dtype=np.float64).reshape(-1, 3)
         self.indices = np.asarray(indices, dtype=np.int64).reshape(-1, 3)
         if uvs is None:
@@ -30,6 +31,31 @@ class MeshData:
         self.uvs = np.asarray(uvs, dtype=np.float64).reshape(-1, 2)
         self.normals = normals if normals is not None else self.compute_normals()
         self.name = name
+        # Triangle -> source patch identity (finding MAT-02). A patch may
+        # carry its own material, so an object's triangles are not
+        # necessarily one material group; without this the assignment is
+        # lost at the tessellation boundary and every consumer (viewport,
+        # OBJ/MTL, GLB, rendered images) falls back to the object colour.
+        # group_names[i] names group id i; tri_groups[t] is the id of
+        # triangle t. -1 means "no patch" (e.g. tessellated open splines).
+        self.group_names = list(group_names) if group_names else []
+        if tri_groups is None:
+            tri_groups = np.full(len(self.indices), -1, dtype=np.int64)
+        self.tri_groups = np.asarray(tri_groups, dtype=np.int64).reshape(-1)
+        if len(self.tri_groups) != len(self.indices):
+            self.tri_groups = np.full(len(self.indices), -1, dtype=np.int64)
+
+    def group_triangles(self):
+        """``{patch_name: index array of triangles}`` for grouped triangles.
+
+        Triangles with no patch identity are collected under ``None``.
+        """
+        out = {}
+        for gid in np.unique(self.tri_groups):
+            key = (self.group_names[gid]
+                   if 0 <= gid < len(self.group_names) else None)
+            out[key] = np.nonzero(self.tri_groups == gid)[0]
+        return out
 
     def compute_normals(self):
         """Angle-weighted smooth vertex normals via face accumulation."""
@@ -129,6 +155,10 @@ def tessellate_object(obj, nu=16, nv=16):
     all_v = []
     all_u = []
     all_t = []
+    # Which patch each emitted triangle came from, so a per-patch material
+    # survives tessellation (finding MAT-02).
+    group_names = []
+    all_g = []
     offset = 0
 
     for (pname, interior), cell in zip(patch_items, cells):
@@ -139,7 +169,11 @@ def tessellate_object(obj, nu=16, nv=16):
             uv = uv * np.array([su, sv]) + np.array([ou, ov])
         all_v.append(v)
         all_u.append(uv)
+        t = np.asarray(t).reshape(-1, 3)
         all_t.append(t + offset)
+        gid = len(group_names)
+        group_names.append(pname)
+        all_g.append(np.full(len(t), gid, dtype=np.int64))
         offset += v.shape[0]
 
     for spl in obj.splines.values():
@@ -147,12 +181,17 @@ def tessellate_object(obj, nu=16, nv=16):
         all_v.append(m.vertices)
         all_u.append(m.uvs)
         all_t.append(m.indices + offset)
+        # Open splines are construction curves, not patch surface -- they
+        # carry no patch material (see SCOPE-01 in the release plan).
+        all_g.append(np.full(len(m.indices), -1, dtype=np.int64))
         offset += m.vertices.shape[0]
 
     if not all_v:
         return MeshData(np.zeros((0, 3)), np.zeros((0, 3), dtype=np.int64))
     return MeshData(np.concatenate(all_v), np.concatenate(all_t),
-                    uvs=np.concatenate(all_u))
+                    uvs=np.concatenate(all_u),
+                    tri_groups=(np.concatenate(all_g) if all_g else None),
+                    group_names=group_names)
 
 
 def tessellate_project(project: Project, nu=16, nv=16):

@@ -25,6 +25,11 @@ class EvaluatedScene:
     meshes: dict[str, MeshData] = field(default_factory=dict)
     materials: dict[str, Material] = field(default_factory=dict)
     object_materials: dict[str, Optional[str]] = field(default_factory=dict)
+    # {object_name: {patch_name: material_name}} for patches that override
+    # the object's material (finding MAT-02). Only populated for patches
+    # that actually carry an assignment, so an unassigned patch inherits the
+    # object material exactly as before.
+    patch_materials: dict[str, dict[str, str]] = field(default_factory=dict)
     bounds: tuple[np.ndarray, np.ndarray] = field(
         default_factory=lambda: (np.zeros(3), np.zeros(3)))
 
@@ -68,6 +73,7 @@ def evaluate_scene(
     proj = session.project
     meshes: dict[str, MeshData] = {}
     obj_materials: dict[str, Optional[str]] = {}
+    patch_materials: dict[str, dict[str, str]] = {}
 
     obj_bone_worlds: dict[str, dict[str, np.ndarray]] = {}
 
@@ -119,6 +125,10 @@ def evaluate_scene(
             continue
 
         obj_materials[name] = getattr(obj, "material", None)
+        per_patch = {p.name: p.material for p in getattr(obj, "patches", [])
+                     if getattr(p, "material", None)}
+        if per_patch:
+            patch_materials[name] = per_patch
         source = obj
 
         rig = getattr(proj, "skeletons", {}).get(name)
@@ -178,6 +188,7 @@ def evaluate_scene(
         meshes=meshes,
         materials=dict(proj.materials),
         object_materials=obj_materials,
+        patch_materials=patch_materials,
         bounds=bounds,
     )
 
@@ -200,4 +211,58 @@ def scene_material_colors(scene: EvaluatedScene) -> dict[str, tuple]:
         r, g, b = float(mat.color[0]), float(mat.color[1]), float(mat.color[2])
         a = float(mat.color[3]) if len(mat.color) >= 4 else 1.0
         colors[obj_name] = (r, g, b, a)
+    return colors
+
+
+def _material_rgba(scene, mat_name):
+    """``(r, g, b, a)`` for *mat_name*, or None when it has no usable colour."""
+    mat = scene.materials.get(mat_name) if mat_name else None
+    if mat is None or mat.color is None or len(mat.color) < 3:
+        return None
+    return (float(mat.color[0]), float(mat.color[1]), float(mat.color[2]),
+            float(mat.color[3]) if len(mat.color) >= 4 else 1.0)
+
+
+def scene_patch_material_colors(scene: EvaluatedScene) -> dict:
+    """``{object_name: {patch_name: (r, g, b, a)}}`` for per-patch materials.
+
+    Companion to :func:`scene_material_colors` for finding MAT-02: two
+    differently coloured patches on one object must stay distinct through
+    rendering and export instead of collapsing to the object's own colour.
+    Patches with no assignment are absent here and inherit the object colour.
+    """
+    out: dict[str, dict[str, tuple]] = {}
+    for obj_name, patches in (scene.patch_materials or {}).items():
+        resolved = {}
+        for patch_name, mat_name in patches.items():
+            rgba = _material_rgba(scene, mat_name)
+            if rgba is not None:
+                resolved[patch_name] = rgba
+        if resolved:
+            out[obj_name] = resolved
+    return out
+
+
+def scene_triangle_colors(scene: EvaluatedScene, obj_name: str):
+    """Per-triangle ``(N, 4)`` colours for *obj_name*, or None if uniform.
+
+    Resolves each triangle through its patch material, falling back to the
+    object material. Returns None when every triangle would get the same
+    colour, so callers can keep their existing single-colour fast path.
+    """
+    mesh = scene.meshes.get(obj_name)
+    if mesh is None or not len(mesh.indices):
+        return None
+    per_patch = scene_patch_material_colors(scene).get(obj_name)
+    if not per_patch:
+        return None
+    base = _material_rgba(scene, scene.object_materials.get(obj_name)) \
+        or (0.7, 0.7, 0.75, 1.0)
+    colors = np.tile(np.asarray(base, dtype=np.float64), (len(mesh.indices), 1))
+    for patch_name, tri_idx in mesh.group_triangles().items():
+        rgba = per_patch.get(patch_name)
+        if rgba is not None and len(tri_idx):
+            colors[tri_idx] = rgba
+    if np.allclose(colors, colors[0]):
+        return None
     return colors

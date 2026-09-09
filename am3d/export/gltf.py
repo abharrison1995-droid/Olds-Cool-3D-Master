@@ -25,7 +25,8 @@ def _pad(data: bytearray, alignment: int = 4, fill: int = 0) -> None:
 
 
 def write_glb(path: str, meshes: dict, *,
-              materials: dict | None = None) -> str:
+              materials: dict | None = None,
+              patch_materials: dict | None = None) -> str:
     """Write ``{name: MeshData}`` to *path* as a single binary glTF file.
 
     Parameters
@@ -35,6 +36,13 @@ def write_glb(path: str, meshes: dict, *,
         provided each mesh primitive is assigned a glTF material entry with
         ``pbrMetallicRoughness.baseColorFactor``.  Alpha defaults to 1.0 if
         omitted from the colour tuple.
+    patch_materials:
+        Optional ``{object_name: {patch_name: (r, g, b, a)}}``. glTF binds a
+        material per *primitive*, so an object whose patches carry different
+        materials is written as several primitives sharing one set of vertex
+        accessors -- one primitive per material group, each with its own
+        index accessor (finding MAT-02). Patches with no entry fall into the
+        object's own material primitive.
     """
     bin_buf = bytearray()
     buffer_views: list = []
@@ -58,6 +66,23 @@ def write_glb(path: str, meshes: dict, *,
                     "roughnessFactor": 0.8,
                 },
             })
+
+    def _material_index(name, rgba):
+        """Register (or reuse) a glTF material entry and return its index."""
+        if name in mat_index_map:
+            return mat_index_map[name]
+        r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
+        a = float(rgba[3]) if len(rgba) >= 4 else 1.0
+        mat_index_map[name] = len(gltf_materials)
+        gltf_materials.append({
+            "name": f"mat_{name}",
+            "pbrMetallicRoughness": {
+                "baseColorFactor": [r, g, b, a],
+                "metallicFactor": 0.0,
+                "roughnessFactor": 0.8,
+            },
+        })
+        return mat_index_map[name]
 
     def add_view(data: bytes) -> int:
         _pad(bin_buf)
@@ -110,20 +135,43 @@ def write_glb(path: str, meshes: dict, *,
             })
             prim["attributes"]["TEXCOORD_0"] = len(accessors) - 1
 
-        idx_view = add_view(tris.astype("<u4").tobytes())
-        accessors.append({
-            "bufferView": idx_view,
-            "componentType": _COMPONENT_UINT,
-            "count": int(len(tris)),
-            "type": "SCALAR",
-        })
-        prim["indices"] = len(accessors) - 1
+        def _index_accessor(triangle_indices):
+            view = add_view(np.asarray(triangle_indices,
+                                       dtype=np.int64).ravel()
+                            .astype("<u4").tobytes())
+            accessors.append({
+                "bufferView": view,
+                "componentType": _COMPONENT_UINT,
+                "count": int(np.asarray(triangle_indices).size),
+                "type": "SCALAR",
+            })
+            return len(accessors) - 1
 
-        # Assign material if available
-        if name in mat_index_map:
-            prim["material"] = mat_index_map[name]
+        obj_patches = (patch_materials or {}).get(name)
+        prims = []
+        if obj_patches:
+            tri_rows = np.asarray(mesh.indices, dtype=np.int64)
+            for patch_name, idx in sorted(
+                    mesh.group_triangles().items(),
+                    key=lambda kv: int(kv[1][0]) if len(kv[1]) else -1):
+                if not len(idx):
+                    continue
+                sub = dict(prim)
+                sub["indices"] = _index_accessor(tri_rows[idx])
+                rgba = obj_patches.get(patch_name)
+                if rgba is not None:
+                    sub["material"] = _material_index(
+                        f"{name}__{patch_name}", rgba)
+                elif name in mat_index_map:
+                    sub["material"] = mat_index_map[name]
+                prims.append(sub)
+        if not prims:
+            prim["indices"] = _index_accessor(tris)
+            if name in mat_index_map:
+                prim["material"] = mat_index_map[name]
+            prims = [prim]
 
-        meshes_json.append({"name": name, "primitives": [prim]})
+        meshes_json.append({"name": name, "primitives": prims})
         nodes.append({"mesh": len(meshes_json) - 1, "name": name})
 
     gltf = {
@@ -152,4 +200,4 @@ def write_glb(path: str, meshes: dict, *,
         fh.write(json_bytes)
         fh.write(struct.pack("<II", len(bin_bytes), _CHUNK_BIN))
         fh.write(bin_bytes)
-    return path
+    return path

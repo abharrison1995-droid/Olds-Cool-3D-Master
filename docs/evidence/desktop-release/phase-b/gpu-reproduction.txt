@@ -1,0 +1,17 @@
+=== GPU-01: Project input bypasses shared scene evaluation ===
+shared evaluator meshes      : ['big']
+render_frame's tessellate_project: ['big', 'small']
+  -> hidden object included by render_frame: True
+  big centroid x: shared=-5.000 render_frame=0.000  -> transform applied by render_frame: False
+
+=== GPU-02: software fallback renders only the first mesh ===
+visible meshes passed to fallback: 2
+fallback coverage px          : 73972
+first-mesh-only coverage px   : 73972
+  -> fallback identical to first mesh alone: True
+
+=== GPU-03: per-mesh default camera ===
+default camera translation per mesh:
+   big    -> [-0.  0. -3.]
+   small  -> [-0.036 -0.    -3.   ]
+  -> every mesh gets its own camera (relative placement lost): True

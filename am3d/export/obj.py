@@ -18,8 +18,14 @@ def _face_token(v: int, vt: int | None, vn: int | None) -> str:
     return f"{v}"
 
 
+def _patch_material_name(obj_name: str, patch_name: str) -> str:
+    """MTL material name for one patch of one object (finding MAT-02)."""
+    return f"mat_{obj_name}__{patch_name}"
+
+
 def _write_meshes(fh, meshes: dict, name_prefix: str = "",
-                  materials: dict | None = None, mtl_filename: str | None = None) -> None:
+                  materials: dict | None = None, mtl_filename: str | None = None,
+                  patch_materials: dict | None = None) -> None:
     """Write ``{name: MeshData}`` as OBJ groups into an open text handle.
 
     ``v``, ``vt`` and ``vn`` occupy *independent* 1-based index spaces in the
@@ -38,6 +44,12 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
     mtl_filename:
         Base filename (no directory) of the MTL sidecar to reference in the
         ``mtllib`` directive.  Required when *materials* is not empty.
+    patch_materials:
+        Optional ``{object_name: {patch_name: (r, g, b, a)}}``. A patch may
+        carry its own material, so one object is not necessarily one material
+        group; when present, this object's faces are emitted as several
+        ``usemtl`` groups instead of one (finding MAT-02). Patches without an
+        entry fall back to the object's own material.
     """
     if materials and mtl_filename:
         fh.write(f"mtllib {mtl_filename}\n")
@@ -70,7 +82,7 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
             for nx, ny, nz in np.asarray(normals, dtype=np.float64):
                 fh.write(f"vn {nx:.6f} {ny:.6f} {nz:.6f}\n")
 
-        for tri in np.asarray(mesh.indices, dtype=np.int64):
+        def _write_face(tri):
             refs = []
             for corner in (int(tri[0]), int(tri[1]), int(tri[2])):
                 refs.append(_face_token(
@@ -79,6 +91,29 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
                     corner + vn_base if has_vn else None))
             fh.write("f " + " ".join(refs) + "\n")
 
+        tris = np.asarray(mesh.indices, dtype=np.int64)
+        obj_patches = (patch_materials or {}).get(name)
+        if obj_patches:
+            # Faces are grouped by source patch so two differently coloured
+            # patches on one object stay distinct in the OBJ (finding MAT-02).
+            # Groups are emitted in first-triangle order, keeping face order
+            # stable and readable in an external viewer.
+            groups = mesh.group_triangles()
+            for patch_name, idx in sorted(
+                    groups.items(),
+                    key=lambda kv: int(kv[1][0]) if len(kv[1]) else -1):
+                if not len(idx):
+                    continue
+                if patch_name in obj_patches:
+                    fh.write(f"usemtl {_patch_material_name(name, patch_name)}\n")
+                elif mat_name:
+                    fh.write(f"usemtl {mat_name}\n")
+                for tri in tris[idx]:
+                    _write_face(tri)
+        else:
+            for tri in tris:
+                _write_face(tri)
+
         v_base += len(verts)
         if has_vt:
             vt_base += len(verts)
@@ -86,22 +121,31 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
             vn_base += len(verts)
 
 
-def _write_mtl(path: str, materials: dict) -> None:
-    """Write a .mtl sidecar file for the given ``{name: (r,g,b,a)}`` map."""
+def _write_mtl(path: str, materials: dict,
+               patch_materials: dict | None = None) -> None:
+    """Write a .mtl sidecar for object and per-patch ``(r,g,b,a)`` colours."""
+
+    def _emit(fh, mtl_name, rgba):
+        r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
+        fh.write(f"\nnewmtl {mtl_name}\n")
+        fh.write(f"Kd {r:.6f} {g:.6f} {b:.6f}\n")
+        fh.write("Ka 0.000000 0.000000 0.000000\n")
+        fh.write("Ks 0.000000 0.000000 0.000000\n")
+        if len(rgba) >= 4:
+            fh.write(f"d {float(rgba[3]):.6f}\n")
+
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# MTL exported by 3D MASTER:2005\n")
-        for name, rgba in materials.items():
-            r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
-            fh.write(f"\nnewmtl mat_{name}\n")
-            fh.write(f"Kd {r:.6f} {g:.6f} {b:.6f}\n")
-            fh.write("Ka 0.000000 0.000000 0.000000\n")
-            fh.write("Ks 0.000000 0.000000 0.000000\n")
-            if len(rgba) >= 4:
-                fh.write(f"d {float(rgba[3]):.6f}\n")
+        for name, rgba in (materials or {}).items():
+            _emit(fh, f"mat_{name}", rgba)
+        for obj_name, patches in (patch_materials or {}).items():
+            for patch_name, rgba in patches.items():
+                _emit(fh, _patch_material_name(obj_name, patch_name), rgba)
 
 
 def write_obj(path: str, meshes: dict, *,
-              materials: dict | None = None) -> str:
+              materials: dict | None = None,
+              patch_materials: dict | None = None) -> str:
     """Write ``{name: MeshData}`` to *path* as a single OBJ file.
 
     Parameters
@@ -110,18 +154,23 @@ def write_obj(path: str, meshes: dict, *,
         Optional ``{object_name: (r, g, b, a)}`` flat-colour map. When
         provided, a ``.mtl`` sidecar is written alongside the OBJ and
         referenced via ``mtllib``.
+    patch_materials:
+        Optional ``{object_name: {patch_name: (r, g, b, a)}}`` per-patch
+        colours; see :func:`_write_meshes` (finding MAT-02).
     """
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
     mtl_filename = None
-    if materials:
+    if materials or patch_materials:
         stem = os.path.splitext(os.path.basename(path))[0]
         mtl_filename = stem + ".mtl"
         mtl_path = os.path.join(os.path.dirname(os.path.abspath(path)), mtl_filename)
-        _write_mtl(mtl_path, materials)
+        _write_mtl(mtl_path, materials, patch_materials)
 
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# Exported by 3D MASTER:2005\n")
-        _write_meshes(fh, meshes, materials=materials, mtl_filename=mtl_filename)
+        _write_meshes(fh, meshes, materials=materials,
+                      mtl_filename=mtl_filename,
+                      patch_materials=patch_materials)
     return path
 
 

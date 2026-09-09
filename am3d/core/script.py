@@ -371,8 +371,9 @@ class Session:
         ch = act.get_channel(bone, prop)
         if ch is None:
             ch = act.add_channel(bone, prop)
-        time = float(time)
-        return ch.add_key(time, value, interp or Interpolation.SMOOTH)
+        # Channel.add_key owns the replace-at-same-time invariant.
+        return ch.add_key(float(time), value,
+                          interp or Interpolation.SMOOTH)
 
     def remove_keyframe(self, action_name: str, bone: str, prop: str,
                         index: int):

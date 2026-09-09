@@ -88,6 +88,17 @@ def test_invalid_recipe_raises_before_touching_disk(tmp_path, executor):
     assert executor.session.project.objects == {}
 
 
+def test_malformed_recipe_dict_raises_value_error_not_parser_exception(executor):
+    """recipe_from_dict() used to be called outside execute()'s try block,
+    so a parse-stage failure escaped as whatever the parser happened to
+    raise (a bare TypeError here, from an unhashable dict landing in a
+    `in PRIMITIVES` membership check) instead of the same "invalid recipe"
+    ValueError contract validate_recipe's failures already use."""
+    bad = {"objects": [{"name": "a", "primitive": {"not": "a string"}}]}
+    with pytest.raises(ValueError, match="invalid recipe"):
+        executor.execute(bad)
+
+
 def test_runtime_error_is_captured_not_raised(tmp_path, executor):
     # A primitive param that survives schema validation but fails at build.
     recipe = {

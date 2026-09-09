@@ -201,6 +201,25 @@ class RecipeExecutor:
                 hint="Inspect the writer error and retry the export.")
 
     def execute(self, recipe) -> ExecutionResult:
+        if not isinstance(recipe, Recipe):
+            try:
+                recipe = recipe_from_dict(recipe)
+            except RecipeValidationError:
+                # A structured failure -- let it fall through to the
+                # try/except below, which reports it as a normal
+                # ExecutionResult error (schema-validation contract).
+                pass
+            except (TypeError, ValueError) as exc:
+                # Any other parser failure -- e.g. TypeError from an
+                # unhashable dict landing in a membership check -- has no
+                # structured code/path/hint to report, so normalize it to
+                # the same "invalid recipe" contract validate_recipe's
+                # failures use below, instead of letting whatever the
+                # parser happened to raise escape uncaught. This must
+                # happen before the try/except below, which surfaces
+                # failures as ExecutionResult errors rather than raising.
+                raise ValueError(f"invalid recipe: {exc}") from exc
+
         result = ExecutionResult()
         original = self.session
         try:

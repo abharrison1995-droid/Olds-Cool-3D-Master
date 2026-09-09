@@ -48,6 +48,23 @@ def _check_container_depth(val, depth=0):
             _check_container_depth(item, depth + 1)
 
 
+def _unpack_msgpack(payload: bytes) -> dict:
+    """``msgpack.unpackb`` with the array-length safety limit applied at
+    unpack time.
+
+    ``_check_container_depth``/``_unpack_ndarray`` catch oversized data only
+    after msgpack has already built the Python structure in memory -- too
+    late to stop a single huge top-level array claim from allocating it.
+    ``max_array_len`` rejects that during unpacking instead, and any failure
+    is surfaced as ``ProjectFormatError`` like every other load-time error.
+    """
+    try:
+        return msgpack.unpackb(payload, raw=False,
+                               max_array_len=_MAX_ARRAY_ELEMENTS)
+    except (ValueError, msgpack.exceptions.UnpackException) as exc:
+        raise ProjectFormatError(f"Malformed msgpack data: {exc}") from exc
+
+
 def validate_project_bytes(payload: bytes) -> None:
     """Check *payload* size and structural limits before unpacking.
 
@@ -294,7 +311,7 @@ def dump_action(action: Action) -> bytes:
 def load_action(payload: bytes) -> Action:
     """Deserialize an Action from :func:`dump_action` output."""
     validate_project_bytes(payload)
-    data = msgpack.unpackb(payload, raw=False)
+    data = _unpack_msgpack(payload)
     _check_container_depth(data)
     return _decode(data)
 
@@ -459,7 +476,14 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
 
 def load_project_bytes(payload: bytes) -> Project:
     validate_project_bytes(payload)
-    data = msgpack.unpackb(payload, raw=False)
+    data = _unpack_msgpack(payload)
+    # Absent means a file saved before this field existed (format 1);
+    # only a version newer than this build understands is a hard error.
+    fmt = data.get("format_version", 1)
+    if not isinstance(fmt, int) or fmt > FORMAT_VERSION:
+        raise ProjectFormatError(
+            f"Unsupported project format version {fmt!r} "
+            f"(this build supports up to {FORMAT_VERSION})")
     validate_project_data(data)
     p = Project(name=data["name"])
     p.mode = data.get("mode", "object")
@@ -507,9 +531,17 @@ def load_project_bytes(payload: bytes) -> Project:
             if np.any(weights_arr <= 0):
                 raise ProjectFormatError(f"object {oname!r} spline {sname!r}: weights must be positive")
             cps = [_CP(pts_arr[i], float(weights_arr[i])) for i in range(len(pts_arr))]
-            obj.add_spline(_Spline(name=sname, cps=cps,
-                                   degree=int(sdata.get("degree", 3)),
-                                   closed=bool(sdata.get("closed", False))))
+            if "degree" not in sdata:
+                raise ProjectFormatError(f"object {oname!r} spline {sname!r}: missing 'degree'")
+            degree = sdata["degree"]
+            if not isinstance(degree, int) or isinstance(degree, bool) or degree < 1:
+                raise ProjectFormatError(f"object {oname!r} spline {sname!r}: 'degree' must be a positive integer")
+            if "closed" not in sdata:
+                raise ProjectFormatError(f"object {oname!r} spline {sname!r}: missing 'closed'")
+            closed = sdata["closed"]
+            if not isinstance(closed, bool):
+                raise ProjectFormatError(f"object {oname!r} spline {sname!r}: 'closed' must be a boolean")
+            obj.add_spline(_Spline(name=sname, cps=cps, degree=degree, closed=closed))
         for pdata in odata.get("patches", []):
             interior = None
             if pdata.get("interior") is not None:

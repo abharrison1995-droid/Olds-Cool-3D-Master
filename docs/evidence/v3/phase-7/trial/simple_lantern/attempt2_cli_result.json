@@ -1,0 +1,66 @@
+{
+  "ok": true,
+  "objects": [
+    "base",
+    "frame_body",
+    "frame_collar",
+    "shade"
+  ],
+  "materials": [
+    "wrought_iron",
+    "amber_glass"
+  ],
+  "actions": [],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_mesh.obj"
+    },
+    {
+      "format": "mtl",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_mesh.mtl"
+    },
+    {
+      "format": "glb",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_asset.glb"
+    },
+    {
+      "format": "am3d",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_project.am3d"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "error_records": [],
+  "manifest": [
+    {
+      "format": "obj",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_mesh.obj",
+      "status": "written",
+      "size_bytes": 156607,
+      "mesh_count": 4
+    },
+    {
+      "format": "mtl",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_mesh.mtl",
+      "status": "written",
+      "size_bytes": 545,
+      "sidecar_of": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_mesh.obj"
+    },
+    {
+      "format": "glb",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_asset.glb",
+      "status": "written",
+      "size_bytes": 58008,
+      "mesh_count": 4
+    },
+    {
+      "format": "am3d",
+      "path": "C:\\Users\\P50\\Desktop\\Olds-Cool-3D-Master\\docs\\evidence\\v3\\phase-7\\trial\\simple_lantern\\out\\garden_lantern_project.am3d",
+      "status": "written",
+      "size_bytes": 12654,
+      "version": 2
+    }
+  ],
+  "partial_publication": false
+}

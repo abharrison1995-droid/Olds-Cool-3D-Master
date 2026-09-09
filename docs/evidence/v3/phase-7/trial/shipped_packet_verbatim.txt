@@ -1,0 +1,404 @@
+=== BEGIN docs/recipes/EXTERNAL_AGENT_GUIDE.md ===
+# External recipe agent guide — schema version 1
+
+Emit one JSON object matching [`recipe-v1.schema.json`](recipe-v1.schema.json).
+The `version` field is optional for backwards compatibility and defaults to
+`1`; any other version is rejected. Unknown fields are rejected with a stable
+error record instead of being silently ignored.
+
+## 1. Invocation & Machine Interface
+
+Invoke the shipped source entry point with:
+
+```text
+python -m am3d.recipes --recipe recipe.json --out output-directory
+```
+
+Stdin execution is also supported:
+
+```text
+cat recipe.json | python -m am3d.recipes --recipe - --out output-directory
+```
+
+Machine mode prints exactly one JSON result to `stdout`. Diagnostics are also
+written to `stderr`. A successful result has `ok: true`, an artifact `manifest`,
+and one manifest entry per physical file. A failure has `ok: false` and
+`error_records` containing `code`, `stage`, `path`, `message`, and an optional
+`hint`. Exit code `0` means success; exit code `1` means parse, validation,
+runtime, resource, or write failure.
+
+Use `--validate-only` to check a recipe without creating a Session or any
+output. With `--out`, every export path must be relative and must resolve
+inside that directory; absolute paths, drive letters, and traversal escapes are rejected.
+Without `--out`, relative exports resolve next to the recipe file.
+
+### Packaged entry point (no Python required)
+
+Windows releases also ship `am3d-recipe.exe` alongside the GUI executable
+in the release folder -- a standalone build of the same entry point, for an
+external process that cannot rely on Python being installed:
+
+```text
+am3d-recipe.exe --recipe recipe.json --out output-directory
+```
+
+```text
+type recipe.json | am3d-recipe.exe --recipe - --out output-directory
+```
+
+It is built from the identical `am3d.recipes.cli:main` source as
+`python -m am3d.recipes`, so JSON report shape, exit codes (`0`/`1`),
+stdin (`--recipe -`) support, and `--validate-only` semantics are exactly
+the same -- only the invocation differs.
+
+## 2. Coordinate, Angle, and Time Conventions
+
+- **Coordinate System**: Right-handed, $Y$-up, $X$-right, $Z$-forward.
+- **Units**: 1.0 unit $\approx$ 1.0 meter.
+- **Rotations**: Expressed as Euler angles in radians or quaternion `[x, y, z, w]`.
+- **Time**: All durations and keyframe times are floating-point seconds ($> 0$).
+- **Colors**: `[r, g, b]` or `[r, g, b, a]` normalized in the range $[0.0, 1.0]$.
+- **PBR Roughness / Metalness**: Normalized in the range $[0.0, 1.0]$.
+
+## 3. Supported Primitives & Parameters
+
+Supported primitives under `objects[].primitive`:
+- `sphere`: `radius` (float), `sections` (int, longitude divisions), `rings` (int, latitude divisions).
+- `box`: `width` (float), `height` (float), `depth` (float).
+- `cylinder`: `radius` (float), `height` (float), `sections` (int).
+- `cone`: `radius` (float), `height` (float), `sections` (int).
+- `torus`: `major_radius` (float), `minor_radius` (float), `sections` (int), `rings` (int).
+- `plane`: `width` (float), `depth` (float).
+- `lathe`: revolves a profile spline around the Y-axis (`sections`, `angle`).
+- `extrude`: sweeps a 2D spline along the Z-axis (`depth`, `cap_start`, `cap_end`).
+
+## 4. Rigging & Bone Rules
+
+- Bone definitions must supply `name`, `head: [x, y, z]`, `tail: [x, y, z]`.
+- `parent` references must refer to an earlier or co-defined bone in the same object.
+- **Acyclic Hierarchy**: Bone parenting must form an acyclic tree. Circular references (`A -> B -> A` or self-parenting) are rejected.
+- Procedural actions (`walk`, `idle`, `jump`) require a rigged character with bones.
+
+## 5. Artifact Formats & Capabilities
+
+- `.am3d`: Native editable project preserving patches, splines, bones, actions, active action, and assignments.
+- `.obj`: Static Wavefront OBJ mesh (bind or posed, whichever pose is active) with normals, UV coordinates, and an optional `.mtl` sidecar carrying each object's flat material colour.
+- `.glb`: Static binary glTF 2.0 asset (bind or posed) with an optional `materials` array (`pbrMetallicRoughness.baseColorFactor`) when objects have a flat-colour material assigned. This is a **static pose snapshot only** — it does not embed skeletal animation data; do not describe a `.glb` export as an animated asset.
+- `spritesheet`: Rendered orthographic or perspective **multi-view** sprite grid — one object orbited through `views` camera angles at a fixed pose (`views`, `size`, `color`, `silhouette`).
+- `toon_sheet`: Cel-shaded multi-view sprite sheet with ink outlines (`bands`, `ink`).
+- `animation_sheet`: Rendered **animation** sprite grid — the whole scene composited at `frames` evenly-spaced times across `action`'s `start`..`end` range (`action`, `frames`, `columns`, `size`, `color`, `start`, `end`). Distinct from `spritesheet`/`toon_sheet`: it samples *time*, not camera angle, and every cell shares the same view.
+
+## 6. External Agent Error-Correction Loop
+
+When a recipe is rejected, inspect `error_records` in the JSON stdout response:
+
+```json
+{
+  "ok": false,
+  "errors": ["object 'hero': duplicate bone name 'arm'"],
+  "error_records": [
+    {
+      "code": "duplicate_bone_name",
+      "stage": "schema",
+      "path": "recipe.objects[1].bones[2].name",
+      "message": "object 'hero': duplicate bone name 'arm'",
+      "hint": "Ensure each bone name within an object is unique."
+    }
+  ]
+}
+```
+
+Correction workflow:
+1. Locate the exact JSON path specified in `record.path` (e.g. `recipe.objects[1].bones[2].name`).
+2. Read the error code and correction hint.
+3. Fix the offending field in your JSON model output.
+4. Retry execution with the updated recipe.
+
+## 7. Examples
+
+- [Minimal Cube Recipe](examples/minimal.json)
+- [Fully Rigged Knight Recipe](examples/knight_full.json)
+
+=== END EXTERNAL_AGENT_GUIDE.md ===
+
+=== BEGIN docs/recipes/recipe-v1.schema.json ===
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://3d-master-2005.local/recipe/v1",
+  "title": "3D MASTER:2005 external recipe",
+  "type": "object",
+  "additionalProperties": false,
+  "properties": {
+    "version": { "type": "integer", "const": 1 },
+    "name": { "type": "string", "minLength": 1 },
+    "objects": { "type": "array", "items": { "$ref": "#/$defs/object" } },
+    "materials": { "type": "array", "items": { "$ref": "#/$defs/material" } },
+    "actions": { "type": "array", "items": { "$ref": "#/$defs/action" } },
+    "exports": { "type": "array", "items": { "$ref": "#/$defs/export" } }
+  },
+  "$defs": {
+    "object": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "primitive": {
+          "type": ["string", "null"],
+          "enum": ["sphere", "box", "cylinder", "cone", "torus", "plane", "lathe", "extrude", null]
+        },
+        "params": { "type": "object" },
+        "splines": { "type": "array", "items": { "$ref": "#/$defs/spline" } },
+        "bones": { "type": "array", "items": { "$ref": "#/$defs/bone" } },
+        "transform": {
+          "oneOf": [
+            { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+            { "type": "array", "minItems": 16, "maxItems": 16, "items": { "type": "number" } },
+            { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "array", "minItems": 4, "maxItems": 4, "items": { "type": "number" } } }
+          ]
+        }
+      }
+    },
+    "spline": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["points"],
+      "properties": {
+        "points": { "type": "array", "items": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } } },
+        "name": { "type": "string" },
+        "degree": { "type": "integer", "minimum": 1 },
+        "closed": { "type": "boolean" }
+      }
+    },
+    "bone": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name", "head", "tail"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "head": { "$ref": "#/$defs/vec3" },
+        "tail": { "$ref": "#/$defs/vec3" },
+        "parent": { "type": ["string", "null"] },
+        "weights": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "number", "minimum": 0.0 }
+        },
+        "cp_weights": {
+          "type": "object",
+          "propertyNames": { "pattern": "^[0-9]+$" },
+          "additionalProperties": { "type": "number", "minimum": 0.0 }
+        }
+      }
+    },
+    "material": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "color": { "$ref": "#/$defs/color" },
+        "roughness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "metalness": { "type": "number", "minimum": 0, "maximum": 1 },
+        "texture": { "type": ["string", "null"] },
+        "pattern": { "type": ["string", "null"] },
+        "params": { "type": "object" },
+        "graph": { "type": "array", "items": { "type": "object" } },
+        "objects": { "type": "array", "items": { "type": "string" } }
+      }
+    },
+    "action": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["name"],
+      "properties": {
+        "name": { "type": "string", "minLength": 1 },
+        "kind": { "enum": ["walk", "idle", "jump", "custom", "retarget"] },
+        "duration": { "type": "number", "exclusiveMinimum": 0 },
+        "character": { "type": ["string", "null"] },
+        "channels": { "type": "array", "items": { "$ref": "#/$defs/channel" } },
+        "params": { "type": "object" },
+        "source_action": { "type": ["string", "null"] }
+      }
+    },
+    "channel": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["bone"],
+      "properties": {
+        "bone": { "type": "string", "minLength": 1 },
+        "property": { "type": "string" },
+        "keys": { "type": "array", "items": { "$ref": "#/$defs/key" } }
+      }
+    },
+    "key": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["time", "value"],
+      "properties": {
+        "time": { "type": "number" },
+        "value": { "type": "array", "items": { "type": "number" } },
+        "interp": { "type": "string" }
+      }
+    },
+    "export": {
+      "type": "object",
+      "additionalProperties": false,
+      "required": ["format", "path"],
+      "properties": {
+        "format": { "enum": ["obj", "glb", "gltf", "spritesheet", "toon_sheet", "am3d", "animation_sheet"] },
+        "path": { "type": "string", "minLength": 1 },
+        "params": { "type": "object" }
+      }
+    },
+    "vec3": { "type": "array", "minItems": 3, "maxItems": 3, "items": { "type": "number" } },
+    "color": { "type": "array", "minItems": 3, "maxItems": 4, "items": { "type": "number", "minimum": 0, "maximum": 1 } }
+  }
+}
+=== END recipe-v1.schema.json ===
+
+=== BEGIN docs/recipes/examples/minimal.json ===
+{
+  "version": 1,
+  "name": "minimal_cube",
+  "objects": [
+    {
+      "name": "cube",
+      "primitive": "box",
+      "params": {
+        "width": 1.0,
+        "height": 1.0,
+        "depth": 1.0
+      }
+    }
+  ],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "cube"
+    }
+  ]
+}=== END examples/minimal.json ===
+
+=== BEGIN docs/recipes/examples/knight_full.json ===
+{
+  "version": 1,
+  "name": "knight",
+  "objects": [
+    {
+      "name": "body",
+      "primitive": "sphere",
+      "params": {
+        "radius": 0.6,
+        "sections": 16,
+        "rings": 8,
+        "skeleton": "hero"
+      }
+    },
+    {
+      "name": "hero",
+      "bones": [
+        {
+          "name": "hip",
+          "head": [
+            0.0,
+            0.9,
+            0.0
+          ],
+          "tail": [
+            0.0,
+            1.0,
+            0.0
+          ]
+        },
+        {
+          "name": "spine",
+          "head": [
+            0.0,
+            1.0,
+            0.0
+          ],
+          "tail": [
+            0.0,
+            1.4,
+            0.0
+          ],
+          "parent": "hip"
+        },
+        {
+          "name": "leg_l",
+          "head": [
+            -0.12,
+            0.9,
+            0.0
+          ],
+          "tail": [
+            -0.12,
+            0.45,
+            0.0
+          ],
+          "parent": "hip"
+        },
+        {
+          "name": "leg_r",
+          "head": [
+            0.12,
+            0.9,
+            0.0
+          ],
+          "tail": [
+            0.12,
+            0.45,
+            0.0
+          ],
+          "parent": "hip"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "iron",
+      "color": [
+        0.65,
+        0.7,
+        0.8
+      ],
+      "roughness": 0.35,
+      "metalness": 0.85,
+      "objects": [
+        "body"
+      ]
+    }
+  ],
+  "actions": [
+    {
+      "name": "walk",
+      "kind": "walk",
+      "duration": 1.2,
+      "character": "hero"
+    }
+  ],
+  "exports": [
+    {
+      "format": "obj",
+      "path": "knight_mesh"
+    },
+    {
+      "format": "glb",
+      "path": "knight_asset"
+    },
+    {
+      "format": "spritesheet",
+      "path": "knight_sheet",
+      "params": {
+        "views": 8,
+        "size": 128
+      }
+    },
+    {
+      "format": "am3d",
+      "path": "knight_project"
+    }
+  ]
+}=== END examples/knight_full.json ===

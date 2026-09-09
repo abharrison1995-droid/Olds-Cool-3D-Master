@@ -1,0 +1,7 @@
+Please author a recipe for a decorative garden lantern:
+- A hexagonal lantern body/frame (faceted, six-sided look), roughly waist-height.
+- A small flat base it stands on.
+- A tapering glass "shade" on top, narrower at the top than the bottom, roughly onion-domed or tapering to a point.
+- Give the frame a dark "wrought_iron" material and the shade a pale warm "amber_glass" material.
+- Export both a static mesh (.obj) and a glTF (.glb) version, plus the native project (.am3d).
+Name the recipe "garden_lantern".

@@ -1,0 +1,19 @@
+{
+  "version": 1,
+  "name": "garden_lantern",
+  "objects": [
+    { "name": "base", "primitive": "cylinder", "params": { "radius": 0.35, "height": 0.08, "sections": 6 }, "transform": [0.0, 0.0, 0.0] },
+    { "name": "frame_body", "primitive": "cylinder", "params": { "radius": 0.3, "height": 0.9, "sections": 6 }, "transform": [0.0, 0.08, 0.0] },
+    { "name": "frame_collar", "primitive": "torus", "params": { "major_radius": 0.3, "minor_radius": 0.03 }, "transform": [0.0, 0.98, 0.0] },
+    { "name": "shade", "primitive": "cone", "params": { "radius": 0.32, "height": 0.5, "sections": 6 }, "transform": [0.0, 1.0, 0.0] }
+  ],
+  "materials": [
+    { "name": "wrought_iron", "color": [0.08, 0.08, 0.09], "roughness": 0.75, "metalness": 0.6, "objects": ["base", "frame_body", "frame_collar"] },
+    { "name": "amber_glass", "color": [0.95, 0.75, 0.4, 0.55], "roughness": 0.1, "metalness": 0.0, "objects": ["shade"] }
+  ],
+  "exports": [
+    { "format": "obj", "path": "garden_lantern_mesh" },
+    { "format": "glb", "path": "garden_lantern_asset" },
+    { "format": "am3d", "path": "garden_lantern_project" }
+  ]
+}

@@ -1,0 +1,16 @@
+Author a recipe named "sentinel_bot" for a small bound, textured, animated
+sentry robot character:
+- A boxy torso, a spherical head on top of it, and two cylindrical legs.
+- A skeleton with a root/hip bone, a spine bone, and one leg bone per leg
+  (left and right), correctly parented.
+- Bind the torso, head, and legs to this skeleton so the whole robot deforms
+  together as one rigged character.
+- In addition to the normal skeleton binding, hand-tune the skin weighting
+  on at least one bone so the robot is not just automatically bound but also
+  demonstrates the recipe format's explicit per-control-point weight
+  override.
+- Give the robot a metallic material with a procedural texture pattern
+  (not a flat single color) so it looks like grated/paneled metal.
+- Give it TWO actions: an "idle" and a "walk" cycle.
+- Export: a posed .obj, a .glb snapshot, an animation_sheet for the walk
+  action (8 frames), and the native .am3d project.

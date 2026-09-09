@@ -1,0 +1,32 @@
+{
+  "ok": false,
+  "objects": [
+    "torso",
+    "head",
+    "leg_l",
+    "leg_r",
+    "sentinel"
+  ],
+  "materials": [
+    "chassis_metal"
+  ],
+  "actions": [
+    "idle",
+    "walk"
+  ],
+  "exports": [],
+  "warnings": [],
+  "errors": [
+    "ValueError: unknown pattern 'paneled_grate' (choose from ['bricks', 'checker', 'gradient', 'noise', 'solid'])"
+  ],
+  "error_records": [
+    {
+      "code": "execution_error",
+      "stage": "runtime",
+      "path": "recipe",
+      "message": "ValueError: unknown pattern 'paneled_grate' (choose from ['bricks', 'checker', 'gradient', 'noise', 'solid'])"
+    }
+  ],
+  "manifest": [],
+  "partial_publication": false
+}

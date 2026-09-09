@@ -66,10 +66,21 @@ Supported primitives under `objects[].primitive`:
 - `box`: `width` (float), `height` (float), `depth` (float).
 - `cylinder`: `radius` (float), `height` (float), `sections` (int).
 - `cone`: `radius` (float), `height` (float), `sections` (int).
-- `torus`: `major_radius` (float), `minor_radius` (float), `sections` (int), `rings` (int).
-- `plane`: `width` (float), `depth` (float).
-- `lathe`: revolves a profile spline around the Y-axis (`sections`, `angle`).
-- `extrude`: sweeps a 2D spline along the Z-axis (`depth`, `cap_start`, `cap_end`).
+- `torus`: `major_radius` (float), `minor_radius` (float), `major_sections` (int, revolutions around the ring), `minor_sections` (int, divisions of the tube cross-section).
+- `plane`: `width` (float), `height` (float).
+- `lathe`: revolves an explicit profile around the Y-axis. Params: `profile` (required, array of `[radius, axial]` pairs, at least 2), `axis` (str, default `"y"`), `sections` (int).
+- `extrude`: sweeps an explicit profile along +Y. Params: `profile` (required, array of `[x, y, z]` points, at least 2), `height` (float), `twist_deg` (float), `rings` (int).
+
+## 3a. Material Patterns
+
+`materials[].pattern` selects a procedural texture instead of a flat colour.
+Valid values: `solid`, `checker`, `gradient`, `noise`, `bricks`. An unrecognized
+value is rejected at runtime. Each takes its own optional `params`:
+- `solid`: `color`, `size`.
+- `checker`: `a`, `b` (colours), `cells` (int), `size`.
+- `gradient`: `top`, `bottom` (colours), `size`.
+- `noise`: `seed`, `size`, `octaves`, `base` (colour), `contrast`.
+- `bricks`: `brick`, `mortar` (colours), `rows`, `cols`, `mortar_px`, `size`.
 
 ## 4. Rigging & Bone Rules
 

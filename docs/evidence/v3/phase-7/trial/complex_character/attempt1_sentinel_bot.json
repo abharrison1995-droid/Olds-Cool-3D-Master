@@ -1,0 +1,118 @@
+{
+  "version": 1,
+  "name": "sentinel_bot",
+  "objects": [
+    {
+      "name": "torso",
+      "primitive": "box",
+      "params": {
+        "width": 0.5,
+        "height": 0.6,
+        "depth": 0.3,
+        "skeleton": "sentinel"
+      },
+      "transform": [0.0, 1.0, 0.0]
+    },
+    {
+      "name": "head",
+      "primitive": "sphere",
+      "params": {
+        "radius": 0.22,
+        "sections": 16,
+        "rings": 12,
+        "skeleton": "sentinel"
+      },
+      "transform": [0.0, 1.45, 0.0]
+    },
+    {
+      "name": "leg_l",
+      "primitive": "cylinder",
+      "params": {
+        "radius": 0.08,
+        "height": 0.7,
+        "sections": 12,
+        "skeleton": "sentinel"
+      },
+      "transform": [-0.15, 0.35, 0.0]
+    },
+    {
+      "name": "leg_r",
+      "primitive": "cylinder",
+      "params": {
+        "radius": 0.08,
+        "height": 0.7,
+        "sections": 12,
+        "skeleton": "sentinel"
+      },
+      "transform": [0.15, 0.35, 0.0]
+    },
+    {
+      "name": "sentinel",
+      "bones": [
+        { "name": "hip", "head": [0.0, 0.7, 0.0], "tail": [0.0, 1.0, 0.0] },
+        { "name": "spine", "head": [0.0, 1.0, 0.0], "tail": [0.0, 1.45, 0.0], "parent": "hip" },
+        {
+          "name": "leg_l",
+          "head": [-0.15, 0.7, 0.0],
+          "tail": [-0.15, 0.0, 0.0],
+          "parent": "hip",
+          "cp_weights": {
+            "0": 1.0,
+            "1": 1.0,
+            "2": 0.85,
+            "3": 0.85,
+            "4": 0.6,
+            "5": 0.6
+          }
+        },
+        {
+          "name": "leg_r",
+          "head": [0.15, 0.7, 0.0],
+          "tail": [0.15, 0.0, 0.0],
+          "parent": "hip"
+        }
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "chassis_metal",
+      "color": [0.55, 0.58, 0.62, 1.0],
+      "roughness": 0.3,
+      "metalness": 0.9,
+      "pattern": "paneled_grate",
+      "objects": ["torso", "head", "leg_l", "leg_r"]
+    }
+  ],
+  "actions": [
+    {
+      "name": "idle",
+      "kind": "idle",
+      "duration": 2.0,
+      "character": "sentinel"
+    },
+    {
+      "name": "walk",
+      "kind": "walk",
+      "duration": 1.0,
+      "character": "sentinel"
+    }
+  ],
+  "exports": [
+    { "format": "obj", "path": "sentinel_bot_mesh" },
+    { "format": "glb", "path": "sentinel_bot_asset" },
+    {
+      "format": "animation_sheet",
+      "path": "sentinel_bot_walk_sheet",
+      "params": {
+        "action": "walk",
+        "frames": 8,
+        "columns": 4,
+        "size": 128,
+        "start": 0.0,
+        "end": 1.0
+      }
+    },
+    { "format": "am3d", "path": "sentinel_bot_project" }
+  ]
+}

@@ -1,0 +1,22 @@
+{
+  "ok": true,
+  "objects": ["torso", "head", "leg_l", "leg_r", "sentinel"],
+  "materials": ["chassis_metal"],
+  "actions": ["idle", "walk"],
+  "exports": [
+    { "format": "obj", "path": "sentinel_bot_mesh.obj" },
+    { "format": "mtl", "path": "sentinel_bot_mesh.mtl" },
+    { "format": "glb", "path": "sentinel_bot_asset.glb" },
+    { "format": "animation_sheet", "path": "sentinel_bot_walk_sheet.png" },
+    { "format": "am3d", "path": "sentinel_bot_project.am3d" },
+    { "format": "atlas", "path": "torso_atlas.png" },
+    { "format": "atlas", "path": "head_atlas.png" },
+    { "format": "atlas", "path": "leg_l_atlas.png" },
+    { "format": "atlas", "path": "leg_r_atlas.png" }
+  ],
+  "warnings": [],
+  "errors": [],
+  "error_records": [],
+  "manifest_summary": "9 files written: obj(372793B, mesh_count=4), mtl(533B), glb(125924B, mesh_count=4), animation_sheet png(57161B, frames=8, columns=4, rows=2, size=128), am3d(38150B, version=2), 4x atlas png(256x256 each, torso/head/leg_l/leg_r)",
+  "partial_publication": false
+}

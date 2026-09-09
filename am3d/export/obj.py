@@ -51,7 +51,10 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
         ``usemtl`` groups instead of one (finding MAT-02). Patches without an
         entry fall back to the object's own material.
     """
-    if materials and mtl_filename:
+    # Per-patch materials alone are enough to need the sidecar: without this
+    # the file emitted usemtl directives naming materials no reader could
+    # resolve, so an independent reader saw untextured default geometry.
+    if (materials or patch_materials) and mtl_filename:
         fh.write(f"mtllib {mtl_filename}\n")
 
     v_base = vt_base = vn_base = 1

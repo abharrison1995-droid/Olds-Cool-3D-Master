@@ -176,9 +176,12 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
             gbuf.unbind()
         except Exception:
             pass
+        # Mark released *before* the call: a release() that raises has still
+        # consumed its one attempt, and calling it a second time from the
+        # finally block would double-free the GL objects.
+        released = True
         try:
             gbuf.release()
-            released = True
         except Exception:
             pass
         final = _software_render(meshes, W, H, camera=view)
@@ -286,14 +289,6 @@ def render_mesh(ctx, program, mesh, view_matrix=None, albedo=None):
     """Upload and draw one MeshData into the currently bound FBO."""
     from .shaders import _build_vao
     return _build_vao(ctx, program, mesh, view_matrix, albedo=albedo)
-
-
-def _default_cam(mesh):
-    """Simple orbit camera looking at the mesh centroid."""
-    if not hasattr(mesh, "vertices") or len(mesh.vertices) == 0:
-        return np.eye(4)
-    center = mesh.vertices.mean(axis=0)
-    return _look_at(center + np.array([0.0, 0.0, 3.0]), center)
 
 
 def _look_at(eye, target, up=(0, 1, 0)):

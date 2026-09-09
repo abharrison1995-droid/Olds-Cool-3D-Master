@@ -130,11 +130,13 @@ class CreateSplineProfileCommand(_SessionCommand):
 class LatheProfileCommand(_SessionCommand):
     """Lathe a [radius, axial] profile onto an object (undoable)."""
 
-    def __init__(self, session, object_name, profile, sections=24):
+    def __init__(self, session, object_name, profile, sections=24,
+                 source_spline=None):
         super().__init__(session, f"Lathe {object_name}")
         self.object_name = object_name
         self.profile = np.asarray(profile, dtype=np.float64)
         self.sections = int(sections)
+        self.source_spline = source_spline
         self._patch_names = []
 
     def redo(self):
@@ -144,8 +146,15 @@ class LatheProfileCommand(_SessionCommand):
         if obj is None:
             return
         result = make_lathe_profile(self.profile, sections=self.sections)
+        # Keep the generator's own clamped degrees (finding EDIT-02) and a
+        # link back to the profile spline (finding EDIT-01).
+        gen = ({"op": "lathe", "spline": self.source_spline,
+                "params": {"sections": self.sections}}
+               if self.source_spline else None)
         for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+            obj.patches.append(Patch(name=pname, splines=[], interior=net,
+                                     degree_u=int(du), degree_v=int(dv),
+                                     generator=dict(gen) if gen else None))
             self._patch_names.append(pname)
 
     def undo(self):
@@ -160,12 +169,14 @@ class LatheProfileCommand(_SessionCommand):
 class ExtrudeProfileCommand(_SessionCommand):
     """Extrude a 3D profile along Y (undoable)."""
 
-    def __init__(self, session, object_name, profile, height=1.0, rings=4):
+    def __init__(self, session, object_name, profile, height=1.0, rings=4,
+                 source_spline=None):
         super().__init__(session, f"Extrude {object_name}")
         self.object_name = object_name
         self.profile = np.asarray(profile, dtype=np.float64)
         self.height = float(height)
         self.rings = int(rings)
+        self.source_spline = source_spline
         self._patch_names = []
 
     def redo(self):
@@ -176,8 +187,13 @@ class ExtrudeProfileCommand(_SessionCommand):
             return
         result = make_extrude_profile(self.profile, height=self.height,
                                        rings=self.rings)
+        gen = ({"op": "extrude", "spline": self.source_spline,
+                "params": {"height": self.height, "rings": self.rings}}
+               if self.source_spline else None)
         for pname, net, du, dv in result["patches"]:
-            obj.patches.append(Patch(name=pname, splines=[], interior=net))
+            obj.patches.append(Patch(name=pname, splines=[], interior=net,
+                                     degree_u=int(du), degree_v=int(dv),
+                                     generator=dict(gen) if gen else None))
             self._patch_names.append(pname)
 
     def undo(self):
@@ -434,6 +450,19 @@ class _CPCommand(_SessionCommand):
         return self.session.project.objects[self.object_name].splines[
             self.spline_name]
 
+    def _regenerate(self):
+        """Rebuild any surface generated from this spline (finding EDIT-01).
+
+        Regeneration is a pure function of the spline's control points, so
+        calling this from both redo() and undo() is exact and needs no
+        geometry snapshot -- undo restores the CP, and the surface rebuilt
+        from the restored CP is the surface that was there before.
+        """
+        from am3d.core.generators import regenerate_object_patches
+        obj = self.session.project.objects.get(self.object_name)
+        if obj is not None:
+            regenerate_object_patches(obj, self.spline_name)
+
 
 class MoveCPCommand(_CPCommand):
     def __init__(self, session, object_name, spline_name, index,
@@ -445,9 +474,11 @@ class MoveCPCommand(_CPCommand):
 
     def redo(self):
         self._spline().cps[self.index].position = self.after.copy()
+        self._regenerate()
 
     def undo(self):
         self._spline().cps[self.index].position = self.before.copy()
+        self._regenerate()
 
 
 class InsertCPCommand(_CPCommand):
@@ -460,9 +491,11 @@ class InsertCPCommand(_CPCommand):
 
     def redo(self):
         self._spline().cps.insert(self.index, copy.deepcopy(self._cp))
+        self._regenerate()
 
     def undo(self):
         del self._spline().cps[self.index]
+        self._regenerate()
 
 
 class RemoveCPCommand(_CPCommand):
@@ -477,9 +510,11 @@ class RemoveCPCommand(_CPCommand):
         spline = self._spline()
         self._cp = copy.deepcopy(spline.cps[self.index])
         del spline.cps[self.index]
+        self._regenerate()
 
     def undo(self):
         self._spline().cps.insert(self.index, copy.deepcopy(self._cp))
+        self._regenerate()
 
 
 # -- actions / keyframes -----------------------------------------------------

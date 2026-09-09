@@ -1,0 +1,31 @@
+EDIT-01 reproduction: a lathed surface does not respond to editing its profile.
+
+Steps (executed, .venv/bin/python, QT_QPA_PLATFORM=offscreen):
+  1. object "vase" with a 4-CP profile spline
+  2. LatheProfileCommand(..., sections=8) -> one patch with a baked `interior`
+  3. move profile CP #1 from x=1.5 to x=4.0 (what the viewport CP drag does)
+  4. re-evaluate the scene and measure the max radius of vertices that are
+     actually referenced by triangles (i.e. the surface, not the construction
+     curve's own trianglesless ring vertices)
+
+Result:
+  SURFACE max radius before: 1.2608
+  SURFACE max radius after : 1.2608
+  surface responded: False
+  patch interior changed:   False
+
+The Patch.interior control net is baked at lathe time and holds no link back
+to the spline it came from, so the surface is frozen. Note the failure is
+actively misleading rather than merely inert: measuring ALL mesh vertices
+(including the construction spline's own ring, which carries no triangles)
+DOES change, 1.2619 -> 2.3708. The viewport draws the moved curve, so the
+edit looks like it took effect while the rendered/exported surface is
+unchanged.
+
+Separate pre-existing defect found while reproducing this (recorded as
+EDIT-02): lathing a 3-point profile produces a patch whose control net is
+3 wide along v, and tessellating it raises
+  "a degree-3 patch needs at least 4 control points along v"
+so the object cannot be evaluated, rendered or exported at all. Verified
+present on the parent commit a6fe665 as "need at least degree + 1 control
+points", i.e. this is not a regression from the API-01 validation work.

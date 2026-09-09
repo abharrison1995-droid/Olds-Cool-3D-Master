@@ -71,6 +71,24 @@ class Patch:
     # (optionally loosened to a full interior control grid)
     interior: Optional[np.ndarray] = None
     material: Optional[str] = None
+    # Spline degree of the interior control net along each axis. Generators
+    # clamp these to the control points actually available; a net that is
+    # only 3 wide cannot carry a cubic (finding EDIT-02).
+    degree_u: int = 3
+    degree_v: int = 3
+    # How this patch was generated, so editing the source spline can rebuild
+    # it instead of leaving a frozen surface behind (finding EDIT-01).
+    # ``{"op": "lathe"|"extrude", "spline": <spline name>, "params": {...}}``
+    # None means hand-built geometry with no generator to re-run.
+    generator: Optional[dict] = None
+
+    def effective_degrees(self):
+        """``(degree_u, degree_v)`` clamped to this net's actual size."""
+        if self.interior is None:
+            return int(self.degree_u), int(self.degree_v)
+        mu, mv = np.asarray(self.interior).shape[:2]
+        return (max(1, min(int(self.degree_u), mu - 1)),
+                max(1, min(int(self.degree_v), mv - 1)))
 
 
 @dataclass

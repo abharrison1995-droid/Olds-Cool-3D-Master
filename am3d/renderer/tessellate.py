@@ -148,8 +148,12 @@ def tessellate_object(obj, nu=16, nv=16):
     """
     from .uv_mapping import atlas_grid_layout, patch_uvs
 
-    patch_items = [(p.name, p.interior) for p in obj.patches
-                   if p.interior is not None]
+    # Each patch carries the spline degree its generator clamped to the net
+    # it actually produced; a 3-wide net cannot carry a cubic (EDIT-02).
+    patch_items = [(p.name, p.interior,
+                    p.effective_degrees() if hasattr(p, "effective_degrees")
+                    else (3, 3))
+                   for p in obj.patches if p.interior is not None]
     cells = atlas_grid_layout(len(patch_items))
 
     all_v = []
@@ -161,8 +165,9 @@ def tessellate_object(obj, nu=16, nv=16):
     all_g = []
     offset = 0
 
-    for (pname, interior), cell in zip(patch_items, cells):
-        v, t = kernel.build_patch_grid(interior, nu=nu, nv=nv)
+    for (pname, interior, (du, dv)), cell in zip(patch_items, cells):
+        v, t = kernel.build_patch_grid(interior, degree_u=du, degree_v=dv,
+                                       nu=nu, nv=nv)
         uv = patch_uvs(nu, nv)
         if cell is not None:
             ou, ov, su, sv = cell

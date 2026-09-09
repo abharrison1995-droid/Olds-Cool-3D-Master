@@ -117,7 +117,15 @@ def test_obj_export_keeps_the_two_patches_in_separate_material_groups(
     write_obj(str(out), meshes,
               patch_materials=scene_patch_material_colors(scene))
 
-    groups = _parse_obj_groups(out.read_text(encoding="utf-8"))
+    text = out.read_text(encoding="utf-8")
+    # Regression: per-patch materials alone did not emit mtllib, so every
+    # usemtl below named a material no independent reader could resolve.
+    mtllib = [l.split(None, 1)[1].strip() for l in text.splitlines()
+              if l.startswith("mtllib ")]
+    assert mtllib == ["two_tone.mtl"], f"mtllib directive missing: {mtllib}"
+    assert (tmp_path / mtllib[0]).exists()
+
+    groups = _parse_obj_groups(text)
     assert f"mat_box__{first}" in groups
     assert f"mat_box__{second}" in groups
     assert groups[f"mat_box__{first}"] > 0

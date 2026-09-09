@@ -410,6 +410,11 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
                         "interior": (_pack_ndarray(patch.interior)
                                      if patch.interior is not None else None),
                         "material": getattr(patch, "material", None),
+                        "degree_u": int(getattr(patch, "degree_u", 3)),
+                        "degree_v": int(getattr(patch, "degree_v", 3)),
+                        "generator": (dict(patch.generator)
+                                      if getattr(patch, "generator", None)
+                                      else None),
                     }
                     for patch in obj.patches
                 ],
@@ -551,10 +556,20 @@ def load_project_bytes(payload: bytes) -> Project:
                 interior = _unpack_ndarray(pdata["interior"])
                 if interior is not None:
                     interior = np.asarray(interior, dtype=np.float64)
+            generator = pdata.get("generator")
+            if generator is not None and not isinstance(generator, dict):
+                raise ProjectFormatError(
+                    f"object {oname!r} patch "
+                    f"{pdata.get('name', 'patch')!r}: 'generator' must be a "
+                    f"mapping or absent")
             obj.patches.append(_Patch(name=pdata.get("name", "patch"),
                                       splines=list(pdata.get("splines", [])),
                                       interior=interior,
-                                      material=pdata.get("material")))
+                                      material=pdata.get("material"),
+                                      degree_u=int(pdata.get("degree_u", 3)),
+                                      degree_v=int(pdata.get("degree_v", 3)),
+                                      generator=(dict(generator) if generator
+                                                 else None)))
         for hdata in odata.get("hooks", []):
             obj.hooks.append(_Hook(source=tuple(hdata.get("source", ())),
                                    target=tuple(hdata.get("target", ())),

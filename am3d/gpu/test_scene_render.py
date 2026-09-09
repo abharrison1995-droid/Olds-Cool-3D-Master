@@ -183,3 +183,44 @@ def test_projection_is_independent_of_mesh_extent():
     assert np.allclose(a, b)
     assert not np.allclose(a, _perspective(45, size=(32, 32))), (
         "aspect must still be honoured")
+
+
+def test_gbuffer_is_not_released_twice_when_release_itself_fails(
+        two_objects, monkeypatch):
+    """Regression: `released = True` sat *after* the release() call inside the
+    error path's try block, so a release() that raised left the flag False and
+    the finally block released the same GL objects a second time."""
+    import am3d.gpu as gpu
+
+    calls = []
+
+    class _Gbuf:
+        def __init__(self, ctx, w, h):
+            pass
+
+        def bind(self):
+            pass
+
+        def unbind(self):
+            pass
+
+        def release(self):
+            calls.append(1)
+            raise RuntimeError("release failed")
+
+    class _Ctx:
+        ctx = object()
+
+        def destroy(self):
+            pass
+
+    def _boom(*a, **k):
+        raise RuntimeError("no shaders")
+
+    monkeypatch.setattr(gpu, "GBuffer", _Gbuf)
+    monkeypatch.setattr(gpu, "ShaderProgram", _boom)
+    monkeypatch.setattr(gpu, "create_offscreen_context", lambda w, h: _Ctx())
+
+    out = gpu.render_frame(two_objects, size=(16, 16))
+    assert out.shape == (16, 16, 4)
+    assert len(calls) == 1, f"gbuf.release() called {len(calls)} times"

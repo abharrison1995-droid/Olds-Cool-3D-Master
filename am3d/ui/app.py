@@ -380,7 +380,8 @@ class MainWindow(QMainWindow):
         if len(profile) < 2:
             return
         push_or_apply(self, LatheProfileCommand(
-            self.session, oname, profile, sections=24))
+            self.session, oname, profile, sections=24,
+            source_spline=sname))
         self._refresh_all()
 
     def _extrude_selected(self):
@@ -400,7 +401,8 @@ class MainWindow(QMainWindow):
         if len(pts) < 2:
             return
         push_or_apply(self, ExtrudeProfileCommand(
-            self.session, oname, pts, height=1.0, rings=4))
+            self.session, oname, pts, height=1.0, rings=4,
+            source_spline=sname))
         self._refresh_all()
 
     def _duplicate_object(self):

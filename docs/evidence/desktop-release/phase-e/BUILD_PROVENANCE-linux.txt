@@ -1,0 +1,37 @@
+3D MASTER:2005 -- Linux build provenance
+archive          : 3D-MASTER-2005-Beta-0.2.0b1-linux-x86_64.tar.gz
+sha256           : ad36d7ef798d3fd3bd7dc68bd15a8540a8c535655b2e8ec1e7fe6e86eefc4cdf
+am3d version     : 0.2.0b1
+git commit       : b96c922a3c9d6461f0e4888ce47dbc28b3449067
+git status       : clean
+built on         : Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
+distribution     : Debian GNU/Linux 13 (trixie)
+python (host)    : 3.13.5
+python (build)   : 3.13.5
+pyinstaller      : 6.22.2
+tests            : full suite passed
+
+pinned build set (pip freeze):
+  altgraph==0.17.5
+  attrs==26.1.0
+  glcontext==3.0.0
+  iniconfig==2.3.0
+  jsonschema==4.26.0
+  jsonschema-specifications==2025.9.1
+  moderngl==5.12.0
+  msgpack==1.2.1
+  numpy==2.4.6
+  packaging==26.3
+  pillow==12.3.0
+  pluggy==1.6.0
+  pygments==2.21.0
+  pyinstaller==6.22.2
+  pyinstaller-hooks-contrib==2026.7
+  pyside6==6.11.2
+  pyside6-addons==6.11.2
+  pyside6-essentials==6.11.2
+  pytest==9.1.1
+  referencing==0.37.0
+  rpds-py==2026.6.3
+  setuptools==84.0.0
+  shiboken6==6.11.2

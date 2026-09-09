@@ -10,8 +10,15 @@ Python, no pip, no checkout on the user's machine.
 | `3D-MASTER-2005-Beta-0.2.0b1-linux-x86_64.tar.gz` | Linux x86-64 (MX 25.2 KDE / Debian 13) — GUI + recipe CLI + examples + docs |
 | Windows portable ZIP | **Not produced.** No Windows machine was available; see "Blocked" below |
 
-Checksums, the source commit and the complete pinned build set are in
-`release/BUILD_PROVENANCE-linux.txt`, which ships beside the archive.
+```
+3D-MASTER-2005-Beta-0.2.0b1-linux-x86_64.tar.gz
+SHA-256  ad36d7ef798d3fd3bd7dc68bd15a8540a8c535655b2e8ec1e7fe6e86eefc4cdf
+built from commit b96c922a3c9d6461f0e4888ce47dbc28b3449067 (clean tree), CPython 3.13.5, PyInstaller 6.22.2
+```
+
+The complete pinned build set is in `release/BUILD_PROVENANCE-linux.txt`,
+which ships beside the archive; a copy is kept under
+`docs/evidence/desktop-release/phase-e/`.
 
 Start here: `docs/QUICK_START.md` (also `QUICK_START.md` inside the bundle).
 What each surface can do: `docs/CAPABILITY_MATRIX.md`.
@@ -65,6 +72,10 @@ the full record, with measurements, is in
 
 **Things the GUI could not do**
 
+- At 200% display scaling the window is short enough that the Properties
+  panel clipped its own controls, with the visibility checkbox unreachable
+  (UI-05). The panels scroll now.
+
 - There was no way to create a bone: a model built in the GUI could only be
   rigged by writing a script or a recipe (UI-01). There is now a Rig menu
   with add/parent/delete bone, geometry binding with automatic weights, and
@@ -88,6 +99,10 @@ the full record, with measurements, is in
   check on Linux (ENV-03a); `jsonschema` was undeclared, so the suite could
   not pass from a clean install (ENV-03b). Test/build dependencies are now
   separate from runtime dependencies, with a captured transitive lock.
+- The release folder carried the build's own smoke-test manifest, stdout
+  and stderr, so every user received a file full of absolute build-machine
+  paths (PKG-05). Those now go to a scratch directory, and both build
+  scripts fail if anything in the payload mentions the build root.
 - There was no Linux build pipeline at all (PKG-01). `build_linux.sh` now
   builds from an isolated venv, runs the suite, freezes both executables,
   checks the Qt Wayland and xcb plugins are present, runs the packaged

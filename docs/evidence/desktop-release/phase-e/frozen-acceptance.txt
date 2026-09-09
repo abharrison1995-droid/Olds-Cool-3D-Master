@@ -1,5 +1,5 @@
 === Frozen bundle acceptance: /home/swarm/Desktop/Olds-Cool-3D-Master/release/3D MASTER 2005 Beta
-=== 2026-09-09T21:28:26+01:00  host: Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
+=== 2026-09-09T21:34:13+01:00  host: Linux 6.12.90+deb13-amd64 x86_64 GNU/Linux
 
 1. The bundle carries its own runtime
   [PASS] packaged smoke test (all workflows) exits 0
@@ -34,4 +34,4 @@
   [PASS] the two exported poses differ by 0.785 over 1536 vertices, read back independently
 
 14 passed, 0 failed
-artifacts under /tmp/am3d_accept_JtrZca
+artifacts under /tmp/am3d_accept_jgaK1k

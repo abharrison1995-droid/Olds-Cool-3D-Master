@@ -6,9 +6,12 @@ marked PASS on the strength of a source reading, a historical result, or an
 offscreen test standing in for a real one.
 
 Artifacts under test: `release/3D MASTER 2005 Beta` and the archive beside
-it, built by `./build_linux.sh` from the working tree at the commit this
-file lands in. Checksums and the pinned build set:
-`release/BUILD_PROVENANCE-linux.txt`.
+it, built by `./build_linux.sh` from a **clean** tree at commit
+`b96c922` — SHA-256
+`ad36d7ef798d3fd3bd7dc68bd15a8540a8c535655b2e8ec1e7fe6e86eefc4cdf`. The
+pinned build set is in `BUILD_PROVENANCE-linux.txt`, copied into this
+directory. The acceptance run reported **14 passed, 0 failed**; only the
+evidence files in this directory changed after that build.
 
 Executable evidence in this directory:
 
@@ -80,6 +83,7 @@ artifact. **No Windows artifact is produced or claimed by this release.**
 
 | Required check | Result (Linux) | Evidence |
 | --- | --- | --- |
+| Payload hygiene | **PASS** | `frozen_acceptance.sh` §7 — no file in the shipped folder mentions the build root. This check found **PKG-05**: the build used to write its smoke manifest, stdout and stderr straight into the release folder |
 | Corrupt / missing project resources | **PASS** | smoke step `damaged_project_is_reported_not_swallowed`: a corrupt file raises `ProjectFormatError: Malformed msgpack data…` and the document that was open survives intact; a missing file also fails rather than reporting success |
 | Failed save / export | **PASS** | §5 runs the whole bundle from a `chmod -R a-w` install: the CLI and the full GUI workflow run, writing outside the install; the recipe engine reports per-export `error_records` rather than a bare traceback |
 | Cancellation | **PASS** (suite) | the render dialog's cancel path keeps the frames already written — covered by the suite, not separately re-run inside the bundle |

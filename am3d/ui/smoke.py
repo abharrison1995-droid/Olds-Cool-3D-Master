@@ -26,7 +26,9 @@ STEPS = [
     "primitive_and_profile_creation",
     "material_reference",
     "rig_and_weighted_action_playback",
+    "gui_rig_build_and_bind",
     "multi_object_software_rendering",
+    "still_render_to_png",
     "save_and_reopen",
     "transformed_export",
 ]
@@ -134,6 +136,54 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         if "root" not in pose.get("Box", {}):
             raise AssertionError("weighted action playback produced no pose")
 
+    def _gui_rig_build_and_bind():
+        """Finding UI-01: build a skeleton and bind geometry to it through
+        the same MainWindow verbs the Rig menu calls, then confirm the
+        geometry actually follows a posed bone."""
+        import numpy as np
+        from am3d.core.scene import evaluate_scene
+
+        win.current_context = ("object", "Vase", "")
+        root = win._rig_add_bone()
+        child = win._rig_add_child_bone()
+        if not root or not child:
+            raise AssertionError("could not create bones through the Rig verbs")
+        if win.session.project.skeletons["Vase"][child].parent != root:
+            raise AssertionError("the child bone was not parented to the root")
+        if not win._rig_bind_geometry():
+            raise AssertionError("binding geometry to the skeleton failed")
+        if not any(b.cp_weights for b in win.session.get_bones("Vase")):
+            raise AssertionError("binding assigned no control-point weights")
+
+        rest = evaluate_scene(win.session).meshes["Vase"].vertices.copy()
+        win.session.pose_bone("Vase", child, (0.0, 0.0, 35.0))
+        posed = evaluate_scene(win.session).meshes["Vase"].vertices
+        if np.allclose(rest, posed):
+            raise AssertionError("bound geometry did not follow the posed bone")
+        win.session.clear_pose("Vase")
+        manifest["artifacts"]["bound_weight_count"] = sum(
+            len(b.cp_weights) for b in win.session.get_bones("Vase"))
+
+    def _still_render():
+        """Finding UI-02: produce a final image the way File -> Render
+        Image / Sequence does, and require it to be non-blank."""
+        import numpy as np
+        from PIL import Image
+        from am3d.render_job import STILL, run_render
+
+        out = tmp_dir / "smoke_render.png"
+        written = run_render(win.session, None, mode=STILL, path=str(out),
+                             width=160, height=120, force_software=True)
+        if not written or not Path(written[0]).exists():
+            raise AssertionError("the render produced no file")
+        with Image.open(written[0]) as im:
+            arr = np.asarray(im)
+        lit = int((arr[..., :3].sum(axis=2) > 8).sum())
+        if lit < 50:
+            raise AssertionError(f"the rendered image is blank ({lit} lit pixels)")
+        manifest["artifacts"]["render_path"] = str(written[0])
+        manifest["artifacts"]["render_lit_pixels"] = lit
+
     def _multi_object_render():
         from .operators import CreatePrimitiveCommand
         win.push_command(CreatePrimitiveCommand(win.session, "Ball", "sphere", {}))
@@ -190,7 +240,9 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         ("primitive_and_profile_creation", _primitive_and_profile),
         ("material_reference", _material_reference),
         ("rig_and_weighted_action_playback", _rig_and_playback),
+        ("gui_rig_build_and_bind", _gui_rig_build_and_bind),
         ("multi_object_software_rendering", _multi_object_render),
+        ("still_render_to_png", _still_render),
         ("save_and_reopen", _save_and_reopen),
         ("transformed_export", _transformed_export),
     ]:

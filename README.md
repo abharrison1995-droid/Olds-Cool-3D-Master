@@ -43,6 +43,15 @@ and Render workspaces around the spline-patch viewport.
 | Action retargeting (cross-skeleton animation reuse) | done | 5 |
 | Volumetrics (exponential height fog + god rays post-process) | done | (gpu/postprocess) |
 
+### Scope of the model and of an export
+
+Splines are construction curves: a profile renders and exports as nothing
+until it is lathed or extruded into a surface. Exports (OBJ, GLB) carry
+surfaces, UVs and materials only — never bones, weights or keyframes,
+which live in the project's own `.am3d` file. See
+[docs/MODELLING_SCOPE.md](docs/MODELLING_SCOPE.md), including what to check
+when an export or a render comes out empty.
+
 Run the whole test-suite:
 
 ```bash

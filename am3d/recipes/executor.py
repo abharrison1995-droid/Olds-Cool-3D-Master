@@ -113,6 +113,38 @@ def _apply_object_transform(mesh, transform):
     return mesh
 
 
+def _bones_in_parent_order(bones):
+    """``(ordered, unresolvable)`` -- parents before their children.
+
+    A recipe is a declarative document, so it may list a child bone before
+    the parent it names; ``Session.add_bone`` is an imperative call that
+    (correctly) requires the parent to exist already. Sorting here keeps
+    both true. Order is otherwise the order written, so a recipe that was
+    already in dependency order builds exactly as before. Bones naming a
+    parent that does not exist -- or forming a cycle -- come back as
+    *unresolvable* for the caller to report against the recipe.
+    """
+    remaining = list(bones)
+    by_name = {b.name: b for b in remaining}
+    placed, ordered = set(), []
+    progress = True
+    while remaining and progress:
+        progress = False
+        still = []
+        for bone in remaining:
+            parent = getattr(bone, "parent", None)
+            if not parent or parent in placed:
+                ordered.append(bone)
+                placed.add(bone.name)
+                progress = True
+            elif parent not in by_name:
+                still.append(bone)      # unknown parent: never resolvable
+            else:
+                still.append(bone)
+        remaining = still
+    return ordered, remaining
+
+
 class RecipeExecutor:
     """Applies a validated :class:`Recipe` to a scripting session."""
 
@@ -310,7 +342,16 @@ class RecipeExecutor:
                              name=name, closed=sr.closed)
 
             has_explicit_weights = False
-            for br in spec.bones:
+            ordered_bones, bad_parents = _bones_in_parent_order(spec.bones)
+            for br in bad_parents:
+                res.add_error(
+                    f"bone {br.name!r} on object {spec.name!r} names a parent "
+                    f"{br.parent!r} that is not defined on the same object",
+                    code="missing_reference", stage="schema",
+                    path=f"recipe.objects[{idx}].bones",
+                    hint="Every bone parent must be another bone of the same "
+                         "object, and the parent chain must not be circular.")
+            for br in ordered_bones:
                 bone = s.add_bone(spec.name, br.name, br.head, br.tail,
                                   parent=br.parent)
                 raw_w = getattr(br, "cp_weights", None) or getattr(br, "weights", None)

@@ -359,7 +359,13 @@ class MainWindow(QMainWindow):
         """
         kind, oname, iname = self.current_context
         if kind == "bone" and oname in self.session.project.objects:
-            return oname, iname
+            # The selection can outlive the bone: deleting the last bone
+            # drops the object's whole skeleton entry, and a stale context
+            # then named a bone that no longer exists. Fall through to the
+            # object-only answer instead of handing back a dead name.
+            if iname in self.session.project.skeletons.get(oname, {}):
+                return oname, iname
+            return oname, ""
         if kind != "object" or not oname:
             sel = getattr(self.viewport, "selected", None) \
                 or getattr(self.viewport, "_selected", None)
@@ -423,7 +429,10 @@ class MainWindow(QMainWindow):
             self._rig_status(
                 "Select a bone first -- a child bone continues from its tail")
             return None
-        bone = self.session.project.skeletons[object_name][bone_name]
+        bone = self.session.project.skeletons.get(object_name, {}).get(bone_name)
+        if bone is None:      # selection went stale between click and call
+            self._rig_status(f"Bone {bone_name!r} no longer exists")
+            return None
         head = np.asarray(bone.tail, dtype=np.float64)
         direction = head - np.asarray(bone.head, dtype=np.float64)
         if float(np.linalg.norm(direction)) < 1e-9:
@@ -1018,12 +1027,15 @@ class MainWindow(QMainWindow):
             "below to open a finished one.\n"
             "2. Model: Create menu > a primitive, or draw a profile spline "
             "and Lathe/Extrude it into a surface.\n"
-            "3. Rig: the bundled Examples come pre-rigged -- select a bone "
-            "in the Outliner and drag it in the viewport to pose it. "
-            "(Building a skeleton from scratch isn't yet exposed in the UI.)\n"
+            "3. Rig: Rig menu > Add Bone, then Add Child Bone for each "
+            "bone after it, then Bind Geometry to Skeleton -- until you "
+            "bind, posing moves the bone but not the model. Select a bone "
+            "in the Outliner and drag it in the viewport to pose it; the "
+            "bundled Examples come pre-rigged.\n"
             "4. Animate: switch to the Animate workspace, set poses on the "
             "Timeline to key an Action.\n"
-            "5. Save (Ctrl+S), then Export OBJ/GLB from the File menu.\n\n"
+            "5. Save (Ctrl+S). Render Image / Sequence (F12) makes the "
+            "final picture; Export OBJ/GLB writes the surfaces.\n\n"
             "Undo/Redo (Ctrl+Z / Ctrl+Y) cover every edit above, including "
             "keying poses and importing actions.\n\n"
             "The Vase and Generated Character entries under Examples are "

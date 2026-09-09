@@ -104,3 +104,31 @@ forced-software render of the same scene.
 | --- | --- | --- | --- | --- | --- |
 | UI-01 | high | REPRODUCED | The GUI had a Bone tab that could edit an existing bone's head/tail and **nothing that could create one** -- no add, no re-parent, no delete, and no way to bind geometry to a skeleton. A model built in the GUI could only be rigged by writing a script or a recipe. `Session.add_bone` also accepted an unknown object, an empty name, a duplicate name (silently replacing the bone in place and orphaning its children) and a parent that does not exist | Session: validation in `add_bone`, plus `bone_ancestors`, `set_bone_parent` (rejects self-parenting and cycles), `remove_bone` (children move up to the deleted bone's parent; weights, pose and keyframe channels go with it) and `bind_geometry` (proximity auto-weights). UI: `AddBoneCommand`, `SetBoneParentCommand`, `DeleteBoneCommand` (snapshots skeleton, pose and action channels so undo restores the keyframes), `BindGeometryCommand`; a **Rig** menu (Add Bone / Add Child Bone / Delete Selected Bone / Bind Geometry / Clear Pose) and a parent combo plus the four buttons in the Bone tab. The parent combo omits the bone itself and its descendants, so a cycle cannot be selected. Every verb reports a reason in the status bar instead of doing nothing | `am3d/ui/test_rig_editing.py` (17 tests) |
 | RIG-01 | high | REPRODUCED | `phase-b/rig-01-reproduction.txt`. `evaluate_scene` deforms from `posed_transforms`, written only by `apply_pose`. `pose_bone` and `clear_pose` left it stale, so a scripted pose was invisible (`without apply_pose moved: False`) and, worse, a cleared pose stayed on the geometry (`after clear_pose, back to rest: False \| still posed: True`). The GUI's PoseBoneCommand happened to call `apply_pose`, so this only bit scripts, recipes and the new bind/pose journey | `pose_bone` and `clear_pose` re-run FK for the object; `clear_pose` drops the cached entry when no skeleton is left | `test_rig_editing.py::test_bound_geometry_follows_a_posed_bone` |
+
+## Review round 4 -- UI-02/GPU-04 and UI-01/RIG-01 batches (two Haiku agents)
+
+**Render/GPU batch (commit e500eda): clean.** The agent independently
+re-ran the GPU and forced-software paths and measured **94.5% coverage
+overlap**, confirmed the transpose is applied on both matrix upload paths
+and nowhere twice, confirmed no 3x3 or array-of-matrix uniform takes the
+same route, and found the destination/size validation, the
+cancel-keeps-written-frames path and the dialog's concurrent-render and
+error recovery all sound. No defects.
+
+**Rig batch (commit a2a5740): two defects, both reproduced here before
+fixing.**
+
+| Finding | Verified | Fix |
+| --- | --- | --- |
+| The new `add_bone` validation broke recipes. A recipe is declarative and may list a child before the parent it names; the imperative `add_bone` (correctly) requires the parent to exist. A previously working recipe now failed with `ScriptingError: no bone 'root' on object 'hero' to parent to` | Yes -- ran the recipe CLI on a forward-referenced rig: `rc: 1` before, `rc: 0` after | `am3d/recipes/executor.py`: new `_bones_in_parent_order` inserts bones parent-first, preserving the written order otherwise, and reports anything unresolvable against the recipe instead of raising. The session-level validation stays as it is |
+| `_rig_add_child_bone` crashed with `KeyError` on a stale selection: deleting an object's last bone drops its whole `skeletons` entry, and a Bone tab still pointing at that bone indexed a dict that no longer existed | Yes -- delete the only bone, leave the context, click Add Child: `CRASH: KeyError 'hero'` | `rig_target` no longer returns a bone name that is gone, and `_rig_add_child_bone` reports "Bone ... no longer exists" instead of indexing blindly |
+
+The agent's other checks came back clean: `remove_bone` leaves no dangling
+pose/`posed_transforms`/action state and round-trips through the
+serializer, `DeleteBoneCommand` survives repeated undo/redo, cycle
+detection holds in both directions, and `bind_geometry` indices match the
+canonical control-point ordering for objects mixing patches and splines.
+
+Regression tests: `test_rig_editing.py::test_a_stale_bone_selection_does_not_crash_the_rig_verbs`,
+`::test_a_recipe_may_list_a_child_bone_before_its_parent`,
+`::test_bones_in_parent_order_keeps_the_written_order_otherwise`.

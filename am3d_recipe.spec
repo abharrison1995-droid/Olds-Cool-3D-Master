@@ -18,15 +18,26 @@ sys.setrecursionlimit(5000)
 
 block_cipher = None
 
+# Resolved against the spec's own directory, not the caller's cwd -- see
+# the same note in am3d.spec.
+ROOT = Path(SPECPATH).resolve()
+
+
+def _data(rel, dest):
+    src = ROOT / rel
+    if not src.exists():
+        raise SystemExit(f"am3d_recipe.spec: required data file missing: {src}")
+    return (str(src), dest)
+
 a = Analysis(
-    ["am3d/recipes/__main__.py"],
+    [str(ROOT / "am3d/recipes/__main__.py")],
     pathex=[],
     binaries=[],
     datas=[
         # Bundled for reference alongside the packaged CLI, matching the
         # GUI build's am3d.spec precedent.
-        ("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
-        ("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
+        _data("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
+        _data("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
     ],
     hiddenimports=[
         "numpy",

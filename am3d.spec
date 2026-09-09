@@ -8,29 +8,44 @@ sys.setrecursionlimit(5000)
 
 block_cipher = None
 
+# Every path below is resolved against the spec file's own directory
+# (SPECPATH), not the working directory PyInstaller happens to be invoked
+# from: `pyinstaller /path/to/am3d.spec` run from anywhere else used to
+# produce a build silently missing the theme, the bundled Examples and the
+# recipe docs, because those relative datas resolved to nothing.
+ROOT = Path(SPECPATH).resolve()
+
+
+def _data(rel, dest):
+    src = ROOT / rel
+    if not src.exists():
+        raise SystemExit(f"am3d.spec: required data file missing: {src}")
+    return (str(src), dest)
+
+
 # Icon path (optional)
-icon_path = "am3d/ui/icon.ico"
+icon_path = str(ROOT / "am3d/ui/icon.ico")
 if not Path(icon_path).exists():
     icon_path = None
 
 a = Analysis(
-    ["am3d/ui/__main__.py"],
+    [str(ROOT / "am3d/ui/__main__.py")],
     pathex=[],
     binaries=[],
     datas=[
-        ("am3d/ui/theme_am2005.qss", "am3d/ui"),
+        _data("am3d/ui/theme_am2005.qss", "am3d/ui"),
         # MainWindow._example_projects() (am3d/ui/app.py) resolves the
         # bundled Examples via Path(__file__).resolve().parents[2] / "assets"
         # -- in a frozen build that's <dist>/_internal/assets, not the repo's
         # top-level assets/. Without this, the packaged app silently shows
         # "(No examples installed)" even though build_windows.ps1 separately
         # copies assets/ into the release folder for human browsing.
-        ("assets", "assets"),
+        _data("assets", "assets"),
         # Recipe schema/agent guide referenced by docs/recipes/ -- bundled
         # for reference alongside the packaged app, per Phase 6's "bundle
         # ... recipe schema/agent guide" requirement.
-        ("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
-        ("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
+        _data("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
+        _data("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
     ],
     hiddenimports=[
         "PySide6.QtCore",

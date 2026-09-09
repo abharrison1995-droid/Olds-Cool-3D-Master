@@ -297,3 +297,77 @@ def test_bone_tab_parent_combo_offers_no_cycle_and_reparents():
         assert win.session.project.skeletons["hero"][child].parent == root
     finally:
         win.close()
+
+
+# -- review round 4 findings (both reproduced before fixing) ----------------
+
+def test_a_stale_bone_selection_does_not_crash_the_rig_verbs():
+    """Regression: deleting the last bone drops the object's whole skeleton
+    entry, and a Bone tab still pointing at it made Add Child raise
+    KeyError instead of saying the bone is gone."""
+    win = _main_window()
+    try:
+        root = win._rig_add_bone()
+        win.current_context = ("bone", "hero", root)
+        assert win._rig_delete_bone() is True
+        win.current_context = ("bone", "hero", root)   # selection went stale
+
+        assert win._rig_add_child_bone() is None
+        assert win._rig_delete_bone() is False
+        assert win._rig_bind_geometry() is False
+        # and the object is still usable afterwards
+        assert win._rig_add_bone()
+    finally:
+        win.close()
+
+
+def test_a_recipe_may_list_a_child_bone_before_its_parent():
+    """Regression: a recipe is declarative and may name a parent defined
+    further down the list. The new add_bone validation is right for the
+    imperative API but turned that legal recipe into a hard failure, so the
+    executor now inserts bones parent-first."""
+    import json
+    import tempfile
+    from pathlib import Path
+    from am3d.recipes.cli import main
+
+    recipe = {
+        "version": 1, "name": "fwd",
+        "objects": [{
+            "name": "hero", "primitive": "box", "params": {},
+            "bones": [
+                {"name": "child", "parent": "root",
+                 "head": [0, 1, 0], "tail": [0, 2, 0]},
+                {"name": "root", "head": [0, 0, 0], "tail": [0, 1, 0]},
+            ],
+        }],
+    }
+    out = Path(tempfile.mkdtemp())
+    path = out / "recipe.json"
+    path.write_text(json.dumps(recipe))
+    assert main(["--recipe", str(path), "--out", str(out)]) == 0
+
+
+def test_bones_in_parent_order_keeps_the_written_order_otherwise():
+    from am3d.recipes.executor import _bones_in_parent_order
+
+    class B:
+        def __init__(self, name, parent=None):
+            self.name, self.parent = name, parent
+
+    already = [B("a"), B("b", "a"), B("c", "b")]
+    ordered, bad = _bones_in_parent_order(already)
+    assert [b.name for b in ordered] == ["a", "b", "c"] and bad == []
+
+    shuffled = [B("c", "b"), B("a"), B("b", "a")]
+    ordered, bad = _bones_in_parent_order(shuffled)
+    assert [b.name for b in ordered] == ["a", "b", "c"] and bad == []
+
+    broken = [B("x", "ghost"), B("y")]
+    ordered, bad = _bones_in_parent_order(broken)
+    assert [b.name for b in ordered] == ["y"]
+    assert [b.name for b in bad] == ["x"]
+
+    cyclic = [B("p", "q"), B("q", "p")]
+    ordered, bad = _bones_in_parent_order(cyclic)
+    assert ordered == [] and {b.name for b in bad} == {"p", "q"}

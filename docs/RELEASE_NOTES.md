@@ -127,6 +127,12 @@ their output, and `docs/SUPPORTED_PLATFORMS.md` for the support statement.
   Windows executable was built or tested. `build_windows.ps1` is maintained
   in step-for-step parity with the Linux script, but an unbuilt, untested
   pipeline is not a release artifact and this release does not claim one.
+  Reading it closely enough to plan a Windows run found that it could not
+  have completed on a clean Windows machine at all -- it installed only the
+  runtime requirements and then called `pytest` and PyInstaller (PKG-06).
+  That is fixed by review only; the fix has still never run.
+  `docs/WINDOWS_ACCEPTANCE_PLAN.md` is the route from here to a Windows
+  artifact that has actually been accepted.
 - **Older Linux baselines.** Only MX 25.2 / Debian 13 userspace was tested.
   The bundle carries its own Qt, but it does not carry glibc.
 - **Fractional-scaling appearance beyond the captured screenshots.** The

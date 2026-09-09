@@ -217,3 +217,37 @@ packaged smoke run exports at both ends of an action, with a parser that
 shares no code with the exporter, and requires the same vertex count with a
 real displacement -- 0.785 over 1536 vertices on the release artifact. That
 is the plan's "selected pose" check, performed on the frozen executable.
+
+### PKG-06 -- found by reading, not by running (no Windows host)
+
+| ID | Prio | Status | Evidence | Fix | Tests |
+| --- | --- | --- | --- | --- | --- |
+| PKG-06 | high | SOURCE-REASONED, NOT REPRODUCED | `build_windows.ps1` step 1 used the ambient `python` with no isolated environment; step 2 installed only `requirements.txt`, the runtime set; steps 3 and 4 then invoked `pytest` and `PyInstaller`, which live in `requirements-dev.txt`. On a clean Windows machine the script therefore aborts at step 3, and on a machine that happens to have those tools globally it builds a release from unpinned versions that no provenance file records. This has **not** been observed on a Windows machine -- none is available here -- so it is recorded as reasoned from source, not reproduced | Step 1 now verifies a host Python is 3.11+ (ENV-01, preferring the `py -3` launcher over the Store alias stub) and creates an isolated `build\windows\venv`; step 2 installs `requirements-dev.txt` into it and every later step uses that interpreter. PyInstaller output is confined to `build\windows\` via `--distpath`/`--workpath`; a new step 5 hard-checks the bundled `qwindows.dll` and `qoffscreen.dll` (the counterpart of the Linux Wayland/xcb/offscreen check); a new step 8b writes `BUILD_PROVENANCE-windows.txt`; `-CaptureLock` writes `requirements-lock-windows.txt` from the build venv, and `-SkipTests` marks its own build not release-qualified | **None yet.** The fix is verified only by review (one bounded Haiku pass over the script against `build_linux.sh`) until the script is executed on Windows. See `docs/WINDOWS_ACCEPTANCE_PLAN.md` |
+
+### Phase F harness -- written, not executed
+
+`docs/evidence/desktop-release/phase-f/` now holds `frozen_acceptance.ps1`
+and `export_check.ps1`, the twins of the Phase E bash harness, plus a README
+recording that **nothing in that directory has been run**. Sections 1-8 of
+the PowerShell acceptance script mirror the Linux run one for one; sections
+9-11 are Windows-only and exist because they are the Windows-specific ways
+this application can break:
+
+- **long paths** -- a `>260`-character output directory, which a user reaches
+  by nesting projects inside OneDrive;
+- **drive-relative paths** -- `C:outside_file`, which resolves against the
+  per-drive current directory. ENV-03a fixed the escape check for exactly
+  this syntax but has only ever run on Linux, where the syntax is
+  meaningless, so the fix is currently untested on the OS it was written
+  for;
+- **user-data location** -- the Windows counterpart of PATH-01: autosaves
+  must land under `%LOCALAPPDATA%` in this application's own folder, not
+  beside the executable (unwritable in a `Program Files` install).
+
+Two harness differences are deliberate and labelled rather than silently
+substituted: `LIBGL_ALWAYS_SOFTWARE` is a Mesa variable with no effect on
+Windows, so section 2 uses `QT_OPENGL=software` (a machine with no usable GL
+driver -- a different thing, named as such), and the application's own
+forced-software renderer, which has no environment variable, is exercised by
+the packaged smoke run instead. Every Windows row in the acceptance matrix
+stays **BLOCKED** until these scripts have actually been executed.

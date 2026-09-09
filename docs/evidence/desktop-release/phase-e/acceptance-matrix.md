@@ -63,10 +63,20 @@ Raw output: `frozen-acceptance.txt`, `interactive-session.txt`,
 | Save / recovery | **BLOCKED** | as above |
 
 `build_windows.ps1` is kept step-for-step with `build_linux.sh` (isolated
-venv, full suite, both executables, staged examples and docs, packaged
-smoke, real bundled-recipe build, relocation check, ZIP + checksum +
-provenance), but a pipeline that has never been executed is not a release
-artifact. **No Windows artifact is produced or claimed by this release.**
+venv, full suite, both executables, bundled-Qt-plugin check, staged examples
+and docs, packaged smoke, real bundled-recipe build, payload hygiene,
+relocation check, ZIP + checksum + provenance), but a pipeline that has never
+been executed is not a release artifact. **No Windows artifact is produced or
+claimed by this release.**
+
+Reading that script closely enough to plan a Windows run found **PKG-06**: it
+installed only the runtime requirements and then called `pytest` and
+`PyInstaller`, so it could not have completed on a clean Windows machine at
+all. That is fixed, along with the missing venv isolation, plugin check and
+provenance file -- but the fix is reviewed code, not evidence, and these rows
+do not move because of it. The harness that will move them is written and
+unexecuted in `../phase-f/`; `docs/WINDOWS_ACCEPTANCE_PLAN.md` says which
+environment can close which row, and which row only real hardware can.
 
 ## Row 4 — Real graphics environment on each OS
 

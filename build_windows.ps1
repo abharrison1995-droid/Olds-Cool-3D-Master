@@ -2,9 +2,23 @@
 .SYNOPSIS
     Build the 3D MASTER:2005 Windows executable and stage a release folder.
 .DESCRIPTION
-    Verifies Python environment, runs tests, builds with PyInstaller,
-    runs a packaged smoke test, and stages the release.
+    The Windows counterpart of build_linux.sh, step for step: an isolated
+    build venv, the full test suite, both PyInstaller entry points (windowed
+    GUI + headless recipe CLI), a bundled-Qt-plugin check, a packaged smoke
+    run, a relocation check from a path with spaces and non-ASCII
+    characters, a ZIP, its SHA-256, and a build-provenance file.
+.PARAMETER SkipTests
+    Skip step 3. The resulting build is NOT release-qualified and says so in
+    its provenance file.
+.PARAMETER CaptureLock
+    Write requirements-lock-windows.txt from the build venv's resolved set,
+    the Windows counterpart of requirements-lock-linux.txt. Run this once on
+    a machine that has completed a full build, then commit the file.
 #>
+param(
+    [switch]$SkipTests,
+    [switch]$CaptureLock
+)
 
 $ErrorActionPreference = "Stop"
 # This script lives at the repo root itself (not a subdirectory like
@@ -13,6 +27,11 @@ $ErrorActionPreference = "Stop"
 # "release" folders) whenever invoked from outside the repo.
 $RepoRoot = $PSScriptRoot
 Set-Location $RepoRoot
+
+$BuildDir = Join-Path $RepoRoot "build\windows"
+$VenvDir  = Join-Path $BuildDir "venv"
+$DistDir  = Join-Path $BuildDir "dist"
+$WorkDir  = Join-Path $BuildDir "work"
 
 # Run a native command (pip/pytest/PyInstaller) without $ErrorActionPreference
 # = "Stop" turning its own stderr output into a fatal error. PowerShell 5.1
@@ -31,48 +50,120 @@ function Invoke-Native {
 Write-Host "=== 3D MASTER:2005 Windows Build ===" -ForegroundColor Cyan
 Write-Host ""
 
-# ---- 1. Verify Python environment ----
-Write-Host "Step 1: Verifying Python environment..." -ForegroundColor Yellow
-$py = "python"
-try {
-    $ver = & $py --version
-    Write-Host "  Python: $ver"
-} catch {
-    Write-Error "Python not found. Make sure Python 3.10+ is installed."
+# ---- 1. Isolated build environment ----
+# A dedicated venv under build\windows, never the developer's own environment
+# and never the ambient interpreter: a release payload must be built from the
+# pinned set in requirements-dev.txt and nothing else, so a stray locally
+# installed package cannot slip in -- and the build must not silently depend
+# on the build machine happening to have pytest or PyInstaller installed
+# globally (finding PKG-06).
+Write-Host "Step 1: Preparing an isolated build environment..." -ForegroundColor Yellow
+
+# `py -3` first: the Windows launcher is the only one of these that reliably
+# resolves to a real CPython rather than the App Execution Alias stub that
+# Windows puts on PATH as "python.exe", which exits 9009 and opens the Store.
+$hostPy = $null
+foreach ($cand in @(
+        @{ Exe = "py";      Pre = @("-3") },
+        @{ Exe = "python";  Pre = @() },
+        @{ Exe = "python3"; Pre = @() })) {
+    if (-not (Get-Command $cand.Exe -ErrorAction SilentlyContinue)) { continue }
+    $pre = $cand.Pre
+    $out = Invoke-Native {
+        & $cand.Exe @pre -c "import sys; print('%d.%d.%d' % sys.version_info[:3])"
+    }
+    if ($LASTEXITCODE -eq 0 -and $out) {
+        $hostPy = @{ Exe = $cand.Exe; Pre = $pre; Version = ("$out").Trim() }
+        break
+    }
+}
+if (-not $hostPy) {
+    Write-Error "No working Python found. Install CPython 3.11+ from python.org (the Microsoft Store alias is not enough)."
     exit 1
 }
+# ENV-01: numpy 2.4.6 declares Requires-Python >=3.11, so the pinned set
+# cannot be installed on 3.10 -- fail here with the reason rather than at a
+# resolver error thirty seconds later.
+if ([version]$hostPy.Version -lt [version]"3.11.0") {
+    Write-Error "Python 3.11+ is required (found $($hostPy.Version)); see docs/SUPPORTED_PLATFORMS.md, ENV-01."
+    exit 1
+}
+Write-Host "  Python (host): $($hostPy.Version) via $($hostPy.Exe)"
 
-# Install pinned dependencies from requirements.txt -- the single source of
-# truth for reproducible versions, instead of an unpinned per-package list
-# that can silently drift (or, as before, reference packages am3d no
-# longer uses at all).
-Write-Host "Step 2: Installing pinned dependencies from requirements.txt..." -ForegroundColor Yellow
-$reqPath = Join-Path $RepoRoot "requirements.txt"
-Invoke-Native { & $py -m pip install -r $reqPath }
+if (Test-Path $VenvDir) { Remove-Item -Recurse -Force $VenvDir }
+New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
+$hostPre = $hostPy.Pre
+Invoke-Native { & $hostPy.Exe @hostPre -m venv $VenvDir }
+$py = Join-Path $VenvDir "Scripts\python.exe"
+if ($LASTEXITCODE -ne 0 -or -not (Test-Path $py)) {
+    Write-Error "Could not create the build venv at $VenvDir."
+    exit 1
+}
+Write-Host "  Build venv: $VenvDir" -ForegroundColor Green
+
+# Install the *dev* set, not requirements.txt: steps 3 and 4 need pytest,
+# jsonschema and PyInstaller, none of which are runtime dependencies. That
+# separation is deliberate (nothing in requirements-dev.txt may reach a
+# release payload) -- the bug was installing only the runtime half and then
+# calling tools from the other half.
+Write-Host "Step 2: Installing pinned build dependencies..." -ForegroundColor Yellow
+Invoke-Native { & $py -m pip install --quiet --upgrade pip }
+$reqPath = Join-Path $RepoRoot "requirements-dev.txt"
+Invoke-Native { & $py -m pip install --quiet -r $reqPath }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Dependency installation failed!"
     exit 1
+}
+$frozen = Invoke-Native { & $py -m pip freeze }
+Write-Host "  $(@($frozen).Count) packages installed from requirements-dev.txt" -ForegroundColor Green
+
+if ($CaptureLock) {
+    # The Windows counterpart of requirements-lock-linux.txt. It is captured
+    # rather than hand-written because the transitive set differs by platform
+    # (pywin32-ctypes and pefile are PyInstaller's Windows-only dependencies,
+    # and there is no altgraph-free path to them).
+    $lockPath = Join-Path $RepoRoot "requirements-lock-windows.txt"
+    ($frozen | Sort-Object) -join "`n" | Out-File -FilePath $lockPath -Encoding ascii
+    Write-Host "  Wrote $lockPath -- commit it." -ForegroundColor Green
 }
 
 # ---- 2. Run tests ----
 Write-Host ""
 Write-Host "Step 3: Running all tests..." -ForegroundColor Yellow
-Invoke-Native { & $py -m pytest am3d/ -q --tb=short }
-if ($LASTEXITCODE -ne 0) {
-    Write-Error "Tests failed! Aborting build."
-    exit 1
+if ($SkipTests) {
+    Write-Host "  SKIPPED (-SkipTests): this build is not release-qualified" -ForegroundColor Red
+} else {
+    # offscreen for parity with build_linux.sh, and so the suite does not
+    # depend on the build machine having an interactive desktop session --
+    # a Windows CI runner logs in without one.
+    $prevQtPlatformTests = $env:QT_QPA_PLATFORM
+    $env:QT_QPA_PLATFORM = "offscreen"
+    try {
+        Invoke-Native { & $py -m pytest am3d/ -q --tb=short }
+    } finally {
+        $env:QT_QPA_PLATFORM = $prevQtPlatformTests
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Tests failed! Aborting build."
+        exit 1
+    }
+    Write-Host "All tests passed." -ForegroundColor Green
 }
-Write-Host "All tests passed." -ForegroundColor Green
 
 # ---- 3. Build executable ----
+# --distpath/--workpath keep every build artefact under build\windows\ rather
+# than the repo's top-level dist\ and build\, so a build cannot pick up
+# leftovers from an unrelated one and the tree stays clean.
 Write-Host ""
 Write-Host "Step 4: Building executable with PyInstaller..." -ForegroundColor Yellow
-$buildDir = Join-Path $RepoRoot "dist"
-if (Test-Path $buildDir) {
-    Remove-Item -Recurse -Force $buildDir
+foreach ($stale in @($DistDir, $WorkDir)) {
+    if (Test-Path $stale) { Remove-Item -Recurse -Force $stale }
 }
 
-Invoke-Native { & $py -m PyInstaller --clean am3d.spec }
+Invoke-Native {
+    & $py -m PyInstaller --clean --noconfirm `
+        --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d.spec")
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyInstaller build failed!"
     exit 1
@@ -84,16 +175,42 @@ Write-Host "Build completed." -ForegroundColor Green
 # agent can drive recipes without installing Python or the GUI's Qt runtime.
 Write-Host ""
 Write-Host "Step 4b: Building packaged recipe CLI with PyInstaller..." -ForegroundColor Yellow
-Invoke-Native { & $py -m PyInstaller --clean am3d_recipe.spec }
+Invoke-Native {
+    & $py -m PyInstaller --clean --noconfirm `
+        --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d_recipe.spec")
+}
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyInstaller recipe CLI build failed!"
     exit 1
 }
 Write-Host "Recipe CLI build completed." -ForegroundColor Green
 
+# ---- 3b. Bundled Qt platform plugins ----
+# The Linux build hard-checks its Wayland/xcb/offscreen plugins because a
+# bundle missing one starts on the build machine and dies on the user's. The
+# Windows equivalent is qwindows.dll (every GUI launch) and qoffscreen.dll
+# (the --smoke-test runs below, and any headless/CI use).
+Write-Host ""
+Write-Host "Step 5: Verifying the bundled Qt platform plugins..." -ForegroundColor Yellow
+$guiDist = Join-Path $DistDir "3D MASTER 2005 Beta"
+if (-not (Test-Path $guiDist)) {
+    Write-Error "Expected GUI bundle at $guiDist"
+    exit 1
+}
+foreach ($plugin in @("qwindows.dll", "qoffscreen.dll")) {
+    $found = Get-ChildItem -Path $guiDist -Recurse -File -Filter $plugin -ErrorAction SilentlyContinue |
+        Select-Object -First 1
+    if (-not $found) {
+        Write-Error "The bundle has no $plugin platform plugin."
+        exit 1
+    }
+    Write-Host "  $plugin -> $($found.FullName.Substring($guiDist.Length + 1))" -ForegroundColor Green
+}
+
+
 # ---- 4. Stage release folder ----
 Write-Host ""
-Write-Host "Step 5: Staging release folder..." -ForegroundColor Yellow
+Write-Host "Step 6: Staging release folder..." -ForegroundColor Yellow
 $releaseDir = Join-Path $RepoRoot "release\3D MASTER 2005 Beta"
 if (Test-Path $releaseDir) {
     Remove-Item -Recurse -Force $releaseDir
@@ -101,16 +218,15 @@ if (Test-Path $releaseDir) {
 New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
 # Copy the built executable and _internal folder
-$distDir = Join-Path $RepoRoot "dist\3D MASTER 2005 Beta"
-if (Test-Path $distDir) {
-    Copy-Item -Recurse -Force "$distDir\*" $releaseDir
-}
+Copy-Item -Recurse -Force "$guiDist\*" $releaseDir
 
 # Copy the packaged recipe CLI onefile exe alongside the GUI
-$recipeExeSrc = Join-Path $RepoRoot "dist\am3d-recipe.exe"
-if (Test-Path $recipeExeSrc) {
-    Copy-Item -Force $recipeExeSrc (Join-Path $releaseDir "am3d-recipe.exe")
+$recipeExeSrc = Join-Path $DistDir "am3d-recipe.exe"
+if (-not (Test-Path $recipeExeSrc)) {
+    Write-Error "Recipe CLI executable not found at $recipeExeSrc"
+    exit 1
 }
+Copy-Item -Force $recipeExeSrc (Join-Path $releaseDir "am3d-recipe.exe")
 
 # Copy examples
 $examplesSrc = Join-Path $RepoRoot "assets"
@@ -146,7 +262,6 @@ This software uses:
 - msgpack (Apache-2.0)
 - Pillow (MIT-CMU)
 - ModernGL (MIT)
-- Numba (BSD-2-Clause)
 
 See the respective packages for full license terms.
 "@ | Out-File -FilePath (Join-Path $licenseDir "NOTICE.txt") -Encoding utf8
@@ -155,7 +270,7 @@ Write-Host "Release staged at: $releaseDir" -ForegroundColor Green
 
 # ---- 5. Smoke test ----
 Write-Host ""
-Write-Host "Step 6: Running packaged smoke test..." -ForegroundColor Yellow
+Write-Host "Step 6b: Verifying the staged executables and running the bundled recipe..." -ForegroundColor Yellow
 
 # Basic smoke test: verify executable exists and can start
 $exePath = Join-Path $releaseDir "3D MASTER 2005.exe"
@@ -306,7 +421,7 @@ Write-Host "  No build-machine paths in the payload." -ForegroundColor Green
 # not just the loose release folder that Step 5 staged.
 Write-Host ""
 Write-Host "Step 8: Packaging release ZIP and checksum..." -ForegroundColor Yellow
-$version = (& $py -c "import am3d; print(am3d.__version__)").Trim()
+$version = ((Invoke-Native { & $py -c "import am3d; print(am3d.__version__)" }) -join "").Trim()
 $releaseParent = Split-Path $releaseDir -Parent
 $zipName = "3D-MASTER-2005-Beta-$version-win64.zip"
 $zipPath = Join-Path $releaseParent $zipName
@@ -324,6 +439,42 @@ $checksumPath = "$zipPath.sha256"
 "$($zipHash.Hash.ToLower()) *$zipName" | Out-File -FilePath $checksumPath -Encoding ascii -NoNewline
 Write-Host "  Release ZIP: $zipPath" -ForegroundColor Green
 Write-Host "  SHA-256: $($zipHash.Hash)" -ForegroundColor Green
+
+# ---- 7b. Build provenance ----
+# The counterpart of release/BUILD_PROVENANCE-linux.txt: what was built, from
+# which commit, with which interpreter and which resolved package set. A
+# release artifact without this cannot be traced back to a tree.
+Write-Host ""
+Write-Host "Step 8b: Writing build provenance..." -ForegroundColor Yellow
+$gitCommit = Invoke-Native { & git -C $RepoRoot rev-parse HEAD }
+if ($LASTEXITCODE -ne 0) { $gitCommit = "unknown" }
+$gitDirty = Invoke-Native { & git -C $RepoRoot status --porcelain }
+$gitState = "unknown"
+if ($LASTEXITCODE -ne 0) { $gitState = "unknown" }
+elseif ([string]::IsNullOrWhiteSpace(($gitDirty -join ""))) { $gitState = "clean" }
+else { $gitState = "DIRTY -- built from uncommitted changes" }
+$os = Get-CimInstance Win32_OperatingSystem
+$pyBuildVersion = ((Invoke-Native { & $py -c "import sys; print('%d.%d.%d' % sys.version_info[:3])" }) -join "").Trim()
+$pyInstallerVersion = ((Invoke-Native { & $py -m PyInstaller --version }) -join "").Trim()
+if ($SkipTests) { $testState = "SKIPPED -- not release-qualified" } else { $testState = "full suite passed" }
+$provenance = @(
+    "3D MASTER:2005 -- Windows build provenance"
+    "archive          : $zipName"
+    "sha256           : $($zipHash.Hash.ToLower())"
+    "am3d version     : $version"
+    "git commit       : $(($gitCommit -join '').Trim())"
+    "git status       : $gitState"
+    "built on         : $($os.Caption) $($os.Version) $($env:PROCESSOR_ARCHITECTURE)"
+    "python (host)    : $($hostPy.Version)"
+    "python (build)   : $pyBuildVersion"
+    "pyinstaller      : $pyInstallerVersion"
+    "tests            : $testState"
+    ""
+    "pinned build set (pip freeze):"
+) + ($frozen | ForEach-Object { "  $_" })
+$provenancePath = Join-Path $releaseParent "BUILD_PROVENANCE-windows.txt"
+$provenance -join "`r`n" | Out-File -FilePath $provenancePath -Encoding utf8
+Write-Host "  $provenancePath" -ForegroundColor Green
 
 # ---- 8. Verify release contents from a relocated path ----
 # Extracts the ZIP to a throwaway location with a space and a non-ASCII
@@ -416,6 +567,7 @@ Write-Host "=== Build complete! ===" -ForegroundColor Cyan
 Write-Host "Release folder: $releaseDir"
 Write-Host "Release ZIP: $zipPath"
 Write-Host "Checksum: $checksumPath"
+Write-Host "Provenance: $provenancePath"
 Write-Host "Executable: $exePath"
 Write-Host ""
 Write-Host "To smoke test manually, run the executable from the release folder."

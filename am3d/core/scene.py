@@ -266,3 +266,51 @@ def scene_triangle_colors(scene: EvaluatedScene, obj_name: str):
     if np.allclose(colors, colors[0]):
         return None
     return colors
+
+
+def _is_textured(material):
+    """True when a material carries appearance a flat colour cannot express."""
+    return bool(material is not None
+                and (getattr(material, "pattern", None)
+                     or getattr(material, "texture", None)
+                     or getattr(material, "graph", None)))
+
+
+def bake_scene_atlases(session, base_dir=None):
+    """``{object_name: atlas}`` for objects whose materials are textured.
+
+    Finding MAT-01: a patterned or image-backed material used to reach OBJ
+    and GLB as nothing but its flat base colour, so a checkerboard exported
+    as plain white and the appearance was silently lost rather than refused.
+    The atlas layout matches the UVs the tessellator already writes into
+    every export, so the exporters only have to carry the image.
+
+    Objects whose materials are all flat get no entry -- the existing
+    flat-colour path is untouched and those exports are byte-identical.
+    """
+    from am3d.renderer.materials import bake_atlas
+    from am3d.renderer.tessellate import tessellate_object
+
+    project = session.project
+    atlases = {}
+    for name, obj in project.objects.items():
+        if not getattr(obj, "visible", True):
+            continue
+        patches = [p for p in getattr(obj, "patches", [])
+                   if p.interior is not None]
+        if not patches:
+            continue
+        obj_mat = project.materials.get(getattr(obj, "material", None))
+        per_patch = [project.materials.get(getattr(p, "material", None))
+                     or obj_mat for p in patches]
+        if not any(_is_textured(m) for m in per_patch):
+            continue
+        try:
+            atlases[name] = bake_atlas(tessellate_object(obj), per_patch,
+                                       cell_size=256, base_dir=base_dir)
+        except Exception:
+            # A material that cannot bake (missing image file, bad graph)
+            # must not take the whole export down; that object simply falls
+            # back to its flat colour.
+            continue
+    return atlases

@@ -762,15 +762,19 @@ class MainWindow(QMainWindow):
         exporter use, so a GUI export matches what's on screen (baked
         transforms, current pose deformation, visibility, material colour)
         rather than re-tessellating raw bind-pose geometry."""
-        from am3d.core.scene import (scene_material_colors,
+        from am3d.core.scene import (bake_scene_atlases,
+                                     scene_material_colors,
                                      scene_patch_material_colors)
         scene = self.session.evaluate_scene(apply_transforms=True, visible_only=True)
         meshes = {name: mesh for name, mesh in scene.meshes.items() if len(mesh.vertices)}
         # Per-patch assignments travel alongside the object colours so two
         # differently coloured patches on one object stay distinct in the
-        # exported file (finding MAT-02).
+        # exported file (finding MAT-02); baked atlases carry pattern and
+        # image appearance that a flat colour cannot express (MAT-01).
+        atlases = {n: a for n, a in bake_scene_atlases(self.session).items()
+                   if n in meshes}
         return (meshes, scene_material_colors(scene),
-                scene_patch_material_colors(scene))
+                scene_patch_material_colors(scene), atlases)
 
     def _file_export_obj(self):
         path, _ = QFileDialog.getSaveFileName(
@@ -779,9 +783,10 @@ class MainWindow(QMainWindow):
             return
         try:
             from am3d.export.obj import write_obj
-            meshes, mat_colors, patch_colors = self._export_scene()
+            meshes, mat_colors, patch_colors, atlases = self._export_scene()
             write_obj(path, meshes, materials=mat_colors or None,
-                      patch_materials=patch_colors or None)
+                      patch_materials=patch_colors or None,
+                      textures=atlases or None)
             self.statusBar().showMessage("Exported: " + path)
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))
@@ -793,9 +798,10 @@ class MainWindow(QMainWindow):
             return
         try:
             from am3d.export.gltf import write_glb
-            meshes, mat_colors, patch_colors = self._export_scene()
+            meshes, mat_colors, patch_colors, atlases = self._export_scene()
             write_glb(path, meshes, materials=mat_colors or None,
-                      patch_materials=patch_colors or None)
+                      patch_materials=patch_colors or None,
+                      textures=atlases or None)
             self.statusBar().showMessage("Exported: " + path)
         except Exception as exc:
             QMessageBox.critical(self, "Export failed", str(exc))

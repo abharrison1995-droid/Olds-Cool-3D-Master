@@ -150,7 +150,7 @@ def test_gui_export_scene_applies_transform_and_material(tmp_path):
         win.session.create_material("red", color=(1.0, 0.0, 0.0))
         obj.material = "red"
 
-        meshes, mat_colors, _patch_colors = win._export_scene()
+        meshes, mat_colors, _patch_colors, _atlases = win._export_scene()
         assert "sphere" in meshes
         assert meshes["sphere"].vertices[:, 0].mean() > 2.0, \
             "exported mesh must carry the object's world transform"

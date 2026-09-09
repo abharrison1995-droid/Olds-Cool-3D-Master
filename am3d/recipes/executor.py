@@ -562,15 +562,33 @@ class RecipeExecutor:
                     # `mtllib` reference from this path's stem, and both
                     # must match what actually lands next to final_path.
                     staged_path = os.path.join(stage_dir, os.path.basename(final_path))
+                    # Baked atlases carry pattern/texture appearance into
+                    # the export instead of collapsing to a flat colour
+                    # (finding MAT-01). Only objects actually in this export.
+                    obj_textures = {n: a for n, a in atlases.items()
+                                    if n in meshes}
                     try:
                         write_obj(staged_path, meshes,
                                   materials=mat_colors or None,
-                                  patch_materials=patch_colors or None)
+                                  patch_materials=patch_colors or None,
+                                  textures=obj_textures or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "obj", "mesh_count": len(meshes)}))
-                        if mat_colors or patch_colors:
+                        if mat_colors or patch_colors or obj_textures:
                             mtl_staged = os.path.splitext(staged_path)[0] + ".mtl"
                             mtl_final = os.path.splitext(final_path)[0] + ".mtl"
                             staged_items.append((mtl_staged, mtl_final, "mtl", {"format": "mtl", "sidecar_of": final_path}))
+                        # The PNG sidecars the MTL's map_Kd points at must
+                        # be published too, or the OBJ lands referencing
+                        # images that are not there.
+                        from am3d.export.textures import texture_filename
+                        stem = os.path.splitext(os.path.basename(final_path))[0]
+                        for obj_name in obj_textures:
+                            img = texture_filename(stem, obj_name)
+                            staged_items.append((
+                                os.path.join(stage_dir, img),
+                                os.path.join(os.path.dirname(final_path), img),
+                                "png",
+                                {"format": "png", "sidecar_of": final_path}))
                     except Exception as exc:
                         res.add_error(
                             f"failed to write OBJ: {exc}",
@@ -583,7 +601,9 @@ class RecipeExecutor:
                     try:
                         write_glb(staged_path, meshes,
                                   materials=mat_colors or None,
-                                  patch_materials=patch_colors or None)
+                                  patch_materials=patch_colors or None,
+                                  textures={n: a for n, a in atlases.items()
+                                            if n in meshes} or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "glb", "mesh_count": len(meshes)}))
                     except Exception as exc:
                         res.add_error(

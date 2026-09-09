@@ -1,0 +1,39 @@
+MAT-01 reproduction: baked texture appearance is dropped by both exporters.
+
+Executed (.venv/bin/python, QT_QPA_PLATFORM=offscreen): a box wearing a
+material with pattern="checker", exported to OBJ and GLB through the same
+scene evaluation the GUI and recipe exporter use.
+
+  MTL has map_Kd:  False
+  GLB images:      False   textures: False
+  GLB baseColor:   {'baseColorFactor': [1.0, 1.0, 1.0, 1.0],
+                    'metallicFactor': 0.0, 'roughnessFactor': 0.8}
+  files written:   ['t.glb', 't.mtl', 't.obj']     <- no image at all
+
+  baked atlas is a real pattern: True (512, 768, 4)
+
+So the appearance existed: bake_atlas produced a genuine 512x768 checkered
+atlas, and the tessellator had already written matching per-object atlas UVs
+into both files (OBJ `vt`, glTF TEXCOORD_0). Only the image was missing. An
+independent reader therefore showed flat white, with nothing in either file
+indicating that anything had been lost -- the failure was silent, which is
+what makes it worse than an explicit rejection.
+
+After the fix, same scene:
+
+  MTL map_Kd:           ['map_Kd t_box.png']
+  files:                ['t.mtl', 't.obj', 't_box.png']
+  PNG (via Pillow):     (768, 512) RGBA, pixel std 84.7  -> pattern retained
+  GLB images: 1  textures: 1
+  GLB baseColorTexture: {'index': 0, 'texCoord': 0}
+  GLB image:            mimeType image/png, embedded in the BIN chunk
+
+Both readers used in the regression tests are independent of this codebase's
+export code: Pillow decodes the PNG, and the GLB is parsed by walking the
+chunk headers and slicing the image's bufferView straight out of the BIN
+chunk.
+
+Scope kept deliberately narrow: only the atlas that already backs the render
+is carried. Objects with only flat colours bake nothing and their OBJ/MTL
+output is byte-identical to before (regression test
+test_flat_only_scenes_bake_nothing_and_export_unchanged).

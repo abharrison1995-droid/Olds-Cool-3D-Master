@@ -25,7 +25,8 @@ def _patch_material_name(obj_name: str, patch_name: str) -> str:
 
 def _write_meshes(fh, meshes: dict, name_prefix: str = "",
                   materials: dict | None = None, mtl_filename: str | None = None,
-                  patch_materials: dict | None = None) -> None:
+                  patch_materials: dict | None = None,
+                  textured_objects=()) -> None:
     """Write ``{name: MeshData}`` as OBJ groups into an open text handle.
 
     ``v``, ``vt`` and ``vn`` occupy *independent* 1-based index spaces in the
@@ -54,7 +55,7 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
     # Per-patch materials alone are enough to need the sidecar: without this
     # the file emitted usemtl directives naming materials no reader could
     # resolve, so an independent reader saw untextured default geometry.
-    if (materials or patch_materials) and mtl_filename:
+    if mtl_filename:
         fh.write(f"mtllib {mtl_filename}\n")
 
     v_base = vt_base = vn_base = 1
@@ -66,7 +67,9 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
 
         # Emit usemtl directive if we have a material for this object
         mat_name = None
-        if materials and name in materials:
+        if (materials and name in materials) or name in textured_objects:
+            # A textured object still needs a usemtl even with no flat
+            # colour, or its map_Kd is never bound (finding MAT-01).
             mat_name = f"mat_{name}"
             fh.write(f"usemtl {mat_name}\n")
 
@@ -125,10 +128,18 @@ def _write_meshes(fh, meshes: dict, name_prefix: str = "",
 
 
 def _write_mtl(path: str, materials: dict,
-               patch_materials: dict | None = None) -> None:
-    """Write a .mtl sidecar for object and per-patch ``(r,g,b,a)`` colours."""
+               patch_materials: dict | None = None,
+               texture_files: dict | None = None) -> None:
+    """Write a .mtl sidecar for object and per-patch ``(r,g,b,a)`` colours.
 
-    def _emit(fh, mtl_name, rgba):
+    *texture_files* maps an object name to the basename of its baked atlas
+    PNG sitting next to the MTL; every material belonging to that object gets
+    a ``map_Kd`` pointing at it, because the atlas is packed per object and
+    the OBJ's ``vt`` coordinates already address it (finding MAT-01).
+    """
+    texture_files = texture_files or {}
+
+    def _emit(fh, mtl_name, rgba, obj_name=None):
         r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
         fh.write(f"\nnewmtl {mtl_name}\n")
         fh.write(f"Kd {r:.6f} {g:.6f} {b:.6f}\n")
@@ -136,19 +147,31 @@ def _write_mtl(path: str, materials: dict,
         fh.write("Ks 0.000000 0.000000 0.000000\n")
         if len(rgba) >= 4:
             fh.write(f"d {float(rgba[3]):.6f}\n")
+        image = texture_files.get(obj_name)
+        if image:
+            fh.write(f"map_Kd {image}\n")
 
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# MTL exported by 3D MASTER:2005\n")
         for name, rgba in (materials or {}).items():
-            _emit(fh, f"mat_{name}", rgba)
+            _emit(fh, f"mat_{name}", rgba, obj_name=name)
         for obj_name, patches in (patch_materials or {}).items():
             for patch_name, rgba in patches.items():
-                _emit(fh, _patch_material_name(obj_name, patch_name), rgba)
+                _emit(fh, _patch_material_name(obj_name, patch_name), rgba,
+                      obj_name=obj_name)
+        # An object may be textured without carrying any flat colour at all;
+        # it still needs a material to hang the map on.
+        for obj_name in texture_files:
+            if obj_name in (materials or {}):
+                continue
+            _emit(fh, f"mat_{obj_name}", (1.0, 1.0, 1.0, 1.0),
+                  obj_name=obj_name)
 
 
 def write_obj(path: str, meshes: dict, *,
               materials: dict | None = None,
-              patch_materials: dict | None = None) -> str:
+              patch_materials: dict | None = None,
+              textures: dict | None = None) -> str:
     """Write ``{name: MeshData}`` to *path* as a single OBJ file.
 
     Parameters
@@ -160,20 +183,43 @@ def write_obj(path: str, meshes: dict, *,
     patch_materials:
         Optional ``{object_name: {patch_name: (r, g, b, a)}}`` per-patch
         colours; see :func:`_write_meshes` (finding MAT-02).
+    textures:
+        Optional ``{object_name: image array}`` of baked per-object atlases.
+        Each is written as a PNG next to the OBJ and referenced from the MTL
+        via ``map_Kd``, so a patterned material keeps its appearance in an
+        independent reader instead of arriving flat (finding MAT-01). The
+        OBJ's existing ``vt`` coordinates already address these atlases.
+
+    Returns the OBJ path. Any sidecars (``.mtl``, ``.png``) are written into
+    the same directory, named after the OBJ's stem.
     """
+    from .textures import encode_png, texture_filename
+
     os.makedirs(os.path.dirname(os.path.abspath(path)), exist_ok=True)
+    out_dir = os.path.dirname(os.path.abspath(path))
+    stem = os.path.splitext(os.path.basename(path))[0]
+
+    texture_files = {}
+    for obj_name, image in (textures or {}).items():
+        if image is None:
+            continue
+        filename = texture_filename(stem, obj_name)
+        with open(os.path.join(out_dir, filename), "wb") as img_fh:
+            img_fh.write(encode_png(image))
+        texture_files[obj_name] = filename
+
     mtl_filename = None
-    if materials or patch_materials:
-        stem = os.path.splitext(os.path.basename(path))[0]
+    if materials or patch_materials or texture_files:
         mtl_filename = stem + ".mtl"
-        mtl_path = os.path.join(os.path.dirname(os.path.abspath(path)), mtl_filename)
-        _write_mtl(mtl_path, materials, patch_materials)
+        mtl_path = os.path.join(out_dir, mtl_filename)
+        _write_mtl(mtl_path, materials, patch_materials, texture_files)
 
     with open(path, "w", encoding="utf-8") as fh:
         fh.write("# Exported by 3D MASTER:2005\n")
         _write_meshes(fh, meshes, materials=materials,
                       mtl_filename=mtl_filename,
-                      patch_materials=patch_materials)
+                      patch_materials=patch_materials,
+                      textured_objects=frozenset(texture_files))
     return path
 
 

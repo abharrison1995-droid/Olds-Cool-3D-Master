@@ -26,7 +26,8 @@ def _pad(data: bytearray, alignment: int = 4, fill: int = 0) -> None:
 
 def write_glb(path: str, meshes: dict, *,
               materials: dict | None = None,
-              patch_materials: dict | None = None) -> str:
+              patch_materials: dict | None = None,
+              textures: dict | None = None) -> str:
     """Write ``{name: MeshData}`` to *path* as a single binary glTF file.
 
     Parameters
@@ -36,6 +37,11 @@ def write_glb(path: str, meshes: dict, *,
         provided each mesh primitive is assigned a glTF material entry with
         ``pbrMetallicRoughness.baseColorFactor``.  Alpha defaults to 1.0 if
         omitted from the colour tuple.
+    textures:
+        Optional ``{object_name: image array}`` of baked per-object atlases,
+        embedded in the BIN chunk as PNG and bound as ``baseColorTexture``
+        so the .glb stays one self-contained file and a patterned material
+        keeps its appearance in an independent reader (finding MAT-01).
     patch_materials:
         Optional ``{object_name: {patch_name: (r, g, b, a)}}``. glTF binds a
         material per *primitive*, so an object whose patches carry different
@@ -44,45 +50,19 @@ def write_glb(path: str, meshes: dict, *,
         index accessor (finding MAT-02). Patches with no entry fall into the
         object's own material primitive.
     """
+    from .textures import PNG_MIME, encode_png
+
     bin_buf = bytearray()
     buffer_views: list = []
+    gltf_images: list = []
+    gltf_textures: list = []
+    gltf_samplers: list = []
+    tex_index_map: dict = {}   # object_name -> index into gltf_textures
     accessors: list = []
     meshes_json: list = []
     nodes: list = []
     gltf_materials: list = []
     mat_index_map: dict = {}   # object_name -> index into gltf_materials
-
-    # Build material entries up-front so primitives can reference them
-    if materials:
-        for obj_name, rgba in materials.items():
-            r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
-            a = float(rgba[3]) if len(rgba) >= 4 else 1.0
-            mat_index_map[obj_name] = len(gltf_materials)
-            gltf_materials.append({
-                "name": f"mat_{obj_name}",
-                "pbrMetallicRoughness": {
-                    "baseColorFactor": [r, g, b, a],
-                    "metallicFactor": 0.0,
-                    "roughnessFactor": 0.8,
-                },
-            })
-
-    def _material_index(name, rgba):
-        """Register (or reuse) a glTF material entry and return its index."""
-        if name in mat_index_map:
-            return mat_index_map[name]
-        r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
-        a = float(rgba[3]) if len(rgba) >= 4 else 1.0
-        mat_index_map[name] = len(gltf_materials)
-        gltf_materials.append({
-            "name": f"mat_{name}",
-            "pbrMetallicRoughness": {
-                "baseColorFactor": [r, g, b, a],
-                "metallicFactor": 0.0,
-                "roughnessFactor": 0.8,
-            },
-        })
-        return mat_index_map[name]
 
     def add_view(data: bytes) -> int:
         _pad(bin_buf)
@@ -94,6 +74,63 @@ def write_glb(path: str, meshes: dict, *,
             "byteLength": len(data),
         })
         return len(buffer_views) - 1
+
+    # Baked atlases are embedded in the BIN chunk so the .glb stays a single
+    # self-contained file (finding MAT-01). The mesh's TEXCOORD_0, already
+    # written below, is the atlas UV set.
+    for obj_name, image in (textures or {}).items():
+        if image is None:
+            continue
+        png_view = add_view(encode_png(image))
+        gltf_images.append({"name": f"tex_{obj_name}",
+                            "bufferView": png_view,
+                            "mimeType": PNG_MIME})
+        if not gltf_samplers:
+            gltf_samplers.append({"wrapS": 10497, "wrapT": 10497})  # REPEAT
+        tex_index_map[obj_name] = len(gltf_textures)
+        gltf_textures.append({"sampler": 0, "source": len(gltf_images) - 1})
+
+    def _pbr(rgba, obj_name):
+        r, g, b = float(rgba[0]), float(rgba[1]), float(rgba[2])
+        a = float(rgba[3]) if len(rgba) >= 4 else 1.0
+        pbr = {"baseColorFactor": [r, g, b, a],
+               "metallicFactor": 0.0,
+               "roughnessFactor": 0.8}
+        if obj_name in tex_index_map:
+            pbr["baseColorTexture"] = {"index": tex_index_map[obj_name],
+                                       "texCoord": 0}
+        return pbr
+
+    # Build material entries up-front so primitives can reference them
+    if materials:
+        for obj_name, rgba in materials.items():
+            mat_index_map[obj_name] = len(gltf_materials)
+            gltf_materials.append({
+                "name": f"mat_{obj_name}",
+                "pbrMetallicRoughness": _pbr(rgba, obj_name),
+            })
+
+    # A textured object needs a material even with no flat colour, or the
+    # atlas is embedded but never bound to anything.
+    for obj_name in tex_index_map:
+        if obj_name in mat_index_map:
+            continue
+        mat_index_map[obj_name] = len(gltf_materials)
+        gltf_materials.append({
+            "name": f"mat_{obj_name}",
+            "pbrMetallicRoughness": _pbr((1.0, 1.0, 1.0, 1.0), obj_name),
+        })
+
+    def _material_index(name, rgba, texture_owner=None):
+        """Register (or reuse) a glTF material entry and return its index."""
+        if name in mat_index_map:
+            return mat_index_map[name]
+        mat_index_map[name] = len(gltf_materials)
+        gltf_materials.append({
+            "name": f"mat_{name}",
+            "pbrMetallicRoughness": _pbr(rgba, texture_owner),
+        })
+        return mat_index_map[name]
 
     for name, mesh in meshes.items():
         verts = np.asarray(mesh.vertices, dtype=np.float64)
@@ -161,7 +198,7 @@ def write_glb(path: str, meshes: dict, *,
                 rgba = obj_patches.get(patch_name)
                 if rgba is not None:
                     sub["material"] = _material_index(
-                        f"{name}__{patch_name}", rgba)
+                        f"{name}__{patch_name}", rgba, texture_owner=name)
                 elif name in mat_index_map:
                     sub["material"] = mat_index_map[name]
                 prims.append(sub)
@@ -186,6 +223,10 @@ def write_glb(path: str, meshes: dict, *,
     }
     if gltf_materials:
         gltf["materials"] = gltf_materials
+    if gltf_textures:
+        gltf["images"] = gltf_images
+        gltf["samplers"] = gltf_samplers
+        gltf["textures"] = gltf_textures
 
     json_bytes = json.dumps(gltf, separators=(",", ":")).encode("utf-8")
     json_pad = (4 - len(json_bytes) % 4) % 4

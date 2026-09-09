@@ -219,16 +219,19 @@ ok "Release staged at: $RELEASE_DIR"
 # manifest to be "ok" -- an exit code alone would let a partially-run smoke
 # test ship as silent missing evidence.
 step "Step 7: Running the packaged GUI smoke test..."
-MANIFEST="$RELEASE_DIR/smoke_manifest.json"
-rm -f "$MANIFEST"
+# The manifest and the files the run produces go to a scratch directory,
+# never into the payload: they name absolute build-machine paths, and the
+# release folder must contain only what a user is meant to receive.
+SMOKE_DIR="$(mktemp -d "${TMPDIR:-/tmp}/am3d_build_smoke_XXXXXX")"
+MANIFEST="$SMOKE_DIR/smoke_manifest.json"
 set +e
 QT_QPA_PLATFORM=offscreen timeout "$SMOKE_TIMEOUT" \
     "$RELEASE_DIR/$APP_NAME" --smoke-test --out "$MANIFEST" \
-    > "$RELEASE_DIR/smoke_stdout.txt" 2> "$RELEASE_DIR/smoke_stderr.txt"
+    > "$SMOKE_DIR/smoke_stdout.txt" 2> "$SMOKE_DIR/smoke_stderr.txt"
 SMOKE_RC=$?
 set -e
 [ "$SMOKE_RC" -eq 124 ] && die "packaged smoke test timed out after ${SMOKE_TIMEOUT}s"
-[ -f "$MANIFEST" ] || { cat "$RELEASE_DIR/smoke_stderr.txt" >&2; \
+[ -f "$MANIFEST" ] || { cat "$SMOKE_DIR/smoke_stderr.txt" >&2; \
     die "packaged smoke test produced no manifest (exit $SMOKE_RC)"; }
 "$PY" - "$MANIFEST" "$SMOKE_RC" <<'PY' || die "packaged smoke test failed or is incomplete"
 import json, sys
@@ -265,6 +268,15 @@ rm -rf "$RECIPE_OUT"
 ok "Recipe CLI validated and built the bundled example recipe."
 
 # ---- 7. Archive, checksum, provenance -------------------------------------
+# The payload must contain only what a user receives. A build-machine path
+# inside it means a build artefact leaked into the release folder (this
+# caught the smoke manifest, which used to be written straight into it).
+step "Step 7c: Checking the payload for build-machine references..."
+LEAKED="$(grep -rlF "$REPO_ROOT" "$RELEASE_DIR" 2>/dev/null | head -5 || true)"
+[ -z "$LEAKED" ] || die "release payload references the build location:
+$LEAKED"
+echo "  No build-machine paths in the payload."
+
 step "Step 8: Packaging the release archive and checksum..."
 VERSION="$("$PY" -c 'import am3d; print(am3d.__version__)')"
 ARCHIVE_NAME="3D-MASTER-2005-Beta-$VERSION-linux-x86_64.tar.gz"

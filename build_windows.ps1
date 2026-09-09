@@ -219,15 +219,17 @@ if (Test-Path $recipeExePath) {
 # fails the build instead of shipping as silent "missing evidence".
 Write-Host ""
 Write-Host "Step 7: Running packaged GUI smoke mode..." -ForegroundColor Yellow
-$manifestPath = Join-Path $releaseDir "smoke_manifest.json"
-if (Test-Path $manifestPath) {
-    Remove-Item -Force $manifestPath
-}
+# The manifest and the files the run produces go to a scratch directory,
+# never into the payload: they name absolute build-machine paths, and the
+# release folder must contain only what a user is meant to receive.
+$smokeDir = Join-Path ([System.IO.Path]::GetTempPath()) ("am3d_build_smoke_" + [System.Guid]::NewGuid().ToString("N"))
+New-Item -ItemType Directory -Force -Path $smokeDir | Out-Null
+$manifestPath = Join-Path $smokeDir "smoke_manifest.json"
 $prevQtPlatform = $env:QT_QPA_PLATFORM
 $env:QT_QPA_PLATFORM = "offscreen"
 $smokeTimeoutMs = 60000
-$smokeStdout = Join-Path $releaseDir "smoke_stdout.txt"
-$smokeStderr = Join-Path $releaseDir "smoke_stderr.txt"
+$smokeStdout = Join-Path $smokeDir "smoke_stdout.txt"
+$smokeStderr = Join-Path $smokeDir "smoke_stderr.txt"
 try {
     # Raw System.Diagnostics.Process, not Start-Process -PassThru: the
     # cmdlet has two sharp edges that both bit here empirically. (1) its
@@ -280,6 +282,24 @@ if ($smokeExitCode -ne 0 -or $smokeManifest.ok -ne $true -or $incompleteSteps) {
     exit 1
 }
 Write-Host "  Smoke test passed: $($smokeManifest.steps.Count) steps, all ok." -ForegroundColor Green
+
+# The payload must contain only what a user receives. A build-machine path
+# inside it means a build artefact leaked into the release folder (this
+# caught the smoke manifest, which used to be written straight into it).
+Write-Host ""
+Write-Host "Step 7c: Checking the payload for build-machine references..." -ForegroundColor Yellow
+$leaked = Get-ChildItem -Path $releaseDir -Recurse -File |
+    Where-Object { $_.Length -lt 4MB } |
+    Where-Object {
+        (Select-String -Path $_.FullName -SimpleMatch -Pattern $RepoRoot `
+            -List -ErrorAction SilentlyContinue) -ne $null
+    } | Select-Object -First 5
+if ($leaked) {
+    Write-Error ("Release payload references the build location:`n" +
+        (($leaked | ForEach-Object { $_.FullName }) -join "`n"))
+    exit 1
+}
+Write-Host "  No build-machine paths in the payload." -ForegroundColor Green
 
 # ---- 7. Release ZIP and checksum ----
 # Phase 6 bullet 5: ship a single reproducible archive plus its checksum,

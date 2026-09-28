@@ -1,153 +1,82 @@
 # 3D MASTER:2005
 
-A lightweight, pure **spline-based** 3D character animation suite — a modern
-revival of the no-longer-updated Animation Master 2005.
-
-The differentiator: there are **no polygon meshes in the data model**. All
-geometry is defined by intersecting B-splines forming 3- and 4-sided
-patches.  Surfaces stay mathematically smooth at any render resolution while
-the on-disk representation remains tiny (just control points + knot
-vectors).
+3D MASTER:2005 is a spline-patch modeling and animation editor with a
+machine-readable recipe pipeline for AI-generated assets. B-spline surfaces
+are the editable source model; polygon meshes are produced for rendering and
+export.
 
 ## Interface
 
-![3D MASTER:2005 Layout workspace](docs/screenshots/layout-workspace.png)
+![Layout workspace](docs/previews/blender-early-2000s-layout.png)
 
-The PySide6 desktop editor provides dedicated Layout, Model, Rig, Animate,
-and Render workspaces around the spline-patch viewport.
+The desktop editor has Layout, Model, Rig, Animate, and Render workspaces. The
+visual direction is a dense 3D workbench with early-2000s desktop character.
+See [DESIGN.md](DESIGN.md) and [PRODUCT.md](PRODUCT.md).
 
-## Status
+## AI-agent workflow
 
-| Subsystem | State | Tests |
-|-----------|-------|-------|
-| B-spline kernel (de Boor, NURBS, clamped knots, patches) | done | 12 |
-| Core document model (Project / Object / Spline / Patch / Hook) | done | (via facade) |
-| Scriptable facade (`am3d.core.script`) — agentic pipeline ready | done | 9 |
-| Animation & Action-reuse system | done | 6 |
-| Rigging: FK, analytic 2-bone IK, SmartSkins | done | 6 |
-| Serializer (`.am3a` actions, `.am3d` projects) | done | 4 |
-| Renderer tessellation bridge + UV mapping & atlas packing | done | 7 |
-| Headless sprite-sheet renderer (software rasterizer → PNG) | done | 5 |
-| Exporters: Wavefront OBJ + binary glTF 2.0 (`.glb`) | done | 3 |
-| Recipe schema — the LLM contract (validated JSON) | done | 16 |
-| Procedural primitives (sphere/box/cylinder/cone/torus/plane) | done | 19 |
-| Procedural actions (walk / idle / jump generators) | done | 6 |
-| Recipe executor + CLI (`python -m am3d.recipes`) | done | 70 |
-| Project serializer: patches, bones, hooks, transforms (`.am3d`) | done | 7 |
-| Thread-isolated scripting sessions (`reset_default`) | done | 2 |
-| Procedural textures + atlas baking (checker/bricks/noise/…) | done | 17 |
-| Toon shader: cel bands + ink lines (headless NPR) | done | 10 |
-| Material node graph (mix/tint/noise_overlay chains) | done | 10 |
-| Qt UI (four-mode workspace, viewport, timeline, file I/O, recovery) | done | 161 |
-| GPU multi-pass renderer (ModernGL headless G-buffer → PBR) | done | 13 |
-| Action retargeting (cross-skeleton animation reuse) | done | 5 |
-| Volumetrics (exponential height fog + god rays post-process) | done | (gpu/postprocess) |
+The product does not embed a language model. An external model or agent reads
+the shipped [recipe guide](docs/recipes/EXTERNAL_AGENT_GUIDE.md), emits JSON
+matching the versioned schema, and invokes the recipe CLI. The CLI validates
+the recipe, returns structured errors that an agent can correct, then writes
+an editable `.am3d` project and requested exports. Open that project in the
+desktop editor to inspect, refine, or animate it.
 
-### Scope of the model and of an export
+From a source checkout:
 
-Splines are construction curves: a profile renders and exports as nothing
-until it is lathed or extruded into a surface. Exports (OBJ, GLB) carry
-surfaces, UVs and materials only — never bones, weights or keyframes,
-which live in the project's own `.am3d` file. See
-[docs/MODELLING_SCOPE.md](docs/MODELLING_SCOPE.md), including what to check
-when an export or a render comes out empty.
+```bash
+python -m am3d.recipes \
+  --recipe docs/recipes/examples/knight_full.json \
+  --out ./generated/knight
+```
 
-Run the whole test-suite:
+For a Linux portable bundle, invoke `./am3d-recipe` with the same arguments.
+The JSON result on standard output includes an artifact manifest; diagnostics
+go to standard error. `--validate-only` checks a recipe without generating
+artifacts. See the [quick start](docs/QUICK_START.md) for bundle usage and the
+[agent guide](docs/recipes/EXTERNAL_AGENT_GUIDE.md) for the correction loop.
+
+The recipe surface supports primitives, lathe/extrude profiles, materials and
+patterns, bones, generated/custom actions, native projects, OBJ/GLB, and
+sprite/toon/animation sheets. OBJ and GLB are static tessellated pose
+snapshots; `.am3d` retains editable scene and animation data. The
+[capability matrix](docs/CAPABILITY_MATRIX.md) distinguishes recipe, engine,
+and GUI features.
+
+## Status and supported platforms
+
+The current-source Linux x86-64 bundle is a preview candidate built and
+checked on Linux Mint 22.3. Its source suite and packaged CLI/GUI smoke checks
+passed; GUI checks used Qt offscreen mode and software paths. This does not
+establish native-desktop, hardware-GPU, MX Linux, or general Linux support.
+MX 25.2 and Windows are follow-on qualification targets; no Windows artifact
+is included. See
+[supported platforms](docs/SUPPORTED_PLATFORMS.md) and the
+[implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md).
+
+The recipe path is currently code-first and external-agent driven. There is
+no in-app prompt box or model-provider integration. The desktop app is the
+integrated review and editing surface for generated projects.
+
+## Development
+
+Python source installations declare Python 3.10+ with NumPy, msgpack, PySide6,
+and Pillow. The pinned frozen-build environment uses Python 3.11+; see
+`requirements-lock-linux.txt` and
+[the platform policy](docs/SUPPORTED_PLATFORMS.md). Install the development
+requirements with:
+
+```bash
+python -m pip install -r requirements-dev.txt
+```
+
+Run the project checks with:
 
 ```bash
 python -m pytest am3d/
 ```
 
-## LLM workflow: one JSON -> finished assets
-
-An LLM emits a recipe; the engine does the rest:
-
-```bash
-python -m am3d.recipes --recipe scripts/knight_recipe.json --out ./assets/demo
-```
-
-That single command builds geometry from procedural primitives, rigs a biped
-skeleton, generates walk + idle animations, and writes `knight.obj`,
-`knight.glb`, `knight_project.am3d` and per-object PNG **sprite sheets**.
-
-The recipe contract (see `scripts/knight_recipe.json`):
-
-```json
-{
-  "name": "knight",
-  "objects": [
-    {"name": "torso", "primitive": "sphere", "params": {"radius": 0.45}},
-    {"name": "hero", "bones": [
-      {"name": "hip", "head": [0,0.9,0], "tail": [0,1.0,0]},
-      {"name": "spine", "head": [0,1.0,0], "tail": [0,1.4,0], "parent": "hip"}
-    ]}
-  ],
-  "actions": [{"name": "walk", "kind": "walk", "character": "hero"}],
-  "exports": [
-    {"format": "obj", "path": "knight"},
-    {"format": "glb", "path": "knight"},
-    {"format": "spritesheet", "path": "knight_sprite",
-     "params": {"views": 8, "size": 96}}
-  ]
-}
-```
-
-* **primitives**: `sphere`, `box`, `cylinder`, `cone`, `torus`, `plane`,
-  `lathe`, `extrude`
-* **action kinds**: `walk`, `idle`, `jump`, or `custom` with explicit keys
-* **exports**: `obj`, `glb` (`gltf` accepted as an alias), `spritesheet`,
-  `toon_sheet`, `animation_sheet`, `am3d`
-
-Invalid recipes are rejected with human-readable problems before anything
-is written; runtime failures come back as structured errors with exit code 1.
-
-A packaged Windows build (`build_windows.ps1`) ships both the desktop editor
-and this recipe entry point as standalone `.exe` files (`3D MASTER 2005.exe`,
-`am3d-recipe.exe`) that need no installed Python, for an external process
-that only has the recipe contract to go on.
-
-## Python API (headless)
-
-```python
-from am3d.core import script
-
-s = script.Session()
-s.new_project("demo")
-s.create_object("vase")
-s.add_spline("vase", [(0.4,0,0), (1.0,0.6,0), (0.7,1.4,0)], name="profile")
-s.lathe_spline("vase", "profile", axis="y", sections=24)
-
-from am3d.renderer import tessellate_project, save_sprite_sheet
-for name, mesh in tessellate_project(s.project).items():
-    save_sprite_sheet(mesh, f"{name}.png", views=8, size=128)
-```
-
-Or drive everything through one executor call:
-
-```python
-from am3d.recipes.executor import RecipeExecutor
-result = RecipeExecutor().execute(recipe_dict)
-print(result.ok, result.exports, result.errors)
-```
-
-## Layout
-
-```
-am3d/
-├── spline/      # geometry kernel (NumPy B-splines, optional Numba JIT)
-├── core/        # data model, scripting, animation, rigging, serializer
-├── renderer/    # tessellation + UVs + headless sprite rasterizer
-├── export/      # OBJ and binary glTF writers
-└── recipes/     # LLM contract: schema, primitives, animation gens,
-                 #   executor, CLI (`python -m am3d.recipes`)
-scripts/         # runnable demos + example knight_recipe.json
-assets/          # sample .am3a/.am3d assets and demo output
-```
-
-## Dependencies
-
-Python 3.10+ with numpy, msgpack, PySide6, and Pillow. `moderngl` (GPU
-rendering) and `numba` (JIT-accelerated spline evaluation) are both optional
-— the app falls back to a software renderer and pure NumPy respectively when
-either is absent. See `requirements.txt` (pinned runtime set used by the
-packaged build) and `pyproject.toml`'s `renderer`/`accel` extras.
+Build scripts and platform-specific acceptance instructions are documented
+in [the implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md),
+[the Windows acceptance plan](docs/WINDOWS_ACCEPTANCE_PLAN.md), and
+`docs/evidence/desktop-release/`.

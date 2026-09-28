@@ -75,9 +75,12 @@ class Viewport(QWidget):
     """
 
     selection_changed = Signal(str, int)
+    renderer_changed = Signal(str)
 
     def __init__(self, main_window):
         super().__init__()
+        self.setObjectName("viewport3d")
+        self.setAttribute(Qt.WA_StyledBackground, True)
         self.main = main_window
         self.setMinimumSize(320, 240)
         self.setMouseTracking(True)
@@ -102,6 +105,7 @@ class Viewport(QWidget):
         self._meshes = None            # tessellation cache (name -> MeshData)
         self._dirty = True
         self._frame = None
+        self.renderer_name = "Renderer pending"
 
         # Throttle re-renders to ~30 fps
         self._timer = QTimer(self)
@@ -163,6 +167,12 @@ class Viewport(QWidget):
         if not self._timer.isActive():
             self._timer.start(10)
 
+    def _set_renderer_name(self, name):
+        """Publish which renderer produced the most recent viewport frame."""
+        if name != self.renderer_name:
+            self.renderer_name = name
+            self.renderer_changed.emit(name)
+
     def _orbit_drag(self, dx, dy):
         self.camera.orbit(dx * 0.5, dy * 0.5)
         self._schedule_render()
@@ -195,6 +205,9 @@ class Viewport(QWidget):
         if self._frame is None and self._dirty and not self._timer.isActive():
             self._timer.start(0)
         painter = QPainter(self)
+        # The viewport canvas is deliberately darker than the period-style
+        # chrome; transparent render backgrounds and the empty state share it.
+        painter.fillRect(self.rect(), self.palette().window())
         if self._frame is not None:
             h, w = self._frame.shape[:2]
             # Frames are float RGBA 0..1; convert to uint8 once, here at
@@ -205,8 +218,7 @@ class Viewport(QWidget):
             img = QImage(self._frame_bytes, w, h, QImage.Format_RGBA8888)
             painter.drawImage(self.rect(), img)
         else:
-            painter.fillRect(self.rect(), Qt.darkGray)
-            painter.setPen(Qt.white)
+            painter.setPen(QColor("#E3E5E4"))
             painter.drawText(
                 self.rect(), Qt.AlignCenter,
                 "Empty scene\n\n"
@@ -410,6 +422,7 @@ class Viewport(QWidget):
                 # _dirty left every later paint event re-enqueueing a render
                 # that could never produce a frame.
                 self._frame = None
+                self._set_renderer_name("No scene")
                 self._dirty = False
                 self.update()
                 return
@@ -417,9 +430,11 @@ class Viewport(QWidget):
             view = self.camera.view_matrix()
             gpu_render = None if self.force_software else _get_gpu_render()
             rgba = None
+            backend = "software (toon)"
             if gpu_render is not None:
                 try:
-                    rgba = gpu_render(mesh, camera=view, size=(W, H))
+                    rgba, backend = gpu_render(
+                        mesh, camera=view, size=(W, H), return_backend=True)
                 except Exception:
                     rgba = None
 
@@ -433,10 +448,15 @@ class Viewport(QWidget):
                 # Renderers return float RGBA 0..1; keep float here and
                 # convert to uint8 once, in paintEvent.
                 self._frame = np.asarray(rgba, dtype=np.float32)
+                self._set_renderer_name(backend)
+            else:
+                self._frame = None
+                self._set_renderer_name("Render failed")
         except Exception:
             # A failed render is settled too: _dirty is cleared below, so the
             # next paint shows the empty-state text instead of spinning.
             self._frame = None
+            self._set_renderer_name("Render failed")
         self._dirty = False
         self.update()
 

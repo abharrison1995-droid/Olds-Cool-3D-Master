@@ -20,22 +20,39 @@ cat recipe.json | python -m am3d.recipes --recipe - --out output-directory
 ```
 
 Machine mode prints exactly one JSON result to `stdout`. Diagnostics are also
-written to `stderr`. A successful result has `ok: true`, an artifact `manifest`,
-and one manifest entry per physical file. A failure has `ok: false` and
+written to `stderr`. A successful execution result has `ok: true`, an artifact
+`manifest`, and one manifest entry per physical file. A successful
+`--validate-only` result has `ok: true` and `validated: true` and intentionally
+has no manifest because it writes no artifacts. A recipe failure has
+`ok: false` and
 `error_records` containing `code`, `stage`, `path`, `message`, and an optional
 `hint`. Exit code `0` means success; exit code `1` means parse, validation,
 runtime, resource, or write failure.
+
+Argument/usage errors are handled by the command-line parser: they print usage
+to `stderr` and exit with code `2`; they do not produce the recipe JSON report.
+`--verbose` writes human-readable progress before the JSON result, so its
+`stdout` is mixed and is not suitable for a machine parser. Omit it for an
+agent-driven invocation.
 
 Use `--validate-only` to check a recipe without creating a Session or any
 output. With `--out`, every export path must be relative and must resolve
 inside that directory; absolute paths, drive letters, and traversal escapes are rejected.
 Without `--out`, relative exports resolve next to the recipe file.
 
-### Packaged entry point (no Python required)
+### Packaged entry points (no Python required)
 
-Windows releases also ship `am3d-recipe.exe` alongside the GUI executable
-in the release folder -- a standalone build of the same entry point, for an
-external process that cannot rely on Python being installed:
+The previously accepted Linux archive for source commit `b96c922` included
+`./am3d-recipe` alongside the GUI. The current source tree does not yet have
+a rebuilt, accepted archive; current-source packaged invocation is deferred
+to its Phase 3 release check. Once accepted, invoke `./am3d-recipe` with the
+same options shown above. It is a standalone build of this entry point for
+an external process that cannot rely on Python being installed.
+
+The Windows build definition is intended to produce `am3d-recipe.exe`
+alongside the GUI executable. No Windows artifact is verified for the current
+release, so do not assume this executable is available until a Windows release
+passes its acceptance gate. When available, invoke it as follows:
 
 ```text
 am3d-recipe.exe --recipe recipe.json --out output-directory
@@ -89,11 +106,32 @@ value is rejected at runtime. Each takes its own optional `params`:
 - **Acyclic Hierarchy**: Bone parenting must form an acyclic tree. Circular references (`A -> B -> A` or self-parenting) are rejected.
 - Procedural actions (`walk`, `idle`, `jump`) require a rigged character with bones.
 
+For a character split across recipe objects, put the bone definitions on one
+geometry-free rig object, then set `objects[].params.skeleton` to that rig
+object on **every geometry object that should deform**. The executor copies
+the rig bones onto each referenced geometry object and auto-weights that
+object's control points to its nearest bones. An action's `character` names
+the rig object. Declaring an action and a rig does not bind unrelated objects
+automatically: unreferenced geometry remains static.
+
+The current recipe contract skins geometry in each object's local coordinate
+frame, then applies `transform`. Keep rigged geometry in the shared rig
+coordinate frame and leave those objects' `transform` at identity so weights
+and bone positions line up. Put geometry placement in the primitive's
+coordinates/profile. A non-identity transform on skinned geometry is not
+rebased into the rig frame by recipe v1.
+
+Before calling an action usable, inspect at least two evaluated frames and
+confirm the intended geometry changes position or shape. The generated
+animation sheet is a flat-color preview; it does not preserve the material
+textures. Use the `.am3d` project or textured GLB/OBJ materials to inspect
+surface appearance.
+
 ## 5. Artifact Formats & Capabilities
 
 - `.am3d`: Native editable project preserving patches, splines, bones, actions, active action, and assignments.
-- `.obj`: Static Wavefront OBJ mesh (bind or posed, whichever pose is active) with normals, UV coordinates, and an optional `.mtl` sidecar carrying each object's flat material colour.
-- `.glb`: Static binary glTF 2.0 asset (bind or posed) with an optional `materials` array (`pbrMetallicRoughness.baseColorFactor`) when objects have a flat-colour material assigned. This is a **static pose snapshot only** — it does not embed skeletal animation data; do not describe a `.glb` export as an animated asset.
+- `.obj`: Static Wavefront OBJ mesh (bind or posed, whichever pose is active) with normals and UV coordinates. Its optional `.mtl` sidecar carries flat diffuse colours and, for baked procedural/image appearance, `map_Kd` references to PNG texture atlases written beside the OBJ.
+- `.glb`: Static binary glTF 2.0 asset (bind or posed). Flat colours use `pbrMetallicRoughness.baseColorFactor`; baked procedural/image appearance is embedded as `baseColorTexture`, so the GLB remains self-contained. These are **static pose snapshots only** — OBJ and GLB do not embed skeletons, weights, or animation data. Do not describe either as an animated export.
 - `spritesheet`: Rendered orthographic or perspective **multi-view** sprite grid — one object orbited through `views` camera angles at a fixed pose (`views`, `size`, `color`, `silhouette`).
 - `toon_sheet`: Cel-shaded multi-view sprite sheet with ink outlines (`bands`, `ink`).
 - `animation_sheet`: Rendered **animation** sprite grid — the whole scene composited at `frames` evenly-spaced times across `action`'s `start`..`end` range (`action`, `frames`, `columns`, `size`, `color`, `start`, `end`). Distinct from `spritesheet`/`toon_sheet`: it samples *time*, not camera angle, and every cell shares the same view.
@@ -128,4 +166,3 @@ Correction workflow:
 
 - [Minimal Cube Recipe](examples/minimal.json)
 - [Fully Rigged Knight Recipe](examples/knight_full.json)
-

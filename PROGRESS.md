@@ -1,98 +1,55 @@
-# AM3D Modernization — Progress Report
+# 3D MASTER:2005 — current status
 
-Date: 2026-08-26
-Status: **V1 Phases 0–5 below are complete and verified. A post-implementation
-review found several of these "complete" phases did not satisfy their exit
-gates for a real beta release — see [`docs/V2_BETA_IMPLEMENTATION_PLAN.md`](docs/V2_BETA_IMPLEMENTATION_PLAN.md),
-which now supersedes this document and Phase 6 below as the source of truth
-for beta-readiness. Current test count: 302 passing (see V2 plan section 13
-for what's still open: serializer hardening, Lathe/Extrude architecture
-duplication, material persistence, autosave/recovery, Home/Settings, export
-parity, Windows packaging).**
+Updated: 2026-09-28.
 
-Full plan lives in the approved implementation plan (bug review + 7 phases). This document tracks execution state through V1 Phase 5; V1 Phase 6 and all beta-remediation work moved to the V2 plan linked above.
+This file is a short status index, not a second implementation plan. The
+active plan is [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md).
+Older V1/V2/V3 plans and their evidence remain as historical records; their
+PASS labels do not replace acceptance of the current source and artifacts.
 
-## Completed
+## Product outcome
 
-### Phase 0 — Bug-fix sprint ✅ (178 → 191 tests)
+An external AI agent authors and runs a recipe to create an editable 3D asset;
+the desktop editor opens that project for inspection and further work. The
+recipe/CLI workflow is code-first. There is no embedded model-provider or
+prompt interface.
 
-~28 review findings fixed, all with regression tests:
+## Implemented foundation
 
-- **GPU crashes**: ambiguous ndarray truth-value bugs in `gpu/shaders.py` (uvs), `gpu/__init__.py:85` (camera), `gpu/__init__.py:103` (`finally: if not final`); double `gbuf.release()` removed.
-- **Pixel-scale contract unified**: all render-boundary functions (`toon_render_view`, `sprite.render_view`, `gpu.render_frame`) return float32 RGBA 0..1; uint8 conversion only at QImage/file-export edges. Fixed sprite top-left-crop "downsample" (now block-mean), `_software_render` alpha/black-frame bugs, hardcoded `aspect=1.0` in `_perspective`.
-- **Core math**: smartskin single-bone `IndexError` fixed; skinning now correct LBS delta `T_cur @ inv(T_rest)`; spline degree clamped to `len(pts)-1`; `build_extrude_net` rejects `n_rings<2`; `eval_curve(0/1)` evaluate as parameters; true angle-weighted normals in `compute_normals`.
-- **Animation**: un-swapped Hermite in/out tangents; Catmull-Rom tangents scaled by key interval; `ActionBlender.sample` renormalizes per-bone weight mass.
-- **Serialization**: keyframe in/out tangents persisted (`ti`/`to`); material bump/transparency/specular maps persisted; optional versioned `actions` section in `.am3d`; `Session.save_project/load_project` added and exported. Backward compatible — `assets/walk.am3a`, `assets/vase_demo.am3d` load (tested).
-- **Scene/export correctness**: `Object3D.transform` baked into OBJ/glB/sprite exports; atlas layout unified on `ceil(sqrt(n))` grid (both `materials.bake_atlas` and `atlas_grid_layout`); torus tube seam closed; `_atlas_outdir` considers all export specs; per-patch material assignment actually works; dead `mesh._obj_base` removed.
-- **GL hygiene**: gbuffer texture filters use `moderngl.NEAREST`; `lighting.light_pass` releases VBO/VAO per call.
-- **Viewport (old)**: camera mouse control actually re-renders; pan translates eye+target; renders all meshes; QImage buffer lifetime fixed.
-- Verified: `python -m pytest am3d -q` → 191 passed; `scripts/demo_vase.py` runs clean.
-- Investigated `[render] hero: 0 verts` in demo output → **not a bug** (`hero` is a bone-only character with no geometry).
+- Versioned JSON recipe schema, authoring guide, examples, validation-only
+  mode, structured CLI errors and output manifests.
+- Recipe generation for geometry, procedural appearance, rigs/actions,
+  editable `.am3d` projects, static OBJ/GLB exports, and sprite/toon/animation
+  sheets.
+- Desktop GUI for modeling, materials, rigging, animation, rendering,
+  persistence and review of generated projects.
+- A Blender-meets-early-2000s desktop restyle is present in the current
+  working tree, with previews under `docs/previews/`.
+- The Linux Mint 22.3 x86-64 current-source preview candidate has passed its
+  source suite and packaged checks. GUI smoke used Qt offscreen/software
+  paths; this is not native-desktop, GPU, MX, or broad Linux qualification.
 
-### Phase 1 — Viewport rewrite ✅ (191 → 208 tests)
+## Deferred platform qualification
 
-- New `am3d/ui/camera.py` — Qt-free orbit `Camera` (yaw/pitch/distance/target, view+perspective matrices with real aspect, pan moves eye+target, presets front/side/top/perspective, `view_ray()`).
-- New `am3d/ui/picking.py` — vectorized Möller–Trumbore ray-triangle picking, `pick_object()`.
-- New `am3d/ui/viewport3d.py` — `Viewport` rewrite (old `viewport.py` is a compat shim): renders all objects, bakes object transforms in `_scene_meshes` (note: transform bake lives here, not in `tessellate_project` — revisit if exports and viewport should share it), tessellation cache invalidated via `refresh()`, grid floor + wireframe (W) + selection-box overlays, click-to-select with `selection_changed = Signal(str, int)` + `set_selected(name)`, hotkeys 1/3/7/0 view presets, G grid toggle. Controls: MMB orbit, Shift+MMB pan, wheel zoom, LMB orbit (A:M style) + LMB click select.
-- Offscreen end-to-end smoke test: MainWindow renders 640×480 toon frame, center click picks the seeded sphere.
+MX Linux 25.2 and Windows are follow-on qualification for a later
+cross-platform release, not blockers for the Mint preview candidate. No
+Windows artifact is included or verified, and the current source has not been
+requalified on MX. A genuinely separate LLM vendor has also not been tested;
+the earlier agent trial used fresh same-family substitute agents and records
+that limitation.
 
-### Phase 2 — Outliner + Properties ✅ (208 → 216 tests)
+See `docs/evidence/desktop-release/FINDING_LEDGER.md` for historical fixes
+and evidence, `docs/CAPABILITY_MATRIX.md` for surface-by-surface support, and
+`docs/IMPLEMENTATION_ROADMAP.md` for the remaining work and gates.
 
-- `am3d/ui/object_panel.py` rewritten as **Outliner** (`ObjectDock`): Scene → Objects → Patches/Splines/Bones/Materials tree, visibility checkboxes, F2/double-click rename, Del + context menu (Add/Rename/Delete with confirm), two-way selection sync with viewport, `context_changed(kind, object_name, item_name)` signal, signal-loop guards.
-- New `am3d/ui/properties.py` — `PropertiesDock`, tabbed context-sensitive editor: Object (name, TRS spinboxes, visibility), Bone (head/tail), Material (albedo swatch + bump/transparency/specular paths), Render (supersample, toon toggle).
-- `segment_panel.py` / `material_panel.py` deleted (folded into the above).
-- Model additions: `Object3D.visible`, `Project.rename_object`, `Project.render_settings` dict, `Session.rename_object` / `set_object_visible`, `compose_trs`/`decompose_trs` in mathutil; all serialized (backward compatible).
-- `data_changed` signal now actually wired through panels → viewport.
+Phase 0 of the roadmap is complete: two independent Luna reviewers examined
+the plan and supporting docs, their findings were resolved, and the review is
+recorded in `docs/evidence/implementation-roadmap/phase-0-review.md`.
 
-### Phase 3 — Workspaces, tiled layout, retro theme ✅ (216 → 223 tests)
+Phase 1 is complete: a fresh same-family Luna agent corrected a structured recipe rejection, validated the final recipe, and created the project and exports. Independent evaluation confirmed leg motion; two Luna reviewers passed the gate. The agent trial used the source CLI; packaged CLI acceptance was completed in Phase 3.
 
-- `am3d/ui/workspaces.py` — Workspace dataclass registry (Layout/Model/Rig/Animate/Render mapped to the classic modes), `WorkspaceTabBar`, `ToolStrip`, JSON layout-state round-trip.
-- `am3d/ui/area_layout.py` — `TiledArea` QSplitter layout with collapsible area panels; per-workspace splitter sizes saved/restored on switch.
-- `am3d/ui/theme_am2005.qss` — retro A:M 2005 theme; status bar with workspace/selection/frame/backend labels.
+Phase 2 is complete for the Qt offscreen MainWindow path: generated-project edit, undo, redo, save, and reopen passed, and the full asset is visible in both workspace captures at 1280×820 and 1440×900. Two independent Luna reviewers passed after renderer fallback reporting was corrected. Native compositor and physical GPU checks remain pending on their target platforms.
 
-### Phase 4 — Tools, gizmos, undo ✅ (223 → 259 tests)
+Phase 3's final-scope current-source candidate passed on Mint 22.3, with 738 tests, 14 packaged GUI smoke steps, CLI validation/export and structured parse-failure checks, plus relocation and payload checks. The staged docs match the Mint preview scope, and two fresh independent Luna reviews passed. Mint/offscreen evidence does not certify MX or hardware GPU behavior; see `docs/evidence/implementation-roadmap/CANDIDATE_REVIEW.md`.
 
-- `am3d/ui/operators.py` — QUndoCommand layer on a MainWindow `QUndoStack` (Edit menu Undo/Redo, Ctrl+Z / Ctrl+Y / Ctrl+Shift+Z). Commands: object rename/delete/add, visibility, TRS transform, material add/delete/color/maps, bone head/tail, bone pose, CP move/insert/remove. Absolute before/after values make redo idempotent (live drags commit one command on release). Panels route through `MainWindow.push_command` (`push_or_apply` fallback for isolated panels); outliner tree edits apply synchronously and defer only the stack push to avoid re-entrant tree clears.
-- File→New dirty-check prompt when the undo stack isn't clean; save marks clean; open/new clear the stack.
-- `am3d/ui/gizmos.py` — Qt-free gizmo geometry + hit-testing + drag math (translate arrows, rotate rings, scale handles + centre, constant screen size). `viewport3d.py` draws them over the render; drag updates `Object3D.transform` live, one undo command on release. G/R/S modal grab (view-plane translate / view-axis rotate / uniform scale; LMB or Enter confirms, Esc cancels).
-- Hotkeys: W/E gizmo translate/rotate, R modal rotate-grab, X gizmo off (grid/wireframe toggles moved to Shift+G/Shift+W). Toolbar buttons in the ToolStrip mirror the gizmo mode both ways.
-- `am3d/ui/tools_spline.py` — Model workspace CP editing: CP overlay handles, click select, drag move (view-plane ray), A / double-click inserts midpoint CP, X/Delete removes with the degree+1 minimum guard; all undoable, written to the `Spline` model in object space.
-- `am3d/ui/tools_bone.py` + `Session.pose_bone/clear_pose/apply_pose` — pose rotations stored per object/bone (Euler deg or 3x3), composed with `rest_local_transform` and run through `fk_pose` (`rigging.rest_local_transform` is the new public alias). Rig workspace draws posed bone chains; dragging the rotate ring on the selected bone sets its pose (undoable); ToolStrip has a Clear Pose button. Posed world transforms cached on `session.posed_transforms` for Phase 5 skinning.
-- ToolStrip hint placeholder replaced by real per-workspace option widgets (`ToolStrip.set_options`): gizmo buttons in Layout/Model, CP tool hints in Model, pose options in Rig.
-
-Undo coverage: object rename/delete/add, visibility (outliner + properties), TRS spinboxes, gizmo drags, modal grabs, material color/maps/add/delete, bone head/tail, bone pose, CP move/insert/delete. **Not undoable:** render-settings edits (supersample/toon), camera moves, selection changes.
-
-Deferred to Phase 5: skinned viewport deform (posed bones move the bone overlay only; mesh deform via smartskin not wired), ik_two_bone UI wiring, keyframe/dope-sheet editors.
-
-### Phase 5 — Animation editors ✅ (259 → 276 tests)
-
-- `am3d/ui/dopesheet.py` — new **TimelineDock** (same class name; `timeline.py` is now a compat shim): frame ruler with adaptive ticks, one row per animated bone of the active action, diamond key markers. Click/drag the ruler to scrub; drag keys to move them (ghost preview, one undoable `MoveKeyCommand` on release); click selects, `Delete`/`X` removes selected keys (undoable, multi-channel index-safe), `I` keys the context bone's pose, `Space` toggles playback. Transport row: Play/Pause (QTimer at FPS, wraps at range end), frame spin, range start/end + FPS spinboxes (undoable via `SetAnimationSettingsCommand`), action combo, Auto-key toggle.
-- Settings: `Project.animation_settings = {"frame_start": 0, "frame_end": 120, "fps": 30.0}` (0–120 @ 30 fps == the old hardcoded 4.0 s), serialized backward-compatibly in `.am3d` (old files load with defaults).
-- Pose chain: `TimelineDock.set_frame` → `Session.apply_action_frame` samples the assigned Action (rotate channels = Euler XYZ radians → pose rotations; translate = bone-local offsets via new `session.pose_offsets`, composed in `apply_pose`) → `fk_pose` → `session.posed_transforms`. The viewport bone overlay is now drawn in **Animate** as well as Rig, and `_scene_meshes` skins weighted objects through the new `rigging.deform_object` (canonical CP order: patch interiors C-order, then splines; `Bone.cp_weights` indexes it) before tessellation — deform recomputes only on refresh (frame/pose change).
-- Action management: `Session.delete_action` / `rename_action` / `set_active_action` / `assign_action` / `unassign_action` / `insert_keyframe` / `remove_keyframe` / `key_bone_from_pose` (pose 3x3 → Euler key round-trips through `apply_action_frame`), all exported on the scripting facade. Outliner has an **Actions** node (assignment shown in the label) with Add/Rename/Delete/**Assign to Selected Object**; File → Import Action (.am3a). Selecting an action row makes it the active action. `assets/walk.am3a` loads and drives the hero skeleton (tested at several frames against `Action.sample`).
-- New undo commands: `CreateActionCommand`, `DeleteActionCommand`, `RenameActionCommand`, `AssignActionCommand`, `InsertKeyCommand` (restores a replaced key on undo), `MoveKeyCommand` (key identity, resort), `DeleteKeyCommand`, `SetAnimationSettingsCommand`. Auto-key: after a viewport bone-ring drag, `_auto_key` keys the bone at the current frame when the dock's Auto-key is on.
-- Animate workspace now includes the outliner (bone selection for keying) — `test_main_window_smoke` updated accordingly.
-
-Deferred to Phase 6: graph editor, ik_two_bone UI wiring, pose/assignment serialization in .am3d, GPU skinning.
-
-## Not started
-
-- **Phase 6 — Polish**: pie menus, asset browser, `atlas`/`render` export formats, quad-view, GPU skinning, graph editor, ik_two_bone UI wiring, persistence of poses/action assignments in .am3d. *(Superseded — pose/assignment persistence now lands as part of the V2 plan's Phase 1; the rest of this list is still genuinely not started.)*
-
-## Known loose ends
-
-- Render-tab settings don't affect the GPU render path (software toon path only).
-- Deleting an object leaves a stale properties context (harmless; guarded).
-- Transform baking duplicated between viewport `_scene_meshes` and export path — consider unifying in `tessellate_project`.
-- Software rasterizer is orthographic (perspective only via camera transform for picking/overlays); perspective-correct CPU rasterization is open.
-- `Hook` / `Patch.splines` connectivity still decorative in the engine; 3-sided patches unsupported.
-
-## How to resume
-
-Work here now tracks `docs/V2_BETA_IMPLEMENTATION_PLAN.md`, not this
-document's Phase 6. That plan's section 13 has current status and a
-prioritized remaining-work list (serializer hardening gaps and the
-Lathe/Extrude facade duplication first, then material persistence, then
-Phases 2–6 of that plan). V1 Phase 6 (polish: pie menus, asset browser,
-export formats, quad-view, GPU skinning) remains genuinely not started and
-comes after the V2 plan's beta-readiness work.
+Phase 4 MX qualification is deferred until the documented MX Linux 25.2 machine is available. Phase 5's `windows-latest` CI preparation is complete and passed two independent Luna reviews; `.github/workflows/windows.yml` has not run. Windows CI, clean-VM and real-GPU checks remain later platform gates.

@@ -1,0 +1,127 @@
+{
+  "ok": true,
+  "objects": [
+    "shell",
+    "thorax",
+    "head",
+    "eye_left",
+    "eye_right",
+    "mandible_left",
+    "mandible_right",
+    "antenna_left",
+    "antenna_right",
+    "front_left_upper",
+    "front_left_lower",
+    "front_right_upper",
+    "front_right_lower",
+    "rear_left_upper",
+    "rear_left_lower",
+    "rear_right_upper",
+    "rear_right_lower",
+    "beetle_rig"
+  ],
+  "materials": [
+    "patterned_copper",
+    "warm_copper",
+    "dark_head",
+    "ruby_eyes",
+    "brass_antennae",
+    "darkened_steel_legs"
+  ],
+  "actions": [
+    "clockwork_walk"
+  ],
+  "exports": [
+    {
+      "format": "am3d",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_project.am3d"
+    },
+    {
+      "format": "obj",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "mtl",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.mtl"
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh_shell.png"
+    },
+    {
+      "format": "glb",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_snapshot.glb"
+    },
+    {
+      "format": "animation_sheet",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_walk_sheet.png"
+    },
+    {
+      "format": "atlas",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/shell_atlas.png"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "error_records": [],
+  "manifest": [
+    {
+      "format": "am3d",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_project.am3d",
+      "status": "written",
+      "size_bytes": 84049,
+      "version": 2
+    },
+    {
+      "format": "obj",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.obj",
+      "status": "written",
+      "size_bytes": 701143,
+      "mesh_count": 17
+    },
+    {
+      "format": "mtl",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.mtl",
+      "status": "written",
+      "size_bytes": 2222,
+      "sidecar_of": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh_shell.png",
+      "status": "written",
+      "size_bytes": 796,
+      "sidecar_of": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "glb",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_snapshot.glb",
+      "status": "written",
+      "size_bytes": 247428,
+      "mesh_count": 17
+    },
+    {
+      "format": "animation_sheet",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/clockwork_beetle_walk_sheet.png",
+      "status": "written",
+      "size_bytes": 125845,
+      "frames": 12,
+      "columns": 4,
+      "rows": 3,
+      "size": 128,
+      "action": "clockwork_walk",
+      "start": 0.0,
+      "end": 2.0
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-agent-recipe-trial-2/independent-output/shell_atlas.png",
+      "status": "written",
+      "size_bytes": 993,
+      "object": "shell",
+      "width": 256,
+      "height": 256
+    }
+  ],
+  "partial_publication": false
+}

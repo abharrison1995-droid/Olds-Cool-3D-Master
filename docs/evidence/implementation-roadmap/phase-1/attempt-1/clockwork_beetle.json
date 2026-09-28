@@ -1,0 +1,140 @@
+{
+  "version": 1,
+  "name": "clockwork_beetle",
+  "objects": [
+    {
+      "name": "shell",
+      "primitive": "sphere",
+      "params": {"radius": 0.66, "sections": 24, "rings": 14, "skeleton": "beetle_rig"},
+      "transform": [0.0, 1.35, -0.08]
+    },
+    {
+      "name": "abdomen",
+      "primitive": "sphere",
+      "params": {"radius": 0.40, "sections": 18, "rings": 10},
+      "transform": [0.0, 1.20, -0.55]
+    },
+    {
+      "name": "thorax",
+      "primitive": "sphere",
+      "params": {"radius": 0.30, "sections": 18, "rings": 10},
+      "transform": [0.0, 1.34, 0.43]
+    },
+    {
+      "name": "head",
+      "primitive": "sphere",
+      "params": {"radius": 0.25, "sections": 18, "rings": 10},
+      "transform": [0.0, 1.32, 0.72]
+    },
+    {
+      "name": "eye_left",
+      "primitive": "sphere",
+      "params": {"radius": 0.065, "sections": 12, "rings": 8},
+      "transform": [-0.18, 1.40, 0.91]
+    },
+    {
+      "name": "eye_right",
+      "primitive": "sphere",
+      "params": {"radius": 0.065, "sections": 12, "rings": 8},
+      "transform": [0.18, 1.40, 0.91]
+    },
+    {
+      "name": "leg_front_left",
+      "primitive": "cylinder",
+      "params": {"radius": 0.055, "height": 0.48, "sections": 10},
+      "transform": [-0.34, 0.76, 0.32]
+    },
+    {
+      "name": "leg_front_right",
+      "primitive": "cylinder",
+      "params": {"radius": 0.055, "height": 0.48, "sections": 10},
+      "transform": [0.34, 0.76, 0.32]
+    },
+    {
+      "name": "leg_rear_left",
+      "primitive": "cylinder",
+      "params": {"radius": 0.055, "height": 0.48, "sections": 10},
+      "transform": [-0.34, 0.76, -0.38]
+    },
+    {
+      "name": "leg_rear_right",
+      "primitive": "cylinder",
+      "params": {"radius": 0.055, "height": 0.48, "sections": 10},
+      "transform": [0.34, 0.76, -0.38]
+    },
+    {
+      "name": "antenna_left",
+      "primitive": "cylinder",
+      "params": {"radius": 0.022, "height": 0.30, "sections": 8},
+      "transform": [-0.11, 1.61, 0.77]
+    },
+    {
+      "name": "antenna_right",
+      "primitive": "cylinder",
+      "params": {"radius": 0.022, "height": 0.30, "sections": 8},
+      "transform": [0.11, 1.61, 0.77]
+    },
+    {
+      "name": "antenna_tip_left",
+      "primitive": "sphere",
+      "params": {"radius": 0.043, "sections": 10, "rings": 6},
+      "transform": [-0.11, 1.78, 0.77]
+    },
+    {
+      "name": "antenna_tip_right",
+      "primitive": "sphere",
+      "params": {"radius": 0.043, "sections": 10, "rings": 6},
+      "transform": [0.11, 1.78, 0.77]
+    },
+    {
+      "name": "beetle_rig",
+      "bones": [
+        {"name": "body_root", "head": [0.0, 0.88, 0.0], "tail": [0.0, 1.28, 0.0]},
+        {"name": "front_left_leg", "head": [-0.24, 1.02, 0.28], "tail": [-0.34, 0.52, 0.32], "parent": "body_root"},
+        {"name": "front_right_leg", "head": [0.24, 1.02, 0.28], "tail": [0.34, 0.52, 0.32], "parent": "body_root"},
+        {"name": "rear_left_leg", "head": [-0.24, 1.02, -0.28], "tail": [-0.34, 0.52, -0.38], "parent": "body_root"},
+        {"name": "rear_right_leg", "head": [0.24, 1.02, -0.28], "tail": [0.34, 0.52, -0.38], "parent": "body_root"}
+      ]
+    }
+  ],
+  "materials": [
+    {
+      "name": "copper_shell",
+      "pattern": "checker",
+      "params": {"a": [0.68, 0.25, 0.09], "b": [0.88, 0.48, 0.18], "cells": 10, "size": 256},
+      "roughness": 0.28,
+      "metalness": 0.82,
+      "objects": ["shell"]
+    },
+    {
+      "name": "dark_bronze",
+      "color": [0.30, 0.14, 0.08],
+      "roughness": 0.36,
+      "metalness": 0.75,
+      "objects": ["abdomen", "thorax", "leg_front_left", "leg_front_right", "leg_rear_left", "leg_rear_right", "antenna_left", "antenna_right"]
+    },
+    {
+      "name": "charcoal_head",
+      "color": [0.075, 0.085, 0.09],
+      "roughness": 0.42,
+      "metalness": 0.50,
+      "objects": ["head", "eye_left", "eye_right"]
+    },
+    {
+      "name": "brass_details",
+      "color": [0.86, 0.59, 0.20],
+      "roughness": 0.25,
+      "metalness": 0.88,
+      "objects": ["antenna_tip_left", "antenna_tip_right"]
+    }
+  ],
+  "actions": [
+    {"name": "walk", "kind": "walk", "duration": 1.2, "character": "beetle_rig"}
+  ],
+  "exports": [
+    {"format": "am3d", "path": "clockwork_beetle"},
+    {"format": "obj", "path": "clockwork_beetle_mesh"},
+    {"format": "glb", "path": "clockwork_beetle_asset"},
+    {"format": "animation_sheet", "path": "clockwork_beetle_walk", "params": {"action": "walk", "frames": 8, "columns": 4, "size": 192, "start": 0.0, "end": 1.2, "color": [0.96, 0.93, 0.85]}}
+  ]
+}

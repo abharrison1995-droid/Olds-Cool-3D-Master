@@ -75,15 +75,6 @@ def apply_theme(app, name=DEFAULT_THEME):
     return True
 
 
-def _render_backend_name():
-    """Label for the status bar: GPU pipeline when importable, else toon."""
-    try:
-        from am3d.gpu import render_frame  # noqa: F401
-    except Exception:
-        return "software (toon)"
-    return "GPU (moderngl)"
-
-
 class MainWindow(QMainWindow):
     """The workspace-based editor window."""
 
@@ -205,6 +196,8 @@ class MainWindow(QMainWindow):
                                 ("Scale", "scale"),
                                 ("Off", None)):
                 btn = QToolButton()
+                btn.setObjectName(
+                    "gizmoOff" if mode is None else "gizmoMode")
                 btn.setText(label)
                 btn.setCheckable(True)
                 btn.setAutoExclusive(True)
@@ -582,7 +575,7 @@ class MainWindow(QMainWindow):
         self.status_workspace = QLabel()
         self.status_selection = QLabel("No selection")
         self.status_frame = QLabel()
-        self.status_backend = QLabel(_render_backend_name())
+        self.status_backend = QLabel(self.viewport.renderer_name)
         for w in (self.status_workspace, self.status_selection,
                   self.status_frame, self.status_backend):
             bar.addPermanentWidget(w)
@@ -596,6 +589,7 @@ class MainWindow(QMainWindow):
             self.object_dock.on_viewport_selection)
         self.viewport.selection_changed.connect(
             self._on_viewport_selection)
+        self.viewport.renderer_changed.connect(self.status_backend.setText)
         self.object_dock.context_changed.connect(
             self.properties_dock.set_context)
         self.object_dock.context_changed.connect(
@@ -1067,15 +1061,12 @@ class MainWindow(QMainWindow):
         import sys as _sys
         import PySide6
         from PySide6.QtCore import qVersion, QSettings, QStandardPaths
-        from .viewport3d import gpu_render_available
 
         s = QSettings("3DMASTER2005", "app")
-        if self.viewport.force_software:
-            backend = "Software (forced by Settings > Render backend)"
-        elif gpu_render_available():
-            backend = "GPU"
-        else:
-            backend = "Software (GPU renderer module unavailable)"
+        backend = self.viewport.renderer_name
+        preference = ("Software only (forced in Settings)"
+                      if self.viewport.force_software else
+                      "Auto (ModernGL preferred; software fallback enabled)")
 
         proj = self.session.project
         doc_desc = (Path(self.doc_ctrl.path).name if self.doc_ctrl.has_path
@@ -1090,7 +1081,8 @@ class MainWindow(QMainWindow):
             f"3D MASTER:2005  Version {am3d.__version__}\n"
             f"Python {_sys.version.split()[0]}   "
             f"PySide6 {PySide6.__version__}   Qt {qVersion()}\n\n"
-            f"Renderer backend: {backend}\n\n"
+            f"Renderer backend: {backend}\n"
+            f"Renderer preference: {preference}\n\n"
             f"Document: {doc_desc}"
             f"{'  (modified)' if self.doc_ctrl.dirty else ''}\n"
             f"Objects: {len(proj.objects)}   "

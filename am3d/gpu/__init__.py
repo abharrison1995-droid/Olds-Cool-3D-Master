@@ -107,7 +107,8 @@ def scene_camera(meshes):
 
 def render_frame(project_or_mesh, camera=None, size=(512, 512),
                  lights=None, gpu_context=None, *,
-                 action_name=None, time=None, pose=None):
+                 action_name=None, time=None, pose=None,
+                 return_backend=False):
     """End-to-end GPU render of a scene, session, project or mesh.
 
     The input is resolved through :func:`resolve_scene`, so visibility,
@@ -119,7 +120,9 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
     GPU-02) rather than only the first one.
 
     If *gpu_context* is None, a temporary offscreen context is created and
-    destroyed (use :class:`ContextManager` for multiple frames).
+    destroyed (use :class:`ContextManager` for multiple frames). When
+    *return_backend* is true, return ``(image, backend_name)`` so callers can
+    distinguish the ModernGL pipeline from its quiet software fallback.
     """
     scene = resolve_scene(project_or_mesh, action_name=action_name,
                           time=time, pose=pose)
@@ -131,6 +134,9 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
     W, H = size
     view = camera if camera is not None else scene_camera(meshes)
 
+    def result(image, backend):
+        return (image, backend) if return_backend else image
+
     owned_ctx = False
     ctx = None
     if gpu_context is None:
@@ -138,7 +144,8 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
             gpu_context = create_offscreen_context(W, H)
             owned_ctx = True
         except Exception:
-            return _software_render(meshes, W, H, camera=view)
+            return result(_software_render(meshes, W, H, camera=view),
+                          "software (toon)")
 
     ctx = gpu_context.ctx if hasattr(gpu_context, "ctx") else gpu_context
     if ctx is None:
@@ -147,11 +154,13 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
                 gpu_context.destroy()
             except Exception:
                 pass
-        return _software_render(meshes, W, H, camera=view)
+        return result(_software_render(meshes, W, H, camera=view),
+                      "software (toon)")
 
     gbuf = GBuffer(ctx, W, H)
     final = None
     released = False
+    backend = "GPU (moderngl)"
     try:
         gbuf.bind()
         try:
@@ -172,6 +181,7 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
         final = tone_map(final)
     except Exception:
         # Any hardware failure falls back to software rather than failing
+        backend = "software (toon)"
         try:
             gbuf.unbind()
         except Exception:
@@ -187,6 +197,7 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
         final = _software_render(meshes, W, H, camera=view)
     finally:
         if final is None:  # pragma: no cover - defensive
+            backend = "software (toon)"
             final = _software_render(meshes, W, H, camera=view)
         try:
             gbuf.unbind()
@@ -203,7 +214,7 @@ def render_frame(project_or_mesh, camera=None, size=(512, 512),
             except Exception:
                 pass
 
-    return final
+    return result(final, backend)
 
 
 def _mesh_albedo(scene, name, default=(0.7, 0.7, 0.75, 1.0)):

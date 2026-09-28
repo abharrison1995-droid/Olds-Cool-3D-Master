@@ -52,11 +52,10 @@ Write-Host ""
 
 # ---- 1. Isolated build environment ----
 # A dedicated venv under build\windows, never the developer's own environment
-# and never the ambient interpreter: a release payload must be built from the
-# pinned set in requirements-dev.txt and nothing else, so a stray locally
-# installed package cannot slip in -- and the build must not silently depend
-# on the build machine happening to have pytest or PyInstaller installed
-# globally (finding PKG-06).
+# and never the ambient interpreter. It uses the pinned direct build set for
+# the initial Windows lock capture, then the captured platform lock on later
+# runs. A stray locally installed package cannot slip in, and the build does
+# not depend on pytest or PyInstaller being installed globally (PKG-06).
 Write-Host "Step 1: Preparing an isolated build environment..." -ForegroundColor Yellow
 
 # `py -3` first: the Windows launcher is the only one of these that reliably
@@ -101,28 +100,43 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $py)) {
 }
 Write-Host "  Build venv: $VenvDir" -ForegroundColor Green
 
-# Install the *dev* set, not requirements.txt: steps 3 and 4 need pytest,
-# jsonschema and PyInstaller, none of which are runtime dependencies. That
-# separation is deliberate (nothing in requirements-dev.txt may reach a
-# release payload) -- the bug was installing only the runtime half and then
-# calling tools from the other half.
+# Install the full Windows lock once it has been captured on a native Windows
+# runner. On the first run, fall back to the directly pinned dev set and let
+# -CaptureLock write the platform's resolved dependency set. Steps 3 and 4
+# need pytest, jsonschema and PyInstaller; none of the dev packages reach the
+# release payload. This retains the runtime/dev separation while making later
+# Windows builds use captured transitive versions too.
 Write-Host "Step 2: Installing pinned build dependencies..." -ForegroundColor Yellow
 Invoke-Native { & $py -m pip install --quiet --upgrade pip }
-$reqPath = Join-Path $RepoRoot "requirements-dev.txt"
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Could not upgrade pip in the isolated build environment."
+    exit 1
+}
+$lockPath = Join-Path $RepoRoot "requirements-lock-windows.txt"
+if (Test-Path $lockPath) {
+    $reqPath = $lockPath
+    Write-Host "  Installing captured Windows lock: $lockPath" -ForegroundColor Cyan
+} else {
+    $reqPath = Join-Path $RepoRoot "requirements-dev.txt"
+    Write-Host "  Windows lock not present; bootstrapping from requirements-dev.txt" -ForegroundColor Yellow
+}
 Invoke-Native { & $py -m pip install --quiet -r $reqPath }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "Dependency installation failed!"
     exit 1
 }
 $frozen = Invoke-Native { & $py -m pip freeze }
-Write-Host "  $(@($frozen).Count) packages installed from requirements-dev.txt" -ForegroundColor Green
+if ($LASTEXITCODE -ne 0 -or @($frozen).Count -eq 0) {
+    Write-Error "Could not capture a non-empty dependency freeze from the build venv."
+    exit 1
+}
+Write-Host "  $(@($frozen).Count) resolved build packages installed from $([System.IO.Path]::GetFileName($reqPath))" -ForegroundColor Green
 
 if ($CaptureLock) {
     # The Windows counterpart of requirements-lock-linux.txt. It is captured
     # rather than hand-written because the transitive set differs by platform
     # (pywin32-ctypes and pefile are PyInstaller's Windows-only dependencies,
     # and there is no altgraph-free path to them).
-    $lockPath = Join-Path $RepoRoot "requirements-lock-windows.txt"
     ($frozen | Sort-Object) -join "`n" | Out-File -FilePath $lockPath -Encoding ascii
     Write-Host "  Wrote $lockPath -- commit it." -ForegroundColor Green
 }

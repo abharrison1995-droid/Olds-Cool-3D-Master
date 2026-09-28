@@ -5,9 +5,11 @@ engine, but they do not expose the same set of verbs:
 
 - **Engine / Python API** — `import am3d` in a Python environment. Source
   installs only; the frozen bundles do not expose an interpreter.
-- **Recipe CLI** — the standalone `am3d-recipe` executable shipped in both
-  bundles. Declarative JSON in, assets out, no Python required.
-- **Desktop GUI** — the `3D MASTER 2005` application shipped in both bundles.
+- **Recipe CLI** — `python -m am3d.recipes` from source, or the standalone
+  `am3d-recipe` executable in the verified Linux bundle. Declarative JSON in,
+  generated assets out.
+- **Desktop GUI** — the `3D MASTER 2005` application in the verified Linux
+  bundle.
 
 "Yes" means the capability is reachable and covered by tests on that surface.
 "No" means it is not reachable there — not that it is planned.
@@ -23,6 +25,19 @@ engine, but they do not expose the same set of verbs:
 | Direct control-point editing of a patch net | Yes | No | Yes (viewport handles) |
 | Object transforms, duplication, visibility | Yes | Yes | Yes |
 | Boolean/CSG, subdivision, sculpting | No | No | No |
+
+## AI-agent integration boundary
+
+An external model or agent authors the recipe and invokes the CLI. The
+application does not include a model provider, prompt box, or built-in
+orchestration. The recipe schema, structured CLI errors, manifest, and
+editable project form the integration contract.
+
+| Capability | Engine / API | Recipe CLI | Desktop GUI |
+| --- | --- | --- | --- |
+| Generate assets from a versioned JSON recipe | Yes | Yes | No — open the generated `.am3d` project to inspect/refine |
+| Built-in natural-language prompt / model provider | No | No | No |
+| Machine-readable validation errors and artifact manifest | Yes | Yes | n/a |
 
 ## Materials and appearance
 
@@ -90,9 +105,9 @@ empty file.
 
 | | Linux x86-64 | Windows x86-64 |
 | --- | --- | --- |
-| Desktop GUI bundle | Built and acceptance-tested on the reference machine | **Not produced in this environment** — no Windows host available |
-| Recipe CLI bundle | Built and tested | Same |
-| Source install (Python 3.11+) | Yes | Expected; not executed here |
+| Desktop GUI bundle | Linux Mint 22.3 preview candidate built; packaged GUI smoke passed in Qt offscreen/software mode. Native desktop and MX qualification remain pending. | No artifact verified; Windows qualification is deferred |
+| Recipe CLI bundle | Linux Mint 22.3 preview candidate built; packaged validation/export and structured failure checks passed. | No artifact verified; Windows qualification is deferred |
+| Source install (Python 3.11+) | Source test suite passed on Linux Mint 22.3 with Python 3.13.5; pip-install compatibility and other Linux distributions are not qualified | Not verified |
 
 See `docs/SUPPORTED_PLATFORMS.md` for the verified configurations and
 `docs/evidence/desktop-release/` for what was actually executed.

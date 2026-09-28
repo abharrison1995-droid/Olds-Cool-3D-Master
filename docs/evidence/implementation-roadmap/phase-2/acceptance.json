@@ -1,0 +1,88 @@
+{
+  "source_project": "/home/alex/Desktop/Olds-Cool-3D-Master/docs/evidence/implementation-roadmap/phase-1/attempt-2/successful-output/clockwork_beetle_project.am3d",
+  "saved_project": "/home/alex/Desktop/Olds-Cool-3D-Master/docs/evidence/implementation-roadmap/phase-2/clockwork_beetle_refined.am3d",
+  "objects": 18,
+  "materials": [
+    "brass_antennae",
+    "dark_head",
+    "darkened_steel_legs",
+    "patterned_copper",
+    "ruby_eyes",
+    "warm_copper"
+  ],
+  "actions": [
+    "clockwork_walk"
+  ],
+  "action_assignments": {
+    "beetle_rig": "clockwork_walk"
+  },
+  "head_transform_before": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.7
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.76
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "head_transform_after": [
+    [
+      1.0,
+      0.0,
+      0.0,
+      0.0
+    ],
+    [
+      0.0,
+      1.0,
+      0.0,
+      0.7
+    ],
+    [
+      0.0,
+      0.0,
+      1.0,
+      0.92
+    ],
+    [
+      0.0,
+      0.0,
+      0.0,
+      1.0
+    ]
+  ],
+  "undo_restored_before": true,
+  "redo_restored_after": true,
+  "saved_and_reopened_after_transform": true,
+  "viewport_frame_shape": [
+    504,
+    663,
+    4
+  ],
+  "viewport_frame_stddev": 0.2058350294828415,
+  "screenshots": [
+    "layout-1280.png",
+    "animate-1280.png",
+    "layout-1440.png",
+    "animate-1440.png"
+  ],
+  "renderer_setting": "Auto (GPU preferred; software toon fallback)",
+  "renderer_used": "software (toon)"
+}

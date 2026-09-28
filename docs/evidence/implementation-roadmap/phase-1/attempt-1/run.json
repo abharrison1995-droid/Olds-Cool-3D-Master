@@ -1,0 +1,122 @@
+{
+  "ok": true,
+  "objects": [
+    "shell",
+    "abdomen",
+    "thorax",
+    "head",
+    "eye_left",
+    "eye_right",
+    "leg_front_left",
+    "leg_front_right",
+    "leg_rear_left",
+    "leg_rear_right",
+    "antenna_left",
+    "antenna_right",
+    "antenna_tip_left",
+    "antenna_tip_right",
+    "beetle_rig"
+  ],
+  "materials": [
+    "copper_shell",
+    "dark_bronze",
+    "charcoal_head",
+    "brass_details"
+  ],
+  "actions": [
+    "walk"
+  ],
+  "exports": [
+    {
+      "format": "am3d",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle.am3d"
+    },
+    {
+      "format": "obj",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "mtl",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.mtl"
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh_shell.png"
+    },
+    {
+      "format": "glb",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_asset.glb"
+    },
+    {
+      "format": "animation_sheet",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_walk.png"
+    },
+    {
+      "format": "atlas",
+      "path": "/tmp/am3d-phase1-independent-check/out/shell_atlas.png"
+    }
+  ],
+  "warnings": [],
+  "errors": [],
+  "error_records": [],
+  "manifest": [
+    {
+      "format": "am3d",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle.am3d",
+      "status": "written",
+      "size_bytes": 63256,
+      "version": 2
+    },
+    {
+      "format": "obj",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.obj",
+      "status": "written",
+      "size_bytes": 573879,
+      "mesh_count": 14
+    },
+    {
+      "format": "mtl",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.mtl",
+      "status": "written",
+      "size_bytes": 1821,
+      "sidecar_of": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh_shell.png",
+      "status": "written",
+      "size_bytes": 817,
+      "sidecar_of": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_mesh.obj"
+    },
+    {
+      "format": "glb",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_asset.glb",
+      "status": "written",
+      "size_bytes": 203768,
+      "mesh_count": 14
+    },
+    {
+      "format": "animation_sheet",
+      "path": "/tmp/am3d-phase1-independent-check/out/clockwork_beetle_walk.png",
+      "status": "written",
+      "size_bytes": 194435,
+      "frames": 8,
+      "columns": 4,
+      "rows": 2,
+      "size": 192,
+      "action": "walk",
+      "start": 0.0,
+      "end": 1.2
+    },
+    {
+      "format": "png",
+      "path": "/tmp/am3d-phase1-independent-check/out/shell_atlas.png",
+      "status": "written",
+      "size_bytes": 1021,
+      "object": "shell",
+      "width": 256,
+      "height": 256
+    }
+  ],
+  "partial_publication": false
+}

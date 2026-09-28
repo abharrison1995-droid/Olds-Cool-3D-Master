@@ -1,0 +1,4 @@
+Command: python3 scripts/build_input_digest.py --digest-only
+First run:  6e62c8cdf6ecfb578885f852391b5d8b50d118a6405b9f4817cb36aa0fd60283
+Second run: 6e62c8cdf6ecfb578885f852391b5d8b50d118a6405b9f4817cb36aa0fd60283
+Result: identical

@@ -1,0 +1,1 @@
+error: ValueError: unknown pattern 'scales' (choose from ['bricks', 'checker', 'gradient', 'noise', 'solid'])

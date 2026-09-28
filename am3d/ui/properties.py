@@ -24,6 +24,10 @@ _RANGE = (-1e6, 1e6)
 
 def _spin(value, lo=_RANGE[0], hi=_RANGE[1], step=0.1, decimals=3):
     s = QDoubleSpinBox()
+    # Transform vectors live three controls to a row. Keep the native spin
+    # affordance, but let the form share its available width between them.
+    s.setMinimumWidth(0)
+    s.setSizePolicy(QSizePolicy.Ignored, QSizePolicy.Fixed)
     s.setRange(lo, hi)
     s.setSingleStep(step)
     s.setDecimals(decimals)
@@ -38,10 +42,11 @@ class _Vec3Row(QWidget):
         super().__init__()
         row = QHBoxLayout(self)
         row.setContentsMargins(0, 0, 0, 0)
+        row.setSpacing(3)
         self.spins = [_spin(0.0) for _ in range(3)]
         for s in self.spins:
             s.valueChanged.connect(on_change)
-            row.addWidget(s)
+            row.addWidget(s, 1)
 
     def set(self, vec):
         for s, v in zip(self.spins, vec):
@@ -72,6 +77,7 @@ class PropertiesDock(QWidget):
         layout = QVBoxLayout(self)
         layout.setContentsMargins(0, 0, 0, 0)
         self.tabs = QTabWidget()
+        self.tabs.setObjectName("propertiesTabs")
         self._build_object_tab()
         self._build_bone_tab()
         self._build_material_tab()
@@ -135,11 +141,13 @@ class PropertiesDock(QWidget):
         self.bone_parent.currentIndexChanged.connect(self._bone_parent_changed)
         form.addRow("Parent", self.bone_parent)
         buttons = QHBoxLayout()
+        buttons.setSpacing(2)
         for label, slot in (("Add Bone", "_rig_add_bone"),
                             ("Add Child", "_rig_add_child_bone"),
                             ("Delete", "_rig_delete_bone"),
                             ("Bind Geometry", "_rig_bind_geometry")):
             btn = QPushButton(label)
+            btn.setObjectName("boneActionButton")
             btn.clicked.connect(
                 lambda _=False, name=slot: self._rig_action(name))
             buttons.addWidget(btn)

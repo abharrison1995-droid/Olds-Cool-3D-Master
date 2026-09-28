@@ -334,7 +334,7 @@ def test_workspace_layout_state_serialization():
 
 
 def test_theme_file_loads():
-    """The retro theme file exists, parses as text, and applies."""
+    """The early-2000s workbench theme exists, parses, and applies."""
     try:
         from PySide6.QtWidgets import QApplication
         app = QApplication.instance()
@@ -345,10 +345,11 @@ def test_theme_file_loads():
         pytest.skip("PySide6 not available or no display")
     from am3d.ui.app import DEFAULT_THEME, apply_theme, load_theme
     qss = load_theme()
-    assert "#D4D0C8" in qss
+    assert "#B9BDC0" in qss
+    assert "#D98435" in qss
     assert "QTabBar::tab" in qss
     assert apply_theme(app, DEFAULT_THEME)
-    assert "#D4D0C8" in app.styleSheet()
+    assert "#B9BDC0" in app.styleSheet()
     assert not apply_theme(app, "no_such_theme")
 
 
@@ -413,9 +414,32 @@ def test_status_bar_updates_on_selection():
         # Frame label follows the dope-sheet clock.
         win.timeline_dock.set_frame(60)
         assert "2.0" in win.status_frame.text()
-        # Backend label is one of the two known renderers.
-        assert win.status_backend.text() in ("GPU (moderngl)",
-                                             "software (toon)")
+        # The label starts pending and then reports the renderer that
+        # actually produced the most recent viewport frame.
+        assert win.status_backend.text() in (
+            "Renderer pending", "GPU (moderngl)", "software (toon)",
+            "No scene", "Render failed")
+    finally:
+        win.viewport._timer.stop()
+        win.close()
+
+
+def test_status_bar_reports_context_fallback(monkeypatch):
+    """A GPU API software fallback must be reported as a software frame."""
+    import am3d.gpu as gpu
+    import am3d.ui.viewport3d as viewport3d
+
+    def no_context(*_args, **_kwargs):
+        raise RuntimeError("test forces context creation failure")
+
+    monkeypatch.setattr(gpu, "create_offscreen_context", no_context)
+    monkeypatch.setattr(viewport3d, "_get_gpu_render",
+                        lambda: gpu.render_frame)
+    win = _make_main_window()
+    try:
+        win.viewport._timer.stop()
+        win.viewport._render()
+        assert win.status_backend.text() == "software (toon)"
     finally:
         win.viewport._timer.stop()
         win.close()

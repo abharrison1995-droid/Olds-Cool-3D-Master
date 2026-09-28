@@ -165,6 +165,7 @@ class ToolStrip(QWidget):
 
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.setObjectName("toolStrip")
         row = QHBoxLayout(self)
         row.setContentsMargins(6, 2, 6, 2)
         self.workspace_label = QLabel()

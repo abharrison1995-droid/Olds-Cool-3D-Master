@@ -4,7 +4,7 @@
 # folder: an isolated build venv, the full test suite, both PyInstaller
 # entry points (windowed GUI + headless recipe CLI), a packaged smoke run,
 # a relocation check from a path with spaces and non-ASCII characters, a
-# reproducible tarball, its SHA-256, and a build-provenance file.
+# normalized archive, its SHA-256, and a build-provenance file.
 #
 # The Linux counterpart of build_windows.ps1, step for step, so the two
 # platforms are verified the same way rather than one being trusted.
@@ -43,7 +43,7 @@ info "=== 3D MASTER:2005 Linux Build ==="
 
 # ---- 1. Isolated build environment ----------------------------------------
 # A dedicated venv under build/, never the developer's own .venv: a release
-# payload must be built from the pinned set in requirements-dev.txt and
+# payload must be built from the platform's fully resolved lock file and
 # nothing else, so a stray locally-installed package cannot slip in.
 step "Step 1: Preparing an isolated build environment..."
 command -v python3 >/dev/null || die "python3 not found"
@@ -92,10 +92,14 @@ pip_freeze() {
     fi
 }
 
-step "Step 2: Installing pinned build dependencies..."
-pip_install -r "$REPO_ROOT/requirements-dev.txt" \
+step "Step 2: Installing locked build dependencies..."
+pip_install -r "$REPO_ROOT/requirements-lock-linux.txt" \
     || die "dependency installation failed"
-ok "$(pip_freeze | wc -l) packages installed from requirements-dev.txt"
+ok "$(pip_freeze | wc -l) packages installed from requirements-lock-linux.txt"
+
+SOURCE_DIGEST_BEFORE="$(python3 "$REPO_ROOT/scripts/build_input_digest.py" \
+    --root "$REPO_ROOT" --digest-only)"
+ok "Build input digest: $SOURCE_DIGEST_BEFORE"
 
 # ---- 2. Tests --------------------------------------------------------------
 step "Step 3: Running the test suite..."
@@ -246,6 +250,33 @@ PY
 step "Step 7b: Running a recipe with the packaged CLI..."
 "$RELEASE_DIR/am3d-recipe" --recipe "$RELEASE_DIR/examples/recipes/minimal.json" \
     --validate-only || die "packaged recipe CLI could not validate the bundled example"
+
+# The packaged error path is part of the agent contract too: a caller must
+# receive parseable structured errors and a failing exit code, not a traceback.
+INVALID_RECIPE="$SMOKE_DIR/invalid_recipe.json"
+cat > "$INVALID_RECIPE" <<'INVALID'
+{
+  "version": 1,
+INVALID
+set +e
+"$RELEASE_DIR/am3d-recipe" --recipe "$INVALID_RECIPE" --validate-only \
+    > "$SMOKE_DIR/invalid_recipe.stdout" \
+    2> "$SMOKE_DIR/invalid_recipe.stderr"
+INVALID_RC=$?
+set -e
+[ "$INVALID_RC" -eq 1 ] || die "packaged recipe CLI did not reject malformed JSON with exit 1"
+"$PY" - "$SMOKE_DIR/invalid_recipe.stdout" <<'PY' \
+    || die "packaged recipe CLI did not return a structured parse error"
+import json, sys
+report = json.loads(open(sys.argv[1], encoding="utf-8").read())
+records = report.get("error_records", [])
+if (report.get("ok") is not False or not records
+        or records[0].get("code") != "recipe_read_error"
+        or records[0].get("stage") != "parse"):
+    print(json.dumps(report, indent=2))
+    raise SystemExit(1)
+print("  Packaged CLI returned its structured parse-error record.")
+PY
 # Validation alone never touches the geometry, exporter or writer, so the
 # bundled recipe is also actually built (journey 6) into a scratch directory
 # outside the payload.
@@ -277,13 +308,25 @@ LEAKED="$(grep -rlF "$REPO_ROOT" "$RELEASE_DIR" 2>/dev/null | head -5 || true)"
 $LEAKED"
 echo "  No build-machine paths in the payload."
 
+step "Step 7d: Verifying and recording the complete build input set..."
+SOURCE_DIGEST_AFTER="$(python3 "$REPO_ROOT/scripts/build_input_digest.py" \
+    --root "$REPO_ROOT" --digest-only)"
+[ "$SOURCE_DIGEST_BEFORE" = "$SOURCE_DIGEST_AFTER" ] \
+    || die "build inputs changed during the candidate build"
+python3 "$REPO_ROOT/scripts/build_input_digest.py" --root "$REPO_ROOT" \
+    --write-manifest "$REPO_ROOT/release/BUILD_INPUTS-linux.json" \
+    --digest-only >/dev/null
+ok "Tracked and untracked build inputs match the starting digest."
+
 step "Step 8: Packaging the release archive and checksum..."
 VERSION="$("$PY" -c 'import am3d; print(am3d.__version__)')"
 ARCHIVE_NAME="3D-MASTER-2005-Beta-$VERSION-linux-x86_64.tar.gz"
 ARCHIVE_PATH="$REPO_ROOT/release/$ARCHIVE_NAME"
 rm -f "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256"
-# --sort=name and a fixed mtime keep the archive byte-reproducible across
-# builds of the same tree; the payload itself is whatever PyInstaller made.
+# --sort=name and fixed ownership/timestamps keep packaging byte-stable when
+# given the same staged folder. PyInstaller may emit different frozen payload
+# bytes across separate builds from identical source inputs; the checksum
+# below identifies the exact candidate produced by this run.
 SOURCE_EPOCH="$(git -C "$REPO_ROOT" log -1 --format=%ct 2>/dev/null || echo 0)"
 tar --sort=name --owner=0 --group=0 --numeric-owner \
     --mtime="@$SOURCE_EPOCH" \
@@ -300,6 +343,8 @@ step "Step 8b: Writing build provenance..."
     echo "am3d version     : $VERSION"
     echo "git commit       : $(git -C "$REPO_ROOT" rev-parse HEAD 2>/dev/null || echo unknown)"
     echo "git status       : $(if [ -z "$(git -C "$REPO_ROOT" status --porcelain 2>/dev/null)" ]; then echo clean; else echo "DIRTY -- built from uncommitted changes"; fi)"
+    echo "build inputs sha256: $SOURCE_DIGEST_AFTER"
+    echo "input manifest   : release/BUILD_INPUTS-linux.json"
     echo "built on         : $(uname -srmo)"
     echo "distribution     : $( (. /etc/os-release 2>/dev/null && echo "$PRETTY_NAME") || echo unknown)"
     echo "python (host)    : $PY_VERSION"

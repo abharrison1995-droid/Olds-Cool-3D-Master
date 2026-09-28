@@ -61,6 +61,57 @@ def test_render_frame_software_fallback():
         pass
 
 
+def test_render_frame_reports_context_fallback(monkeypatch):
+    """Backend metadata identifies a software frame when GL is unavailable."""
+    import am3d.gpu as gpu
+
+    def no_context(*_args, **_kwargs):
+        raise RuntimeError("test forces context creation failure")
+
+    monkeypatch.setattr(gpu, "create_offscreen_context", no_context)
+    image, backend = gpu.render_frame(
+        _quad_mesh(), size=(16, 16), return_backend=True)
+    assert image.shape == (16, 16, 4)
+    assert backend == "software (toon)"
+
+
+def test_render_frame_reports_last_resort_software_fallback(monkeypatch):
+    """The defensive final-None fallback must not retain a GPU label."""
+    import am3d.gpu as gpu
+
+    class FakeGBuffer:
+        def __init__(self, *_args):
+            pass
+
+        def bind(self):
+            pass
+
+        def unbind(self):
+            pass
+
+        def release(self):
+            pass
+
+    class FakeContext:
+        ctx = object()
+
+    monkeypatch.setattr(gpu, "GBuffer", FakeGBuffer)
+    monkeypatch.setattr(gpu, "ShaderProgram", lambda *_args: object())
+    monkeypatch.setattr(gpu, "render_mesh", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(gpu, "light_pass", lambda *_args, **_kwargs: None)
+    monkeypatch.setattr(gpu, "tone_map", lambda image: image)
+    monkeypatch.setattr(
+        gpu, "_software_render",
+        lambda _meshes, width, height, camera=None:
+        np.zeros((height, width, 4), dtype=np.float32))
+
+    image, backend = gpu.render_frame(
+        _quad_mesh(), size=(16, 16), gpu_context=FakeContext(),
+        return_backend=True)
+    assert image.shape == (16, 16, 4)
+    assert backend == "software (toon)"
+
+
 def test_gbuffer_context_standalone():
     """Try creating a standalone GL context (skip if not available)."""
     try:

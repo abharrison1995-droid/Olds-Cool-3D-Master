@@ -1,7 +1,18 @@
-# Desktop release assessment and implementation handoff
+# Desktop release assessment and implementation handoff (historical snapshot)
 
 Date: 2026-09-09. Assessed commit: `d01187ccbc48803add2cf7ebd3e750f68883362b`.
-This task is assessment and planning only. No application, test, dependency, or build changes are authorized by this document itself. A subsequent agent implements it when instructed by the user.
+This is a point-in-time assessment of that commit, retained to explain the
+findings and their origins. Its opening baseline and “recommended first
+implementation batch” are historical; later implementation and evidence are
+recorded in `docs/evidence/desktop-release/FINDING_LEDGER.md`. The active
+product roadmap is [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
+Use the ledger and active roadmap before scheduling any work from this file.
+
+Scope update (2026-09-28): the active roadmap now defines a Linux Mint 22.3
+preview-candidate milestone that can be completed on the available
+workstation. The MX and Windows requirements in this historical full-release
+plan remain qualification gates for a cross-platform ship claim; they are not
+gates for that preview candidate.
 
 ## Assessment
 

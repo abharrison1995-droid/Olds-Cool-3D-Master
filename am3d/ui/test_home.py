@@ -227,6 +227,7 @@ def test_diagnostics_menu_action_is_wired_and_does_not_raise(monkeypatch):
         assert len(shown) == 1
         text = shown[0][2]
         assert "Renderer backend" in text
+        assert "Renderer preference" in text
         assert "Undo entries" in text
         assert "App data directory" in text
     finally:
@@ -235,19 +236,21 @@ def test_diagnostics_menu_action_is_wired_and_does_not_raise(monkeypatch):
 
 
 def test_diagnostics_reports_forced_software_backend(monkeypatch):
-    """When Settings forces software rendering, diagnostics must say so
-    rather than reporting whatever the GPU probe happens to find."""
+    """Diagnostics separates the active backend from its forced preference."""
     from PySide6.QtWidgets import QMessageBox
     win = _make_main_window()
     try:
         win.viewport.force_software = True
+        win.viewport._timer.stop()
+        win.viewport._render()
         shown = []
         monkeypatch.setattr(
             QMessageBox, "information",
             staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
         win._show_diagnostics()
         text = shown[0][2]
-        assert "Software (forced by Settings" in text
+        assert "Renderer backend: software (toon)" in text
+        assert "Renderer preference: Software only (forced in Settings)" in text
     finally:
         win.viewport._timer.stop()
         win.close()

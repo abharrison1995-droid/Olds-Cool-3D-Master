@@ -1,24 +1,47 @@
 # Supported platforms
 
 Scope note: a row is only marked **Verified** when the check was actually
-executed in this environment. Rows that could not be executed are marked
-**Blocked** and are not claims of support.
+executed in this environment. This document separates preview-candidate
+evidence from a platform support claim.
+
+Artifact-scope note: the current-source preview candidate was built and
+checked on Linux Mint 22.3. Its GUI checks used Qt offscreen mode and software
+rendering. They do not certify native desktop interaction, DPI scaling,
+physical GPU rendering, MX Linux, or general Linux support. Earlier MX
+acceptance below applies only to the historical artifact built from
+`b96c922`. See `docs/IMPLEMENTATION_ROADMAP.md` for the active preview scope.
 
 ## Standalone desktop distributions (no Python required)
 
 | Target | Status |
 | --- | --- |
-| Linux x86-64, Debian 13 / MX Linux 25.2 KDE | Primary; built and acceptance-tested on the reference machine below |
-| Windows x86-64, Windows 10/11 desktop | Build definition present (`am3d.spec`, `am3d_recipe.spec`, `build_windows.ps1`); **no Windows machine is available in this environment, so no Windows artifact has been produced or tested here** |
+| Linux Mint 22.3 (Zena), x86-64 | Current-source preview candidate built; source suite and packaged checks passed. GUI checks used Qt offscreen mode/software paths; this is not a native-desktop support claim. |
+| Linux x86-64, Debian 13 / MX Linux 25.2 KDE | Historical artifact from `b96c922` was accepted on the reference machine; current-source candidate not qualified there. Follow-on release qualification. |
+| Windows x86-64 (minimum version not yet selected) | No Windows artifact is verified. Build definition and reviewed CI workflow exist; native execution and host acceptance are follow-on work. |
 
-Each platform ships two artifacts: the windowed GUI application and the
+The Linux preview bundle contains the windowed GUI application and the
 standalone `am3d-recipe` console CLI. Neither requires a Python installation
-on the target machine.
+on the target machine. This preview has not been accepted on a native desktop
+session. No Windows artifact is included or verified.
 
-## Linux reference acceptance machine
+## Current preview build host
 
-This is the machine the Linux artifacts are verified on. It is the reference
-configuration named in the release plan.
+| | |
+| --- | --- |
+| Distribution | Linux Mint 22.3 (Zena) |
+| Architecture | x86-64 |
+| Kernel | 6.8.0-139-generic |
+| GUI check | Qt offscreen mode; no native compositor interaction |
+| Renderer check | Software path; no physical-GPU acceptance |
+
+The checks establish that this candidate builds and that its packaged GUI
+smoke and recipe CLI work in the recorded environment. They do not establish
+that the UI has been interactively tested in Mint's native desktop session.
+
+## Historical MX Linux reference acceptance (artifact `b96c922` only)
+
+These details document the earlier MX acceptance only. They do not describe
+the machine used for the current Mint preview candidate.
 
 | | |
 | --- | --- |
@@ -34,9 +57,8 @@ configuration named in the release plan.
 
 ### Linux graphics routes
 
-The application is expected to run on all three of these routes; each is
-tested separately, because a fault on one does not necessarily appear on the
-others.
+For the historical artifact, the application was exercised on the following
+routes. Current-source Mint preview evidence does not repeat these checks.
 
 | Route | How to select it |
 | --- | --- |
@@ -57,7 +79,9 @@ screenshots in `docs/evidence/desktop-release/phase-e/`. At 200% the
 compositor grants a window only about 500 logical pixels tall, which is what
 exposed finding UI-05; the panels scroll rather than clip since that fix.
 
-Older or non-KDE Linux desktops are not a supported target for this release.
+The historical MX checks do not establish current-source MX support or broad
+Linux desktop support. The current candidate's native display and graphics
+routes require follow-on qualification.
 The frozen build bundles its own Qt, so the host's Qt version does not matter,
 but a working `libGL`/`libwayland-client` from the host is still required.
 

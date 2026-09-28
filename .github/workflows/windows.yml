@@ -1,0 +1,79 @@
+name: Windows candidate
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  build-and-accept:
+    runs-on: windows-latest
+    timeout-minutes: 90
+    env:
+      # build_windows.ps1 selects the Python launcher; keep its `py -3`
+      # resolution aligned with setup-python and the frozen verifier.
+      PY_PYTHON3: "3.13"
+
+    steps:
+      - name: Check out source
+        uses: actions/checkout@v7
+
+      - name: Set up Python for independent export verification
+        uses: actions/setup-python@v7
+        with:
+          python-version: "3.13"
+
+      - name: Build the frozen Windows candidate
+        shell: pwsh
+        run: |
+          $buildArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".\build_windows.ps1")
+          if (-not (Test-Path .\requirements-lock-windows.txt)) {
+            $buildArgs += "-CaptureLock"
+          }
+          & pwsh @buildArgs *>&1 | Tee-Object -FilePath .\windows_build.log
+          $buildExitCode = $LASTEXITCODE
+          if ($buildExitCode -ne 0) { exit $buildExitCode }
+
+      - name: Run frozen Windows acceptance
+        shell: pwsh
+        run: |
+          & pwsh -NoProfile -ExecutionPolicy Bypass -File .\docs\evidence\desktop-release\phase-f\frozen_acceptance.ps1 -Bundle "release\3D MASTER 2005 Beta" -SkipInteractive *>&1 | Tee-Object -FilePath .\frozen_acceptance.log
+          $acceptanceExitCode = $LASTEXITCODE
+          if ($acceptanceExitCode -ne 0) { exit $acceptanceExitCode }
+
+      - name: Verify exports with the independent reader
+        shell: pwsh
+        run: |
+          & pwsh -NoProfile -ExecutionPolicy Bypass -File .\docs\evidence\desktop-release\phase-f\export_check.ps1 -Bundle "release\3D MASTER 2005 Beta" *>&1 | Tee-Object -FilePath .\export_check.log
+          $exportExitCode = $LASTEXITCODE
+          if ($exportExitCode -ne 0) { exit $exportExitCode }
+
+      - name: Upload candidate, provenance, and captured dependency lock
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-candidate-${{ github.run_id }}
+          if-no-files-found: error
+          path: |
+            release/3D MASTER 2005 Beta/
+            release/3D-MASTER-2005-Beta-*-win64.zip
+            release/3D-MASTER-2005-Beta-*-win64.zip.sha256
+            release/BUILD_PROVENANCE-windows.txt
+            requirements-lock-windows.txt
+            windows_build.log
+            frozen_acceptance.log
+            export_check.log
+
+      - name: Upload failure logs and any captured lock
+        if: failure()
+        uses: actions/upload-artifact@v7
+        with:
+          name: windows-diagnostics-${{ github.run_id }}
+          if-no-files-found: warn
+          path: |
+            requirements-lock-windows.txt
+            windows_build.log
+            frozen_acceptance.log
+            export_check.log

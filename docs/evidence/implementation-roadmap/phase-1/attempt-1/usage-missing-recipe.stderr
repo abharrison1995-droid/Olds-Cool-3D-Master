@@ -1,0 +1,3 @@
+usage: python -m am3d.recipes [-h] --recipe RECIPE [--out OUT]
+                              [--validate-only] [--verbose]
+python -m am3d.recipes: error: the following arguments are required: --recipe

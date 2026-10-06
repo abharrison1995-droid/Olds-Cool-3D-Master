@@ -241,3 +241,35 @@ def test_schema_json_conformance():
     with open("scripts/knight_recipe.json", "r", encoding="utf-8") as f:
         kr = json.load(f)
     jsonschema.validate(instance=kr, schema=schema)
+
+
+def test_provider_schema_omits_legacy_graph_nodes_and_matches_generator():
+    from pathlib import Path
+    from am3d.recipes.capabilities import CAPABILITIES
+    from am3d.recipes.schema import recipe_from_dict, validate_recipe
+
+    root = Path(__file__).parents[2]
+    full = json.loads((root / "docs/recipes/recipe-v1.schema.json").read_text())
+    provider_path = root / "docs/recipes/recipe-v1.provider.schema.json"
+    provider = json.loads(provider_path.read_text())
+    full_nodes = set(full["$defs"]["graphNode"]["properties"]["type"]["enum"])
+    provider_nodes = set(provider["$defs"]["graphNode"]["properties"]["type"]["enum"])
+    visible_nodes = {cap.name for (kind, _), cap in CAPABILITIES.items()
+                     if kind == "graph_node" and cap.model_visible}
+
+    assert full_nodes == {cap.name for (kind, _), cap in CAPABILITIES.items()
+                          if kind == "graph_node"}
+    assert provider_nodes == visible_nodes
+    assert provider_nodes < full_nodes
+    assert provider["$id"] != full["$id"]
+    assert len(provider_path.read_bytes()) < len(
+        (root / "docs/recipes/recipe-v1.schema.json").read_bytes())
+    from scripts.build_recipe_provider_schema import render
+    assert provider_path.read_text(encoding="utf-8") == render()
+
+    with (root / "am3d/recipes/fixtures/m1/legacy_mix.json").open(
+            encoding="utf-8") as fixture:
+        legacy = recipe_from_dict(json.load(fixture))
+    assert not validate_recipe(legacy)
+    assert any(issue.code == "unsupported_capability"
+               for issue in validate_recipe(legacy, ai_mode=True))

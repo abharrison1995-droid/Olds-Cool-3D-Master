@@ -8,7 +8,8 @@ repository's open milestone-PR chain. See
 
 **Active milestone:** M3.1 — provider boundary, strict structured response,
 offline fake provider, and one-call orchestration skeleton. Candidate source:
-`fb73687` (`Implement M3.1 provider boundary and orchestration`), based on the
+`fb736871287d4059405121b9ddf4a55df776b963`
+(`Implement M3.1 provider boundary and orchestration`), based on the
 accepted M2 source above. Local Linux validation is green; focused independent
 verification is pending. Linux fast CI and Windows worker-boundary CI passed.
 The Windows candidate workflow stopped during collection at the known

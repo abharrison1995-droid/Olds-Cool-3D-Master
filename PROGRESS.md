@@ -8,7 +8,7 @@ status and caveats live in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORM
 | Milestone | Status | Next gate |
 | --- | --- | --- |
 | M0 Repository/context | Complete | H1: compact docs, manifest, [six issues](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/milestone/1), Linux CI, and tag `v0.3.0-dev.1`. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
-| M1 Contract | In progress | H2: 747 tests; H3 implementation: 763 full-suite passes, awaiting Linux CI and independent review. |
+| M1 Contract | In progress | H2: 747 tests; H3: 763 full-suite passes and Linux fast CI green; independent review pending. |
 | M2 Local worker | Queued | Policy, worker, checks, guarded editor adoption, Linux/Windows CI. |
 | M3 AI loop | Queued | Bounded providers/orchestrator, fake-provider tests, 20-run bake-off. |
 | M4 Baseline | Queued | About 15 briefs; evidence-based contract and frozen benchmark. |

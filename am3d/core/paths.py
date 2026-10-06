@@ -13,6 +13,7 @@ from __future__ import annotations
 
 import os
 import re
+import hashlib
 
 __all__ = [
     "DRIVE_RE",
@@ -23,6 +24,7 @@ __all__ = [
     "has_traversal",
     "reserved_component",
     "classify_portable_relative_path",
+    "sanitize_filename_component",
 ]
 
 # A leading Windows drive specification: "C:\x", "C:/x" (drive-absolute) and
@@ -127,6 +129,26 @@ def classify_portable_relative_path(path: str) -> tuple[str, str] | None:
         return (f"path {raw!r} uses the Windows reserved device name {reserved!r}",
                 "Choose a different file name.")
     return None
+
+
+def sanitize_filename_component(value) -> str:
+    """Return one portable, collision-resistant filename component.
+
+    Sanitization is intentionally lossy (spaces and punctuation become
+    underscores), so changed names receive a short digest of their original
+    spelling. This keeps two distinct object names from overwriting one
+    another in derived sprite, atlas, and texture files.
+    """
+    original = str(value)
+    safe = "".join(c if (c.isalnum() or c in "-_") else "_"
+                   for c in original)
+    stem = safe.split(".", 1)[0].strip().upper()
+    reserved = stem in _RESERVED
+    if safe != original or not safe or reserved:
+        digest = hashlib.blake2s(original.encode("utf-8"),
+                                 digest_size=4).hexdigest()
+        safe = f"{safe or 'item'}_{digest}"
+    return safe
 
 
 def normalize_separators(path: str) -> str:

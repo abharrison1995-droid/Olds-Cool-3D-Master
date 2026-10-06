@@ -127,16 +127,24 @@ def main(argv=None) -> int:
         return _emit_failure(records[0], records=records,
                              diagnostic="invalid recipe: " +
                              "; ".join(str(p) for p in problems))
+    recipe_dir = None if args.recipe == "-" else os.path.dirname(
+        os.path.abspath(args.recipe))
+    executor = RecipeExecutor(output_root=args.out, base_dir=recipe_dir)
     if args.validate_only:
+        try:
+            executor._prepare_output_paths(recipe)
+        except Exception as exc:
+            return _emit_failure(_error_record(
+                exc, code="path_error", stage="resource"),
+                diagnostic=f"invalid export path: {exc}")
+        from .resources import estimate_recipe_resources
         report = {"ok": True, "validated": True, "name": recipe.name,
-                  "version": recipe.version, "error_records": []}
+                  "version": recipe.version, "error_records": [],
+                  "resource_estimate": estimate_recipe_resources(recipe)}
         print(json.dumps(report))
         return 0
 
-    recipe_dir = None if args.recipe == "-" else os.path.dirname(
-        os.path.abspath(args.recipe))
-    result = RecipeExecutor(output_root=args.out, base_dir=recipe_dir).execute(
-        recipe)
+    result = executor.execute(recipe)
 
     if args.verbose:
         for obj in result.objects:

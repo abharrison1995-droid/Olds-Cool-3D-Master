@@ -30,19 +30,25 @@ def test_minimal_recipe_roundtrip():
     assert again.objects[0].primitive == "sphere"
 
 
-def test_unknown_primitive_rejected():
-    with pytest.raises(ValueError, match="unknown primitive"):
-        recipe_from_dict({"objects": [{"name": "x", "primitive": "dragon"}]})
+def test_unknown_primitive_reported_by_validator():
+    problems = validate_recipe(recipe_from_dict(
+        {"objects": [{"name": "x", "primitive": "dragon"}]}))
+    assert any(p.code == "unsupported_primitive" and
+               p.path == "recipe.objects[0].primitive" for p in problems)
 
 
-def test_unknown_action_kind_rejected():
-    with pytest.raises(ValueError, match="unknown kind"):
-        recipe_from_dict({"actions": [{"name": "a", "kind": "fly"}]})
+def test_unknown_action_kind_reported_by_validator():
+    problems = validate_recipe(recipe_from_dict(
+        {"actions": [{"name": "a", "kind": "fly"}]}))
+    assert any(p.code == "unsupported_action_kind" and
+               p.path == "recipe.actions[0].kind" for p in problems)
 
 
-def test_unknown_export_format_rejected():
-    with pytest.raises(ValueError, match="unknown export format"):
-        recipe_from_dict({"exports": [{"format": "fbx"}]})
+def test_unknown_export_format_reported_by_validator():
+    problems = validate_recipe(recipe_from_dict(
+        {"exports": [{"format": "fbx"}]}))
+    assert any(p.code == "unsupported_export_format" and
+               p.path == "recipe.exports[0].format" for p in problems)
 
 
 def test_gltf_normalises_to_glb():
@@ -168,6 +174,15 @@ def test_schema_json_conformance():
 
     schema_actions = set(schema["$defs"]["action"]["properties"]["kind"]["enum"])
     assert schema_actions == ACTION_KINDS
+    from am3d.recipes.capabilities import CAPABILITIES
+    assert set(schema["$defs"]["material"]["properties"]["pattern"]["enum"]) - {None} == {
+        name for category, name in CAPABILITIES if category == "pattern"}
+    assert set(schema["$defs"]["graphNode"]["properties"]["type"]["enum"]) == {
+        name for category, name in CAPABILITIES if category == "graph_node"}
+    assert set(schema["$defs"]["channel"]["properties"]["property"]["enum"]) == {
+        name for category, name in CAPABILITIES if category == "channel_property"}
+    assert set(schema["$defs"]["key"]["properties"]["interp"]["enum"]) == {
+        name for category, name in CAPABILITIES if category == "interpolation"}
 
     # Validate minimal and full recipes against json schema
     valid_sample = {
@@ -205,6 +220,13 @@ def test_schema_json_conformance():
     }
     jsonschema.validate(instance=valid_sample, schema=schema)
 
+    trs_sample = copy.deepcopy(valid_sample)
+    trs_sample["objects"][0]["transform"] = {
+        "translate": [1, 2, 3], "rotate_deg": [10, 20, 30],
+        "scale": [1, 1, 1],
+    }
+    jsonschema.validate(instance=trs_sample, schema=schema)
+
     # Negative weights must fail schema validation
     invalid_weights_sample = copy.deepcopy(valid_sample)
     invalid_weights_sample["objects"][1]["bones"][0]["weights"] = {"0": -0.5}
@@ -218,4 +240,4 @@ def test_schema_json_conformance():
 
     with open("scripts/knight_recipe.json", "r", encoding="utf-8") as f:
         kr = json.load(f)
-    jsonschema.validate(instance=kr, schema=schema)
+    jsonschema.validate(instance=kr, schema=schema)

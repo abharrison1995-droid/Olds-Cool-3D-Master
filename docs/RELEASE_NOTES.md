@@ -110,34 +110,18 @@ the full record, with measurements, is in
   with spaces and non-ASCII characters, and writes the archive, checksum
   and provenance.
 
-## Verified on
+## Historical qualification
 
-MX-25.2 KDE x86-64 (Debian 13 trixie), kernel 6.12.90, KDE Plasma 6.3.6 on
-Wayland, Ryzen 7 5700U with integrated AMD Radeon (amdgpu/radeonsi), Mesa
-26.1.4, OpenGL 4.6, 32 GiB RAM, 1920×1080.
+This release's machine details, graphics routes, and current platform status
+are maintained in [`SUPPORTED_PLATFORMS.md`](SUPPORTED_PLATFORMS.md). The
+original command output remains under `docs/evidence/desktop-release/`.
 
-All three graphics routes were exercised on that machine: native Wayland,
-xcb/XWayland, and forced software rendering. See
-`docs/evidence/desktop-release/phase-e/` for the executed commands and
-their output, and `docs/SUPPORTED_PLATFORMS.md` for the support statement.
+## Historical release gaps
 
-## Blocked — not shipped, not claimed
-
-- **Windows.** No Windows machine was available in this environment, so no
-  Windows executable was built or tested. `build_windows.ps1` is maintained
-  in step-for-step parity with the Linux script, but an unbuilt, untested
-  pipeline is not a release artifact and this release does not claim one.
-  Reading it closely enough to plan a Windows run found that it could not
-  have completed on a clean Windows machine at all -- it installed only the
-  runtime requirements and then called `pytest` and PyInstaller (PKG-06).
-  That is fixed by review only; the fix has still never run.
-  `docs/WINDOWS_ACCEPTANCE_PLAN.md` is the route from here to a Windows
-  artifact that has actually been accepted.
-- **Older Linux baselines.** Only MX 25.2 / Debian 13 userspace was tested.
-  The bundle carries its own Qt, but it does not carry glibc.
-- **Fractional-scaling appearance beyond the captured screenshots.** The
-  100/150/200% screenshots in the evidence folder show startup and the
-  editor; they are not a substitute for prolonged use at those scales.
+The Windows artifact and later platform-qualification gaps for this release
+are recorded in [`SUPPORTED_PLATFORMS.md`](SUPPORTED_PLATFORMS.md). The
+original evidence and Windows workflow results remain in their linked
+historical records.
 
 ## Known limitations
 

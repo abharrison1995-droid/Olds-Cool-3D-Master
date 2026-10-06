@@ -1,11 +1,9 @@
 # 3D MASTER:2005 — quick start
 
-Version 0.2.0b1 (preview candidate). The Linux bundle carries its own
-runtime. Current-source package checks were run on Linux Mint 22.3 x86-64;
-GUI smoke used Qt offscreen mode and does not establish native desktop or
-hardware-GPU support.
+Version 0.2.0b1. Check [supported platforms](SUPPORTED_PLATFORMS.md) for
+current artifact availability and qualification status.
 
-## Linux Mint 22.3 (Zena, x86-64) preview
+## Linux standalone bundle
 
 1. Unpack the archive anywhere you can write — your home folder is fine:
 
@@ -60,12 +58,10 @@ Terminal=false
 Then run `update-desktop-database ~/.local/share/applications` (or just log
 out and back in).
 
-## Windows (x86-64)
+## Windows
 
-No Windows bundle is included in this release — see "Known limitations"
-below. The build definition (`build_windows.ps1`) is in the source tree and
-is intended to produce the desktop app and `am3d-recipe.exe` on Windows; that
-path is not verified for this release.
+See [supported platforms](SUPPORTED_PLATFORMS.md) for Windows artifact
+availability and qualification status.
 
 ## Your first five minutes
 
@@ -117,11 +113,7 @@ in a read-only location.
 
 ## Known limitations in this beta
 
-- **No Windows artifact in this release.** Historical Windows packaging
-  work exists, but no artifact passed the current release acceptance; an
-  untested build is not shipped.
-- **MX Linux is not qualified for this current-source preview.** The earlier
-  MX acceptance applies only to the historical artifact identified in
+- Platform availability and qualification limits are listed in
   `docs/SUPPORTED_PLATFORMS.md`.
 - OBJ and GLB exports are static, tessellated snapshots of one pose. They
   carry no skeleton, weights or keyframes; export animation as a rendered

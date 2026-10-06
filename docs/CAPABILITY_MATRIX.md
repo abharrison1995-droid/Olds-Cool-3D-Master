@@ -5,11 +5,9 @@ engine, but they do not expose the same set of verbs:
 
 - **Engine / Python API** — `import am3d` in a Python environment. Source
   installs only; the frozen bundles do not expose an interpreter.
-- **Recipe CLI** — `python -m am3d.recipes` from source, or the standalone
-  `am3d-recipe` executable in the verified Linux bundle. Declarative JSON in,
-  generated assets out.
-- **Desktop GUI** — the `3D MASTER 2005` application in the verified Linux
-  bundle.
+- **Recipe CLI** — `python -m am3d.recipes` from source, or a standalone
+  `am3d-recipe` executable. Declarative JSON in, generated assets out.
+- **Desktop GUI** — the `3D MASTER 2005` application.
 
 "Yes" means the capability is reachable and covered by tests on that surface.
 "No" means it is not reachable there — not that it is planned.
@@ -101,13 +99,8 @@ Open construction splines produce no triangles by design (see
 empty surface, and the application says so rather than writing a silent
 empty file.
 
-## Platform availability
+## Platform status
 
-| | Linux x86-64 | Windows x86-64 |
-| --- | --- | --- |
-| Desktop GUI bundle | Linux Mint 22.3 preview candidate built; packaged GUI smoke passed in Qt offscreen/software mode. Native desktop and MX qualification remain pending. | No artifact verified; Windows qualification is deferred |
-| Recipe CLI bundle | Linux Mint 22.3 preview candidate built; packaged validation/export and structured failure checks passed. | No artifact verified; Windows qualification is deferred |
-| Source install (Python 3.11+) | Source test suite passed on Linux Mint 22.3 with Python 3.13.5; pip-install compatibility and other Linux distributions are not qualified | Not verified |
-
-See `docs/SUPPORTED_PLATFORMS.md` for the verified configurations and
-`docs/evidence/desktop-release/` for what was actually executed.
+Platform availability and qualification caveats are maintained only in
+[`SUPPORTED_PLATFORMS.md`](SUPPORTED_PLATFORMS.md). This matrix describes the
+software surface, not a platform support promise.

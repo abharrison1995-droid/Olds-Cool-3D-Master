@@ -1,0 +1,886 @@
+{
+  "format_version": 1,
+  "algorithm": "sha256",
+  "scope": {
+    "directories": [
+      "am3d",
+      "assets",
+      "docs/recipes",
+      "scripts"
+    ],
+    "files": [
+      "README.md",
+      "pyproject.toml",
+      "requirements.txt",
+      "requirements-dev.txt",
+      "requirements-lock-linux.txt",
+      "am3d.spec",
+      "am3d_recipe.spec",
+      "build_linux.sh",
+      "scripts/build_input_digest.py",
+      "docs/QUICK_START.md",
+      "docs/SUPPORTED_PLATFORMS.md",
+      "docs/CAPABILITY_MATRIX.md",
+      "docs/USER_GUIDE.md"
+    ],
+    "omitted_generated_directories": [
+      ".pytest_cache",
+      "__pycache__"
+    ],
+    "omitted_suffixes": [
+      ".pyc"
+    ]
+  },
+  "input_file_count": 141,
+  "tracked_file_count": 141,
+  "untracked_file_count": 0,
+  "build_input_digest": "2ecca41c98d723fd4f8f28c9928bc8542cd53250c4a5a5495d4be8eef0631980",
+  "inputs": [
+    {
+      "path": "README.md",
+      "kind": "file",
+      "sha256": "1b2bf1420fbd9366405752bafccaae8a88ab09d69732ba44de720e3e010f01b0",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d.spec",
+      "kind": "file",
+      "sha256": "767b4283b60d08a1364bc211a1b67278d4d0fa3daaa0c2a0839f256a6c5c1817",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/__init__.py",
+      "kind": "file",
+      "sha256": "913e9ef7b636d0d4953e752b2dce7d46175ae5a1a900f644551cd869077d895c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/__init__.py",
+      "kind": "file",
+      "sha256": "6a043dff82222d262bfb4929e43bb8dcdcdab8a18c597c872af146f76a48a199",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/animation.py",
+      "kind": "file",
+      "sha256": "632f76c7efd5d6f539de8d7295a371813cb57084c9a99132392f344eeac5ac2c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/generators.py",
+      "kind": "file",
+      "sha256": "85e016529b60af951ea4193db7bfbe52057dca3ec71164fe67ef4c4a74a3d978",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/material_graph.py",
+      "kind": "file",
+      "sha256": "23f3974eeeafd8c80d0c6120b5dada520954db7843f579e117f332f6dcf21da6",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/mathutil.py",
+      "kind": "file",
+      "sha256": "51a1f28ffc46888e3c788c2d46107522aafabf6d31f192021b382df430e6748f",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/naming.py",
+      "kind": "file",
+      "sha256": "dc6e431b5231be35ba86f43f14c94a08d7c54019f5fbaa61e3129cd0a7977725",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/paths.py",
+      "kind": "file",
+      "sha256": "12516d95552de2786b69ca4ec057b092a433a8218cc966158bf441155e90fe9a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/project.py",
+      "kind": "file",
+      "sha256": "40c3d24004cd19fb7672808739cdd936f425de1ec90aa59f2fc818bd11425e60",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/retarget.py",
+      "kind": "file",
+      "sha256": "b913973220139bf5b6d8a349a2dc432038f2011ef5dbc102dbacba2cda61238c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/rigging.py",
+      "kind": "file",
+      "sha256": "447cd673a9881994c3c307df83d8ec72e86fde78e697f532d140736fffb2e8eb",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/scene.py",
+      "kind": "file",
+      "sha256": "eb6f978c8791aa12d94283ab7219108be0a49c42c26af479abd6a952b8ba71e6",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/script.py",
+      "kind": "file",
+      "sha256": "3ca50a4cac226069cdfd722ad7c83f313f1110298d0b7921b1ee3e198ba6c0e5",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/serializer.py",
+      "kind": "file",
+      "sha256": "5551235a5e205bf1fbfd7365e05dc20fcdc38e27ad47433255d27deede1d5f10",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_action_editing.py",
+      "kind": "file",
+      "sha256": "2d009e07f27c456fd0c41501fd3e481ce21c96102bf0542227e9067605f10759",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_animation.py",
+      "kind": "file",
+      "sha256": "65fc4d88dc4f926990be5adc1e83e43a69ade22785529e1ec0827d02edf17304",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_material_graph.py",
+      "kind": "file",
+      "sha256": "f0da3c15755b4a9f3fd8590ff17c7caa52b3701fcf78f74690352c6d3d5e3441",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_paths.py",
+      "kind": "file",
+      "sha256": "816a08e0bda3e436e54a6d80d6b13068db7f61cad8eadff59be3aac663f02301",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_render_roundtrip.py",
+      "kind": "file",
+      "sha256": "a022a325ae5019e1d9e36aa2a04c77e2a5f585577eaba8004756bd049d867197",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_retarget.py",
+      "kind": "file",
+      "sha256": "2dfbe339ccc02e6549164399c32adde8241c8bb3856151011b4381127ba4d0cf",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_rigging.py",
+      "kind": "file",
+      "sha256": "1b2d0387bd49d294ab59a7149a05c8ee73c9fc96084d72dd74535c4061db8873",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_scene.py",
+      "kind": "file",
+      "sha256": "0a7a68dfaa3a0e2900b48eca9d85b91e12ad31ad4da72b1dfbbe38ba585af4ec",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_script.py",
+      "kind": "file",
+      "sha256": "1cdf13448bd459dc5ae8a8c790089d3f0114dd16ad9ba4868c7bfd30acf3ee57",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/core/test_serializer.py",
+      "kind": "file",
+      "sha256": "612a42ca95b1f6f26a2fadec0ffed7ff6d3d9d46dab03ad608819b6f301ee02c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/__init__.py",
+      "kind": "file",
+      "sha256": "7269c97fb9aedb855f04e42369ee6d167baadaeebcec818478435c3b54dc21cf",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/gltf.py",
+      "kind": "file",
+      "sha256": "c66df64bcf6686fa070c6225a49724681cb995cc376c71424435db400b116da8",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/obj.py",
+      "kind": "file",
+      "sha256": "d33faa97ff030181cb9d0873aa792f99f577ffc3433360bf87397ed346e7267e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/test_export.py",
+      "kind": "file",
+      "sha256": "8f42696b74a5d02ff85c3f48a07a18cc2fcd091898ad8aa4ab75bea473fe20d9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/test_patch_materials.py",
+      "kind": "file",
+      "sha256": "167ff79d40f3b870aea4923c13f2ae6a9400e81a93673f838962a3d2beae40f1",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/test_textured_export.py",
+      "kind": "file",
+      "sha256": "0285b5767b979b512a14a868539fddaaebb31dcf5c87528e786bf6c92deb394e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/test_validate.py",
+      "kind": "file",
+      "sha256": "97d450827c5cce353d5a31e08b6280e324695d8cdb51581d6936a3cef77758c8",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/textures.py",
+      "kind": "file",
+      "sha256": "081d1aab8abba5ab22427eaf8293267c982bcb2cb631a5bef868c69d031c5f81",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/export/validate.py",
+      "kind": "file",
+      "sha256": "036d875fa45222f75c7a6073bf09953de70fa5935baa9316d17949aae14ebd1e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/__init__.py",
+      "kind": "file",
+      "sha256": "a985ba84fbc945087dacd7da51d53c81a7b11096f7cc2b24e8c0691888b028e0",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/context.py",
+      "kind": "file",
+      "sha256": "66db4dc2dc2e7de8684da5ee8b42112f9f87c2c9a364989e059405910b18b229",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/gbuffer.py",
+      "kind": "file",
+      "sha256": "846a615e6ebdc298361f5897f959de1eacc694bbbd50dc6dc4a8b586572ef4fe",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/lighting.py",
+      "kind": "file",
+      "sha256": "47dd10138e9bd2d2c26ee29f6ca8e552d29af683090ec5caf0d582868f127ce7",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/postprocess.py",
+      "kind": "file",
+      "sha256": "80d61b83cec37e9f3aa82290e30c28d7fe04c8586391a34fd0f9be865dd375f9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/shaders.py",
+      "kind": "file",
+      "sha256": "29775e8e594f8955f14d3de309d4e7a088a49abfb10f169b8729669bf4ddaa08",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/test_gpu.py",
+      "kind": "file",
+      "sha256": "4dc263eed3a29c5fe99c64f0f2357e901b5ccda5298f4fe8b06638f7b37d03a0",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/gpu/test_scene_render.py",
+      "kind": "file",
+      "sha256": "a2da4f9f9495a08857f8a8dbc834355d8c808d99547b5e43a296af09edb8794a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/__init__.py",
+      "kind": "file",
+      "sha256": "fa9f5ff1a83613dfaa14769849e05ef349246655cd95f98767fa67ec7adad224",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/__main__.py",
+      "kind": "file",
+      "sha256": "4eef379229cb1eec93c23a40e2f1fdba95a064c47b07ff4a7ad7037e741913f3",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/animation.py",
+      "kind": "file",
+      "sha256": "a5786c347b403030fb06f8e0b6e6fb07d671f1cafec4c007f8b94409c2c4c82b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/cli.py",
+      "kind": "file",
+      "sha256": "d0eb4651aa7bf49f0f578f1e2b086b12f75098ed71f204f410630caab1158ac3",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/executor.py",
+      "kind": "file",
+      "sha256": "27dd9c63aa4b5cc5a837452860f3852834186129fbe3cc5173aa769d8a690404",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/primitives.py",
+      "kind": "file",
+      "sha256": "84e6eb5287ddc2be1d2a09ec9e19a1c6349ce8b8a21a06da2e4aca107b697f7c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/schema.py",
+      "kind": "file",
+      "sha256": "34d6a74eec7beeede4e2395f61de2292eb9bcd465d66f7bb3358602c8ef0b72e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/test_animation.py",
+      "kind": "file",
+      "sha256": "502b27d1388c54b7b92fe9bc3fe00846d4203ee795c32c22fd042c4c3f002b3f",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/test_executor.py",
+      "kind": "file",
+      "sha256": "75c8c7557aee929373d8f1be979ccaaa02e59ba65046ee3f242ff8974e8db00c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/test_primitives.py",
+      "kind": "file",
+      "sha256": "13b179255e62e775175a8ba941e2107a7e509bd3892b68c474e0e2d80e7ab03c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/recipes/test_schema.py",
+      "kind": "file",
+      "sha256": "f5ce92d766eb7fa6beff04af2269a24a5ba1a04f428c7d41288533f6778aa966",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/render_job.py",
+      "kind": "file",
+      "sha256": "52a00d8c21d0190df78b0832c1a200e06bb901112adac844e57cf3a82f19f70f",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/__init__.py",
+      "kind": "file",
+      "sha256": "224e4cdc955b2446454a75a4ea163602e2e5471f2f310a235b0d4d1493bf108d",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/compare.py",
+      "kind": "file",
+      "sha256": "4ce3ce260b845ee0b49ff1c04fa7b3ef75ce06e622342a415d74e31e1568ff36",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/materials.py",
+      "kind": "file",
+      "sha256": "e3ceb4699667573322ab3a7cbf0bc76c061d768ac05564d5fbd066dbae4f3b7a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/sprite.py",
+      "kind": "file",
+      "sha256": "c51d2805b3039f988fbf1d3f8b3d14e5b13b34610979a2471e8ffc5ce738e6a9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/sprite_test.py",
+      "kind": "file",
+      "sha256": "92de9d3a5d66e459ea2e930da94b19994e9e9fe24fe050d7ea179f0bd2bee7f9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/tessellate.py",
+      "kind": "file",
+      "sha256": "7ade0c69a55638ad863706f56082d63e4d61673f510b1fedda3bfc9929e781c1",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/test_materials.py",
+      "kind": "file",
+      "sha256": "b697e8cfa1fb742203627d72354472dd70bc6b7c266a20d7327d3fa11f171d96",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/test_tessellate.py",
+      "kind": "file",
+      "sha256": "abc388d66b15063d19f0714eb2d748ce4c903958fc67f491db9bdf8ec0233e1b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/test_toon.py",
+      "kind": "file",
+      "sha256": "0bbf9d12d6be900bd8bb4714f81a920fc1a472953141d388562c970b937b856f",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/toon.py",
+      "kind": "file",
+      "sha256": "b6f52be43fb264f52b97a5cefdc615ef82db5ed56f7c1b735908ffa3a7836b7d",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/renderer/uv_mapping.py",
+      "kind": "file",
+      "sha256": "ebd79f701710b968571a44e017a284070bcada6814c5e0d339ef2d6b5a65f437",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/spline/__init__.py",
+      "kind": "file",
+      "sha256": "91924ae6220dccd323a3ea68b02d93c230277fb880a88a1ea6f4404c1a118cae",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/spline/kernel.py",
+      "kind": "file",
+      "sha256": "5572441fd16c683f4b311a4af898cd8fca2bc3691eda0859eb24ee5e5b359784",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/spline/test_kernel.py",
+      "kind": "file",
+      "sha256": "6760b1336f253dcc68e6e4850611a20fa9003634fcc3e3ce3a4866dd29dacdd5",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/__init__.py",
+      "kind": "file",
+      "sha256": "82d36e73967d78ffa915d348ff57541a0e8d0c13e2cae2668d72cb5c2bad8f7d",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/__main__.py",
+      "kind": "file",
+      "sha256": "9728b081b1c0ed44327359e1456455dbc4a4dba7c51fb29482314d9c62f8edc5",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/app.py",
+      "kind": "file",
+      "sha256": "ac09ede903cd6619d7b58e3c7932defab113ae901cb9197a227e19b0ca65f01a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/area_layout.py",
+      "kind": "file",
+      "sha256": "0a724bc4e520b2c4a10aae359fd056f500b4e63f342fbae62daae29b137c01c3",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/camera.py",
+      "kind": "file",
+      "sha256": "a597e0881f96123d1f58a41b8f78891ad85632b4332354236a0cedf21171b1d3",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/conftest.py",
+      "kind": "file",
+      "sha256": "38cf08ecd895b34d4b3f1e1750362422a00b4d824bdbb6593109513a8c0a76ab",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/document_controller.py",
+      "kind": "file",
+      "sha256": "012c2a023f1c7313001db3491a4eebde6f51878fd87dfa9027932134b75569d4",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/dopesheet.py",
+      "kind": "file",
+      "sha256": "2c734e26d6d44039af4885163bc4b8c057a457b5ac586b934c728ff650a48997",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/gizmos.py",
+      "kind": "file",
+      "sha256": "b9921055daa36f0726fe4971bda7092936c70cfeb70c2db5ac5abe5004e2495b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/home.py",
+      "kind": "file",
+      "sha256": "acff352c0463b81f68748299fc9baa8ce954239a5edf41b5dcf95c57f9c4ecee",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/object_panel.py",
+      "kind": "file",
+      "sha256": "2fce949a9428921fc19c9520716557e22692c6e819642c0432bd60d55a576cd7",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/operators.py",
+      "kind": "file",
+      "sha256": "6e687585b7253931415554bb799b97c511bd7b6af7c6e7e16b2478530f17a4ea",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/picking.py",
+      "kind": "file",
+      "sha256": "9a777e6e15b7cd9a1f62e40417206b2e96ae273d32a0f5bb464bac197f2c7d21",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/properties.py",
+      "kind": "file",
+      "sha256": "0340329147e371b0cd4a6dcc4e286fc1059fe604dde2a422d13ac1272119eeaa",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/recovery_dialog.py",
+      "kind": "file",
+      "sha256": "42cec9c78d68392b77362129575d8b39a943e44371f812dc6bee1142ac676fa4",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/render_dialog.py",
+      "kind": "file",
+      "sha256": "2d538d7ad8f1dbadcae49208fd7c6f01037491d81ddbe5f111da34f2524b7b9b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/settings.py",
+      "kind": "file",
+      "sha256": "08f82ccdb81505fc7ecfcc8c0b313597883f3aacdaf8f8c94705da45a5e2ec66",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/smoke.py",
+      "kind": "file",
+      "sha256": "a7c5d7c083b35e8492ab7cf3659aaa01b8c33ca9d0299370d8f3747d48f7917c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_camera.py",
+      "kind": "file",
+      "sha256": "aa1de4bb108f793136a707f01de632428fd0341357166d2b4dfe4a30688ec380",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_document_controller.py",
+      "kind": "file",
+      "sha256": "1d9e2da973b4fb914e8bca3843667f0640f807177bfe074fa8459114cbd024bb",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_dopesheet.py",
+      "kind": "file",
+      "sha256": "1d74d72c71beaef80f4c7bf5c85e6ae5f20a6f3caea8223a7647d27741e2cb6a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_edit_surface.py",
+      "kind": "file",
+      "sha256": "d43e4f7ec851c0579e0a789b6f153d225ef69ea2e9ef6ac8540c30bc589212f2",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_gizmos.py",
+      "kind": "file",
+      "sha256": "cbf7cb5c92be6fb9dde7c963ad8d08b7d1ae8e9d29c9ba93fe57a33b27871bbb",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_home.py",
+      "kind": "file",
+      "sha256": "452e7e4b3a7884f279693f01bd671ed15fa20339d21f6ef5ca91d1cb1cc5a372",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_operators.py",
+      "kind": "file",
+      "sha256": "03d40801ac3e64511e6f8d9fea4ea21de3cc61859e8578992b039ff402e5d6b2",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_phase0a.py",
+      "kind": "file",
+      "sha256": "961b106a4f8eee4e071f1ecb733cf2dc1e6ad4a61e46530d9b9069f5e7a93d26",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_phase0b.py",
+      "kind": "file",
+      "sha256": "c4567c95a23dea0aef1f28a69f50de5587b7f80f132c6ba8453993bd351fcc4e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_phase1.py",
+      "kind": "file",
+      "sha256": "ab47a5780ae01deb3c4db5fb3a7466456520abd5861738bd49660e72212b90aa",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_render_dialog.py",
+      "kind": "file",
+      "sha256": "0bea01dd7bfe502210c216864126994d364619b1637b3532df6eede569cd5a25",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_rig_editing.py",
+      "kind": "file",
+      "sha256": "772d2326bdc385cd26fcf5687bdc0da6747edc7b4389968abfd92750b803983a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_smoke.py",
+      "kind": "file",
+      "sha256": "bdc68e7b8d732b70363feba8630500a320bf4950efb560da6bc5bca44ac712af",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_tools.py",
+      "kind": "file",
+      "sha256": "02814f2d1447f222d3edfa31895f9caadcf71cb3d5e83642ffda5b9ad9d0cde8",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_ui.py",
+      "kind": "file",
+      "sha256": "e2a60ea304de637b3ae24594070bb7a2d3f29b164e2d283b8882ef06369d16cb",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/test_view_parity.py",
+      "kind": "file",
+      "sha256": "538922270650c919dc6219f1eefcb074cddd19939f94907b5673106e1190a2ba",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/theme_am2005.qss",
+      "kind": "file",
+      "sha256": "8aab235abf12e4f9b417518b5a21fc0c212d0cf5ff84472351f1a1574a9e8574",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/timeline.py",
+      "kind": "file",
+      "sha256": "663af8cb2c429f023a3a86913cc61ed5428337052c5a420eb6c8b7afb40c86c7",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/tools_bone.py",
+      "kind": "file",
+      "sha256": "17c64efc42fdaab9f9886cc4aa53f7e4b0bd57ef75eac5e3498cf825197821d8",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/tools_spline.py",
+      "kind": "file",
+      "sha256": "0685220751f95d6e64c253eebfd878c1e9cfa190e76beeacab837493e4634355",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/viewport.py",
+      "kind": "file",
+      "sha256": "7277e128c81e5300153aae95bfde5ae6f45dc7d6fbcca89b459215e4454ebb21",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/viewport3d.py",
+      "kind": "file",
+      "sha256": "033403da548b85a1ecbd1566886f3123d08571d515aeb56d32d3884b7e02af6c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d/ui/workspaces.py",
+      "kind": "file",
+      "sha256": "1bad5ef96731b9e2196f742b9af269a82951c8e6f2ac117ff9e80206609d11ed",
+      "git_state": "tracked"
+    },
+    {
+      "path": "am3d_recipe.spec",
+      "kind": "file",
+      "sha256": "b80ecee94c7ee951a9186e9b0b71399cc13b9be3b1c90bb6550bdfbce4c57ad0",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight.glb",
+      "kind": "file",
+      "sha256": "ac0651def513b7b52d41f7a6abe5a6feb7e0fc27c266d911a553ff3f498eb51f",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight.obj",
+      "kind": "file",
+      "sha256": "92a4ef0ea1c119f55b7f0a7d64a3cbacb4104b6dab4b4cc892e7f4ff8e5341e3",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight_project.am3d",
+      "kind": "file",
+      "sha256": "d65d9d8592f94206b7b12f8f3e140e32e4deb1118c29e5a8ecf9809f20ca46e9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight_sprite_shield.png",
+      "kind": "file",
+      "sha256": "de387f2440b20731a9010bafe449aaed6c81b7e29b5d69bab66f67c5bbd511ed",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight_sprite_torso.png",
+      "kind": "file",
+      "sha256": "da471d886db5dcda65da81add16bf3c468d8598e1e359af952d84afe22b2ce2c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight_toon_shield.png",
+      "kind": "file",
+      "sha256": "07df9a86df4d6aab18e60984f89266d53ad272857301e45c1215a324a3d0e44b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/knight_toon_torso.png",
+      "kind": "file",
+      "sha256": "97daef33856540bf6abdd53ccc06f1b3b1c916ebde05ea61e65767f3f106ce67",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/shield_atlas.png",
+      "kind": "file",
+      "sha256": "857719c1175e3866c0db759732a81a32c528eee20d8d0c3b0300b3ada9bc5609",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/demo/torso_atlas.png",
+      "kind": "file",
+      "sha256": "67ee9df1831510fae098a259f67a08c440f5979c8237776b1c0d6241c8d9b634",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/icon.png",
+      "kind": "file",
+      "sha256": "2e3c369d1a4ad4880cb496c37fed7cdc57237d2a58c59cf41d15ee616c7930a4",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/vase_demo.am3d",
+      "kind": "file",
+      "sha256": "bae87c37ccc5301ff9dffffd4bf816753f88f86c17a373eb825d0f04e95eec39",
+      "git_state": "tracked"
+    },
+    {
+      "path": "assets/walk.am3a",
+      "kind": "file",
+      "sha256": "c4ec16bda77b74483ff4045a076b9e2c60947dd6c7765ca29b9b3e89b796b04c",
+      "git_state": "tracked"
+    },
+    {
+      "path": "build_linux.sh",
+      "kind": "file",
+      "sha256": "f2cc9ea388016f51a37fd6770d0e8c91e6f83a162d7335dcb53fc523e70c6fba",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/CAPABILITY_MATRIX.md",
+      "kind": "file",
+      "sha256": "1d3bb94fe267c88850e98273e9643465e647b4a42d847feede7b5cef6df9e8f5",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/QUICK_START.md",
+      "kind": "file",
+      "sha256": "455f1174518f7db5ec26646efe3ec8da327a61d146bdfa8dfc72b94e5b4db31a",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/SUPPORTED_PLATFORMS.md",
+      "kind": "file",
+      "sha256": "83f182730d156bbe8397bab2ac2847629b1b8c0f584a75c945cfdf358220b2ba",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/USER_GUIDE.md",
+      "kind": "file",
+      "sha256": "003c2a8989563e4ae3114326b75dae1312280e32d78894a3ca70a09255107243",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/recipes/EXTERNAL_AGENT_GUIDE.md",
+      "kind": "file",
+      "sha256": "cfc6be786535ec1cb19d3a655cc7d11bf74d0c5da91905b584f989564f600d24",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/recipes/examples/knight_full.json",
+      "kind": "file",
+      "sha256": "c0616eec887e2a68cf0bbfda5b30cc460bf09143046b037839250e21b4f1ff40",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/recipes/examples/minimal.json",
+      "kind": "file",
+      "sha256": "c1055b27952cbe1433178c53c33257399041a2b4866d36528f96e030f6222c44",
+      "git_state": "tracked"
+    },
+    {
+      "path": "docs/recipes/recipe-v1.schema.json",
+      "kind": "file",
+      "sha256": "82b3991b9804083076af35a25602c36b0e580d93ca0c0424c0af87f11f011ac0",
+      "git_state": "tracked"
+    },
+    {
+      "path": "pyproject.toml",
+      "kind": "file",
+      "sha256": "429b5d22197cb09c2aa8246532769448dc470a89e2d16408287291e8956e4321",
+      "git_state": "tracked"
+    },
+    {
+      "path": "requirements-dev.txt",
+      "kind": "file",
+      "sha256": "a97432dfc378c1d4e5323cf49e14954cf99989cf997f36399dcf54963db4bb9d",
+      "git_state": "tracked"
+    },
+    {
+      "path": "requirements-lock-linux.txt",
+      "kind": "file",
+      "sha256": "d7475af2c4f5b85e30e388b819847f925d641384de6dbd8f1a6b89f1ee74d2d9",
+      "git_state": "tracked"
+    },
+    {
+      "path": "requirements.txt",
+      "kind": "file",
+      "sha256": "644a2ff95e4520e92670e99ff23ad0169b9c4189c24e2e464901ae051d2699d4",
+      "git_state": "tracked"
+    },
+    {
+      "path": "scripts/build_input_digest.py",
+      "kind": "file",
+      "sha256": "7fc39e4c1333d97bfe0f304b138509d8f244b4ff5aba8dbc0ab2a035284fa2a8",
+      "git_state": "tracked"
+    },
+    {
+      "path": "scripts/demo_vase.py",
+      "kind": "file",
+      "sha256": "d95bf8fc9ca6a1ea38fd0f5e7a3ef63ae9caa5278621e36c0c08c2ac6152846b",
+      "git_state": "tracked"
+    },
+    {
+      "path": "scripts/knight_recipe.json",
+      "kind": "file",
+      "sha256": "71e6a6c92ddce87b763d80934b370a4f6f89a5da8cdca0f6b960068b59f4b34e",
+      "git_state": "tracked"
+    },
+    {
+      "path": "scripts/make_icon.py",
+      "kind": "file",
+      "sha256": "56a0260490047c5f51e846d7a5069da902ff0e011c45a1142fe032d4a66ac3ce",
+      "git_state": "tracked"
+    },
+    {
+      "path": "scripts/render_roundtrip_evidence.py",
+      "kind": "file",
+      "sha256": "f729ef1b564a6d89f422ac56cade62a09ea1644991d19b8fe6347e700cfbbb9d",
+      "git_state": "tracked"
+    }
+  ]
+}

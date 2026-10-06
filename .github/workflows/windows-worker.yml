@@ -23,7 +23,7 @@ jobs:
           cache: pip
 
       - name: Install GPU-independent worker test dependencies
-        run: python -m pip install --disable-pip-version-check numpy==2.4.6 msgpack==1.2.1 Pillow==12.3.0 pytest==9.1.1
+        run: python -m pip install --disable-pip-version-check attrs==26.1.0 jsonschema==4.26.0 jsonschema-specifications==2025.9.1 msgpack==1.2.1 numpy==2.4.6 Pillow==12.3.0 referencing==0.37.0 rpds-py==2026.6.3 pytest==9.1.1
 
-      - name: Exercise Windows worker lifecycle and local pipeline
-        run: python -m pytest am3d/ai/test_worker_process.py -q
+      - name: Exercise Windows worker and fake Codex CLI lifecycle
+        run: python -m pytest am3d/ai/test_worker_process.py am3d/ai/test_codex_cli_provider.py -q

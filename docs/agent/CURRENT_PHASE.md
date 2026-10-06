@@ -1,22 +1,21 @@
-# Current handoff — M1a / H2
+# Current handoff — M1b / H3
 
-**Status:** H2 ready for review; base checkpoint `v0.3.0-dev.1` (`897dba3`).
+**Status:** implementation ready; full pinned Linux suite passes (763 tests,
+4 existing Qt deprecation warnings). GitHub fast CI is pending this push.
 
-H2 implements the capability registry and registry-driven recipe validation
-for issue [#3](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/issues/3).
-Keep this handoff to one reviewable PR, based on H1 branch `v1/m0-context`.
+H3 completes M1b for issue [#3](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/issues/3),
+stacked on H2 commit `4cd0322` / PR #11. Keep this as one reviewable PR.
 
-**Acceptance:** one accurate entry for every primitive, material pattern and
-graph node, action kind, export format, and channel property. Entries include
-typed params, defaults, ranges/enums, cost hints, and model-facing descriptions.
-Test name/default parity with builders and validate unknown/mistyped params,
-names, and enums with full paths. Keep legacy recipe behavior intact.
+**Implemented:** AI-mode ceilings before build plus constructed-scene recount;
+bounded action-effect sampling; patch-degree persistence and GUI parity;
+atlas dimensions/conditional baking/per-export staging; safe bone-parent path;
+hidden legacy graph nodes in the compact provider schema; relative compact CLI
+reports; shorter agent contract; regression tests for reproduced defects.
 
-**Implemented:** `am3d/recipes/capabilities.py`, registry-driven parameter and
-enum validation, TRS shorthand compilation, path-safe derived filenames,
-validate-only path resolution/resource estimates, generated guide summary,
-signature-parity tests, and schema enum checks.
+**Checks:** `QT_QPA_PLATFORM=offscreen build/linux/venv/bin/python -m pytest am3d/ -q`
+→ 763 passed. Provider schema and guide generators are current; `git diff --check`
+passes. Existing Windows candidate runs on H1/H2 fail in ModernGL context setup
+(`_has_gl`); the Linux fast jobs passed. Do not claim Windows qualification.
 
-**Validation:** focused recipe/path/export tests: 191 passed. Full pinned Linux
-suite: 747 passed, 4 deprecation warnings. H3 adds the M1b defects, resource
-ceilings, compact CLI contract, and defect probes.
+**Exit gate:** independent review of the combined M1 changes must pass before
+starting M2. Review the PR diff, M1 acceptance list, and CI evidence.

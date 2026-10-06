@@ -28,14 +28,14 @@ engine, but they do not expose the same set of verbs:
 
 An external model or agent authors the recipe and invokes the CLI. The
 application does not include a model provider, prompt box, or built-in
-orchestration. The recipe schema, structured CLI errors, manifest, and
-editable project form the integration contract.
+orchestration. The recipe schema, compact CLI report, relative artifact
+records, and editable project form the integration contract.
 
 | Capability | Engine / API | Recipe CLI | Desktop GUI |
 | --- | --- | --- | --- |
 | Generate assets from a versioned JSON recipe | Yes | Yes | No — open the generated `.am3d` project to inspect/refine |
 | Built-in natural-language prompt / model provider | No | No | No |
-| Machine-readable validation errors and artifact manifest | Yes | Yes | n/a |
+| Machine-readable validation errors and relative artifact records | Yes | Yes | n/a |
 
 ## Materials and appearance
 
@@ -43,9 +43,9 @@ editable project form the integration contract.
 | --- | --- | --- | --- |
 | Flat albedo colour per material | Yes | Yes | Yes (Material tab) |
 | Per-*patch* material assignment preserved through render and export | Yes | Yes | Yes (MAT-02) |
-| Procedural pattern baking to a texture atlas (e.g. `checker`) | Yes | Yes | **No** — recipe-only; the GUI edits colours and map filenames, it cannot bake an atlas |
+| Procedural pattern baking to a texture atlas (e.g. `checker`) | Yes | Yes (OBJ/GLB exports) | **No** — recipe-only; the GUI edits colours and map filenames, it cannot bake an atlas |
 | Baked atlas carried into OBJ/MTL (`map_Kd` + PNG) and GLB (embedded `baseColorTexture`) | Yes | Yes | Yes, when the project already carries baked atlases (MAT-01) |
-| Node-based material graph | Partial (`am3d.core.material_graph`) | No | No |
+| Node-based material graph | Partial (`am3d.core.material_graph`) | Yes (linear recipe chains) | No |
 
 ## Rigging and animation
 

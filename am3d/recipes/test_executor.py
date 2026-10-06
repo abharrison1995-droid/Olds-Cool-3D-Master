@@ -198,8 +198,8 @@ def test_cli_rejects_invalid_recipe_with_exit_1(tmp_path, capsys):
         {"objects": [{"name": "x", "primitive": "dragon"}]}), encoding="utf-8")
     code = _run_cli(["--recipe", str(p)])
     assert code == 1
-    err = capsys.readouterr().err
-    assert "expected primitive" in err
+    report = json.loads(capsys.readouterr().out)
+    assert "expected primitive" in report["error_records"][0]["message"]
 
 
 def test_cli_invalid_recipe_is_structured_json(tmp_path, capsys):
@@ -276,23 +276,12 @@ def test_sanitized_object_names_stay_in_derived_sheet_filenames(tmp_path):
 # Phase 3D integration: procedural materials -> baked atlases + toon sheets
 # ---------------------------------------------------------------------------
 def test_textured_recipe_bakes_atlas(tmp_path, executor):
-    res = executor.execute({
-        "name": "textured",
-        "objects": [
-            {"name": "wall", "primitive": "box"},
-            {"name": "hero", "bones": [
-                {"name": "hip", "head": [0, 0.9, 0], "tail": [0, 1.0, 0]},
-            ]},
-        ],
-        "materials": [{
-            "name": "bricks",
-            "color": [0.6, 0.3, 0.2],
-            "pattern": "bricks",
-            "params": {"rows": 4, "cols": 2},
-            "objects": ["wall"],
-        }],
-        "exports": [{"format": "obj", "path": str(tmp_path / "out/wall")}],
-    })
+    fixture = os.path.join(os.path.dirname(__file__),
+                           "fixtures/m1/atlas_manifest_dimensions.json")
+    with open(fixture, encoding="utf-8") as fh:
+        recipe = json.load(fh)
+    recipe["exports"][0]["path"] = str(tmp_path / "out/wall")
+    res = executor.execute(recipe)
     assert res.ok, res.errors
     atlas_exports = [(f, p) for f, p in res.exports if f == "atlas"]
     assert len(atlas_exports) == 1
@@ -302,6 +291,9 @@ def test_textured_recipe_bakes_atlas(tmp_path, executor):
     from PIL import Image
     img = np.asarray(Image.open(path))
     assert img.shape[2] == 4
+    atlas_entry = next(e for e in res.manifest if e["format"] == "atlas")
+    assert atlas_entry["width"] == img.shape[1]
+    assert atlas_entry["height"] == img.shape[0]
     # brick colour present somewhere in the baked atlas
     rgb = img[..., :3].astype(float) / 255.0
     assert (np.abs(rgb - np.array([0.6, 0.3, 0.2])).sum(axis=-1) < 0.3).any()
@@ -551,8 +543,48 @@ def test_atlas_outdir_considers_all_export_specs():
     specs = [ExportRecipe("am3d", "bare"),
              ExportRecipe("obj", os.path.join("sub", "dir", "out"))]
     assert _atlas_outdir(specs) == os.path.join("sub", "dir")
+    assert _atlas_outdir([ExportRecipe("glb", "first/out"),
+                          ExportRecipe("obj", "mesh/out")]) == "mesh"
     assert _atlas_outdir([ExportRecipe("obj", "bare")]) == "."
+    assert _atlas_outdir([ExportRecipe("am3d", "bare")]) == ""
     assert _atlas_outdir([]) == ""
+
+
+@pytest.mark.parametrize("fmt", ["am3d", "glb"])
+def test_exports_do_not_write_unused_atlas_pngs(tmp_path, fmt):
+    result = RecipeExecutor(output_root=str(tmp_path)).execute({
+        "name": "no_atlas_side_effect",
+        "objects": [{"name": "wall", "primitive": "box"}],
+        "materials": [{"name": "brick", "pattern": "bricks",
+                       "objects": ["wall"]}],
+        "exports": [{"format": fmt, "path": "project"}],
+    })
+    assert result.ok, result.errors
+    assert all(entry["format"] != "atlas" for entry in result.manifest)
+    assert not list(tmp_path.glob("*_atlas.png"))
+
+
+def test_obj_exports_use_unique_staging_directories(tmp_path, monkeypatch):
+    import am3d.export.obj as obj_exporter
+
+    original = obj_exporter.write_obj
+    staged_paths = []
+
+    def capture(path, *args, **kwargs):
+        staged_paths.append(path)
+        return original(path, *args, **kwargs)
+
+    monkeypatch.setattr(obj_exporter, "write_obj", capture)
+    result = RecipeExecutor().execute({
+        "name": "two_obj_exports",
+        "objects": [{"name": "box", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": str(tmp_path / "a/asset")},
+                    {"format": "obj", "path": str(tmp_path / "b/asset")}],
+    })
+    assert result.ok, result.errors
+    assert len(staged_paths) == 2
+    assert staged_paths[0] != staged_paths[1]
+    assert os.path.basename(staged_paths[0]) == os.path.basename(staged_paths[1])
 
 
 def test_per_patch_material_assignment(tmp_path, executor):
@@ -595,9 +627,8 @@ def test_graph_material_bakes_through_recipe(tmp_path, executor):
             ],
             "objects": ["wall"],
         }],
-        "exports": [{"format": "toon_sheet",
-                     "path": str(tmp_path / "art/wall"),
-                     "params": {"views": 2, "size": 32, "bands": 3}}],
+        "exports": [{"format": "obj",
+                     "path": str(tmp_path / "art/wall")}],
     })
     assert res.ok, res.errors
     atlases = [p for f, p in res.exports if f == "atlas"]
@@ -924,7 +955,10 @@ def test_subprocess_cli_valid_file(tmp_path):
     assert proc.returncode == 0
     report = json.loads(proc.stdout)
     assert report["ok"] is True
-    assert len(report["manifest"]) == 1
+    assert len(report["artifacts"]) == 1
+    assert report["artifacts"][0]["path"] == "ball.obj"
+    assert "manifest" not in report and "errors" not in report
+    assert str(tmp_path) not in proc.stdout
     assert (out_dir / "ball.obj").exists()
 
 
@@ -984,6 +1018,7 @@ def test_subprocess_cli_validate_only(tmp_path):
     report = json.loads(proc.stdout)
     assert report["ok"] is True
     assert report["validated"] is True
+    assert report["artifacts"] == []
 
 
 def test_subprocess_cli_invalid_json():
@@ -1550,3 +1585,176 @@ def test_source_cli_usage_still_names_the_module_form(monkeypatch):
 
     monkeypatch.delattr(_sys, "frozen", raising=False)
     assert _build_parser().prog == "python -m am3d.recipes"
+
+
+def test_ai_mode_resource_preflight_fails_before_build(monkeypatch):
+    recipe = {"name": "large", "objects": [
+        {"name": f"box_{i}", "primitive": "box"} for i in range(22)]}
+    executor = RecipeExecutor(ai_mode=True)
+    monkeypatch.setattr(executor, "_build_objects",
+                        lambda *_: pytest.fail("resource check ran after build"))
+    result = executor.execute(recipe)
+    issue = next(record for record in result.error_records
+                 if record["code"] == "resource_limit")
+    assert issue["path"] == "recipe.objects"
+    assert "triangles" in issue["message"]
+
+
+def test_memory_error_becomes_resource_exhausted(monkeypatch):
+    executor = RecipeExecutor(ai_mode=True)
+    monkeypatch.setattr(executor, "_build_objects",
+                        lambda *_: (_ for _ in ()).throw(MemoryError()))
+    result = executor.execute({"objects": [{"name": "box", "primitive": "box"}]})
+    assert not result.ok
+    assert result.error_records[0]["code"] == "resource_exhausted"
+    assert "memory limit" in result.error_records[0]["message"]
+
+
+def test_action_without_bound_geometry_warns_in_cli_mode_and_fails_in_ai_mode():
+    recipe = {
+        "name": "rig_only",
+        "objects": [{"name": "hero", "bones": [
+            {"name": "root", "head": [0, 0, 0], "tail": [0, 1, 0]}]}],
+        "actions": [{"name": "still", "kind": "custom", "character": "hero",
+                     "channels": []}],
+    }
+    regular = RecipeExecutor().execute(recipe)
+    assert regular.ok
+    assert any("changes no bound geometry" in warning
+               for warning in regular.warnings)
+    restricted = RecipeExecutor(ai_mode=True).execute(recipe)
+    assert not restricted.ok
+    assert restricted.error_records[-1]["code"] == "no_action_effect"
+
+
+def test_ai_mode_rejects_texture_file_paths():
+    result = RecipeExecutor(ai_mode=True).execute({
+        "name": "external_texture",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "materials": [{"name": "paint", "texture": "C:/private/paint.png"}],
+    })
+    issue = next(record for record in result.error_records
+                 if record["code"] == "unsupported_capability")
+    assert issue["path"] == "recipe.materials[0].texture"
+
+
+def test_ai_mode_executor_requires_host_output_root_for_exports():
+    result = RecipeExecutor(ai_mode=True).execute({
+        "name": "unconfined",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "../outside"}],
+    })
+    assert not result.ok
+    assert result.error_records[0]["code"] == "missing_output_root"
+
+
+def test_cli_failure_report_does_not_expose_machine_paths(tmp_path, capsys):
+    missing = tmp_path / "private" / "missing.json"
+    code = _run_cli(["--recipe", str(missing)])
+    output = capsys.readouterr().out
+    report = json.loads(output)
+    assert code == 1
+    assert report["ok"] is False
+    assert str(tmp_path) not in output
+    assert "errors" not in report and "manifest" not in report
+
+
+def test_ai_mode_cli_requires_host_output_root(capsys):
+    code = _run_cli(["--recipe", "-", "--ai-mode"])
+    report = json.loads(capsys.readouterr().out)
+    assert code == 1
+    assert report["error_records"][0]["code"] == "missing_output_root"
+
+
+def test_ai_validate_only_rejects_legacy_mix_fixture(tmp_path, capsys):
+    fixture = os.path.join(os.path.dirname(__file__),
+                           "fixtures/m1/legacy_mix.json")
+    code = _run_cli(["--recipe", fixture, "--out", str(tmp_path),
+                     "--ai-mode", "--validate-only"])
+    report = json.loads(capsys.readouterr().out)
+    issue = next(record for record in report["error_records"]
+                 if record["code"] == "unsupported_capability")
+    assert code == 1
+    assert issue["path"] == "recipe.materials[0].graph[0].type"
+    assert not list(tmp_path.iterdir())
+
+
+def test_ai_mode_cli_reports_relative_artifacts(tmp_path, capsys):
+    p = tmp_path / "recipe.json"
+    p.write_text(json.dumps({
+        "name": "ai_cli",
+        "objects": [{"name": "ball", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "ball"}],
+    }), encoding="utf-8")
+    output_root = tmp_path / "private-output"
+    code = _run_cli(["--recipe", str(p), "--out", str(output_root), "--ai-mode"])
+    output = capsys.readouterr().out
+    report = json.loads(output)
+    assert code == 0
+    assert report["artifacts"][0]["path"] == "ball.obj"
+    assert str(tmp_path) not in output
+
+
+def test_recipe_primitive_degrees_survive_project_roundtrip(tmp_path):
+    from am3d.renderer.tessellate import tessellate_object
+
+    fixture = os.path.join(os.path.dirname(__file__),
+                           "fixtures/m1/patch_degrees.json")
+    with open(fixture, encoding="utf-8") as fh:
+        recipe = json.load(fh)
+    recipe["exports"][0]["path"] = str(tmp_path / "degrees")
+    executor = RecipeExecutor()
+    result = executor.execute(recipe)
+    assert result.ok, result.error_records
+    expected = {"box": {(2, 2)}, "plane": {(2, 2)},
+                "torus": {(3, 2)}, "lathe": {(3, 1)}}
+    before = {}
+    for name, degrees in expected.items():
+        patches = executor.session.project.objects[name].patches
+        assert {(patch.degree_u, patch.degree_v) for patch in patches} == degrees
+        before[name] = tessellate_object(executor.session.project.objects[name],
+                                         nu=8, nv=8).vertices
+
+    loaded = Session()
+    loaded.load_project(str(tmp_path / "degrees.am3d"))
+    for name, degrees in expected.items():
+        patches = loaded.project.objects[name].patches
+        assert {(patch.degree_u, patch.degree_v) for patch in patches} == degrees
+        after = tessellate_object(loaded.project.objects[name], nu=8, nv=8).vertices
+        assert np.allclose(before[name], after)
+
+
+def test_recipe_lathe_degree_matches_gui_command():
+    from am3d.ui.operators import LatheProfileCommand
+
+    profile = [[0.3, 0.0], [0.6, 0.7]]
+    gui = Session()
+    gui.create_object("lathe")
+    LatheProfileCommand(gui, "lathe", profile, sections=8).redo()
+    recipe = RecipeExecutor()
+    result = recipe.execute({
+        "name": "gui_parity",
+        "objects": [{"name": "lathe", "primitive": "lathe",
+                     "params": {"profile": profile, "sections": 8}}],
+    })
+    assert result.ok, result.error_records
+    gui_patch = gui.project.objects["lathe"].patches[0]
+    recipe_patch = recipe.session.project.objects["lathe"].patches[0]
+    assert (gui_patch.degree_u, gui_patch.degree_v) == (3, 1)
+    assert (recipe_patch.degree_u, recipe_patch.degree_v) == (
+        gui_patch.degree_u, gui_patch.degree_v)
+
+
+def test_unknown_parent_uses_the_correct_object_index():
+    from am3d.recipes.schema import Recipe, ObjectRecipe, BoneRecipe
+
+    executor = RecipeExecutor()
+    result = ExecutionResult()
+    executor._build_objects(Recipe(name="bad_parent", objects=[
+        ObjectRecipe(name="first", primitive="box"),
+        ObjectRecipe(name="second", bones=[BoneRecipe(
+            name="child", head=[0, 0, 0], tail=[0, 1, 0], parent="missing")]),
+    ]), result)
+    record = next(record for record in result.error_records
+                  if record["code"] == "missing_reference")
+    assert record["path"] == "recipe.objects[1].bones"

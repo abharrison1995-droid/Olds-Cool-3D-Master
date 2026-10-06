@@ -7,8 +7,10 @@ repository's open milestone-PR chain. See
 [`docs/evidence/v1/m2/m2-independent-acceptance.md`](../evidence/v1/m2/m2-independent-acceptance.md).
 
 **Active milestone:** M3.1 — provider boundary, strict structured response,
-offline fake provider, and one-call orchestration skeleton. Work starts from
-the accepted M2 source above. M2 worker/policy/publication behavior is frozen;
+offline fake provider, and one-call orchestration skeleton. Candidate source:
+`fb73687` (`Implement M3.1 provider boundary and orchestration`), based on the
+accepted M2 source above. Local Linux validation is green; focused independent
+verification is pending. M2 worker/policy/publication behavior is frozen;
 change it only for a specific reproducible defect needed by M3.
 
 **M3.1 limits:** no real provider adapters, CLI flags, credential handling,
@@ -19,5 +21,5 @@ provider calls in validation.
 
 **Gate:** strict 1 MiB provider response parsing, fake-provider tests, one-call
 orchestration through M2, focused and full Linux suites, and Linux fast CI.
-Windows worker CI is reported if triggered. M3.1 ends at review checkpoint;
-do not begin M3.2 without explicit instruction.
+Windows worker CI is reported if triggered. M3.1 ends at this review
+checkpoint; M3.2 has not started and requires explicit instruction.

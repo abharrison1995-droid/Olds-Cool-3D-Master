@@ -10,7 +10,7 @@ in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORMS.md).
 | M0 Repository/context | Complete | H1 merged; Linux CI green. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
 | M1 Contract | Complete | Independent exit verification passed at `81f9a979af6534d08f2c4803a2430fa24471451f`. |
 | M2 Local generation | Complete | Independently reviewed and accepted at `0f3413adebe1b07c582c4617aa0c18053fda1e1a`; tagged `v0.3.0-dev.2`. |
-| M3 AI loop | In progress | M3.1 provider boundary and one-call offline orchestration only. |
+| M3 AI loop | In progress | M3.1 candidate `fb73687` implemented; focused independent verification pending. M3.2 has not started. |
 | M4 Baseline | Queued | Benchmark baseline and evidence-based contract. |
 | M5 Product workflow | Queued | AI workspace, history/refinement, usability. |
 | M6 Release | Queued | Exact RC qualification on Windows 11 and Mint 22.3. |

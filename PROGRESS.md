@@ -7,7 +7,7 @@ status and caveats live in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORM
 
 | Milestone | Status | Next gate |
 | --- | --- | --- |
-| M0 Repository/context | In progress | H1: docs, manifest, [six issues](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/milestone/1); 738 tests pass locally and in Linux CI; tag pending. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
+| M0 Repository/context | Complete | H1: compact docs, manifest, [six issues](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/milestone/1), Linux CI, and tag `v0.3.0-dev.1`. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
 | M1 Contract | Queued | Registry, validation, defects, bounds, review. |
 | M2 Local worker | Queued | Policy, worker, checks, guarded editor adoption, Linux/Windows CI. |
 | M3 AI loop | Queued | Bounded providers/orchestrator, fake-provider tests, 20-run bake-off. |

@@ -1,6 +1,6 @@
 # Current handoff — M0 / H1
 
-**Status:** M0/H1 complete locally on baseline `3f6f7f0` (6 Oct 2026); final status commit and checkpoint tag remain.
+**Status:** M0/H1 complete on baseline `3f6f7f0` (6 Oct 2026). Next handoff is M1a/H2.
 
 M0 is repository/context setup. Branch inventory found only `master` at
 `3f6f7f0`, equal to `origin/master`; no stash or local-only commits exist.
@@ -20,10 +20,9 @@ limits/links and `git diff --check`; local suite 738 passed, 4 deprecation
 warnings; Linux fast CI passed on push run `37480298448` and PR run
 `37480303103`. PR #10 is open.
 
-**Still required:** push this final status update, get its Linux fast check
-green, then tag `v0.3.0-dev.1`. The initial Linux failure (missing runner
-`libEGL.so.1`) is fixed by installing `libegl1`. The Windows failure is
-recorded for follow-up under M2/M6.
+The first Linux fast run exposed missing runner `libEGL.so.1`; the workflow
+now installs `libegl1`. The existing Windows candidate workflow still fails
+on its `moderngl` access violation and is recorded for M2/M6 follow-up.
 
-**Next:** commit/push the `libegl1` runner setup fix; tag only after a green
-GitHub Linux run.
+**Next — M1a/H2:** implement the registry and registry-driven validation
+from issue #3. Keep its PR focused and use the pinned offscreen suite.

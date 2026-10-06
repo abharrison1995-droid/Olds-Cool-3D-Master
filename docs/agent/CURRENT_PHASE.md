@@ -10,7 +10,10 @@ repository's open milestone-PR chain. See
 offline fake provider, and one-call orchestration skeleton. Candidate source:
 `fb73687` (`Implement M3.1 provider boundary and orchestration`), based on the
 accepted M2 source above. Local Linux validation is green; focused independent
-verification is pending. M2 worker/policy/publication behavior is frozen;
+verification is pending. Linux fast CI and Windows worker-boundary CI passed.
+The Windows candidate workflow stopped during collection at the known
+ModernGL access violation; this is not Windows qualification. M2
+worker/policy/publication behavior is frozen;
 change it only for a specific reproducible defect needed by M3.
 
 **M3.1 limits:** no real provider adapters, CLI flags, credential handling,

@@ -1,29 +1,11 @@
-# Current handoff — M3.1 provider boundary
+# Current handoff — M3.2 Codex CLI adapter
 
-**Status:** M2 independently reviewed and accepted. Accepted source:
-`0f3413adebe1b07c582c4617aa0c18053fda1e1a` on `v1/m2-local-generation`,
-tagged `v0.3.0-dev.2`. PR #14 remains open and stacked on M1c, following the
-repository's open milestone-PR chain. See
-[`docs/evidence/v1/m2/m2-independent-acceptance.md`](../evidence/v1/m2/m2-independent-acceptance.md).
+**Status:** M2 was independently accepted at `0f3413adebe1b07c582c4617aa0c18053fda1e1a` and remains frozen. M3.1 passed focused independent verification at `88a9b85cfc30854fe8f3234eca44cfce2b30e4e9`.
 
-**Active milestone:** M3.1 — provider boundary, strict structured response,
-offline fake provider, and one-call orchestration skeleton. Candidate source:
-`fb736871287d4059405121b9ddf4a55df776b963`
-(`Implement M3.1 provider boundary and orchestration`), based on the
-accepted M2 source above. Local Linux validation is green; focused independent
-verification is pending. Linux fast CI and Windows worker-boundary CI passed.
-The Windows candidate workflow stopped during collection at the known
-ModernGL access violation; this is not Windows qualification. M2
-worker/policy/publication behavior is frozen;
-change it only for a specific reproducible defect needed by M3.
+**Active milestone:** M3.2 — one subscription-backed Codex CLI adapter. Branch `v1/m3.2-codex-cli`, implementation commit `98854a65ba94103b52c138ae6ddac31b03840a85`, based directly on accepted M3.1. The offline fake, Linux tests, host-owned argv, and M2 runner path are implemented. See [`docs/evidence/v1/m3/m3.2-codex-cli.md`](../evidence/v1/m3/m3.2-codex-cli.md).
 
-**M3.1 limits:** no real provider adapters, CLI flags, credential handling,
-automatic repair/retry/fallback, analytics UI, benchmark, model selection, or
-M4/M5 work. Provider data can only produce a recipe-v1 object; the existing
-`authorize_recipe(...)` and `GenerationRunner` remain mandatory. No live
-provider calls in validation.
+**Gate:** M3.2 remains blocked. Two permitted live calls each reached `turn.started` then failed with an unclassified CLI error before a structured response; neither reached recipe parsing or `GenerationRunner`. Synthetic outside sentinels were unchanged, but effective model-tool confinement was not established by those failed turns. Do not begin M3.3 or another adapter until the live failure is diagnosed and the confinement probes are completed.
 
-**Gate:** strict 1 MiB provider response parsing, fake-provider tests, one-call
-orchestration through M2, focused and full Linux suites, and Linux fast CI.
-Windows worker CI is reported if triggered. M3.1 ends at this review
-checkpoint; M3.2 has not started and requires explicit instruction.
+**CI:** Linux fast tests and Windows worker/fake-Codex lifecycle passed on the implementation commit. The Windows candidate failed at the known ModernGL access-violation path; this is separate and not Windows qualification.
+
+**Scope:** no Claude/OpenCode/local/API adapter, credential storage, retry/fallback/repair, bake-off, selection UI, or M4+ work. No M2 worker, policy, check, or publication implementation changed. No Windows qualification is claimed.

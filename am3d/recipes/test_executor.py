@@ -88,19 +88,17 @@ def test_invalid_recipe_raises_before_touching_disk(tmp_path, executor):
     assert executor.session.project.objects == {}
 
 
-def test_malformed_recipe_dict_raises_value_error_not_parser_exception(executor):
-    """recipe_from_dict() used to be called outside execute()'s try block,
-    so a parse-stage failure escaped as whatever the parser happened to
-    raise (a bare TypeError here, from an unhashable dict landing in a
-    `in PRIMITIVES` membership check) instead of the same "invalid recipe"
-    ValueError contract validate_recipe's failures already use."""
+def test_malformed_primitive_is_a_structured_schema_error(executor):
+    """Invalid capability names are retained until validation can report a path."""
     bad = {"objects": [{"name": "a", "primitive": {"not": "a string"}}]}
-    with pytest.raises(ValueError, match="invalid recipe"):
-        executor.execute(bad)
+    result = executor.execute(bad)
+    assert not result.ok
+    assert result.error_records[0]["path"] == "recipe.objects[0].primitive"
+    assert "expected primitive name string" in result.error_records[0]["message"]
 
 
-def test_runtime_error_is_captured_not_raised(tmp_path, executor):
-    # A primitive param that survives schema validation but fails at build.
+def test_invalid_primitive_parameter_is_captured_with_path(tmp_path, executor):
+    # Typed preflight rejects this before a builder can coerce the value.
     recipe = {
         "name": "x",
         "objects": [{"name": "bad", "primitive": "sphere",
@@ -109,6 +107,7 @@ def test_runtime_error_is_captured_not_raised(tmp_path, executor):
     res = executor.execute(recipe)
     assert not res.ok
     assert res.errors and "radius" in res.errors[0]
+    assert res.error_records[0]["path"] == "recipe.objects[0].params.radius"
 
 
 def test_procedural_action_requires_bones(tmp_path, executor):
@@ -200,7 +199,7 @@ def test_cli_rejects_invalid_recipe_with_exit_1(tmp_path, capsys):
     code = _run_cli(["--recipe", str(p)])
     assert code == 1
     err = capsys.readouterr().err
-    assert "unknown primitive" in err
+    assert "expected primitive" in err
 
 
 def test_cli_invalid_recipe_is_structured_json(tmp_path, capsys):
@@ -239,7 +238,38 @@ def test_cli_validate_only_makes_no_files(tmp_path, capsys):
     assert code == 0
     report = _json.loads(capsys.readouterr().out)
     assert report["validated"] is True
+    assert report["resource_estimate"]["control_points"] > 0
     assert not list(tmp_path.glob("never*"))
+
+
+def test_cli_validate_only_checks_output_root_confinement(tmp_path, capsys):
+    p = tmp_path / "bad-path.json"
+    p.write_text(json.dumps({
+        "objects": [{"name": "s", "primitive": "sphere"}],
+        "exports": [{"format": "obj", "path": "../escape"}],
+    }), encoding="utf-8")
+    root = tmp_path / "output"
+    code = _run_cli(["--recipe", str(p), "--out", str(root),
+                     "--validate-only"])
+    captured = capsys.readouterr()
+    report = json.loads(captured.out)
+    assert code == 1
+    assert report["error_records"][0]["code"] == "output_path_escape"
+    assert report["error_records"][0]["path"] == "recipe.exports[0].path"
+    assert not root.exists()
+
+
+def test_sanitized_object_names_stay_in_derived_sheet_filenames(tmp_path):
+    result = RecipeExecutor(output_root=str(tmp_path)).execute({
+        "name": "derived_path",
+        "objects": [{"name": "a/b", "primitive": "plane"}],
+        "exports": [{"format": "spritesheet", "path": "sheet",
+                     "params": {"views": 1, "size": 16}}],
+    })
+    assert result.ok, result.errors
+    sheet = next(path for fmt, path in result.exports if fmt == "spritesheet")
+    assert os.path.commonpath((str(tmp_path), sheet)) == str(tmp_path)
+    assert "/a/b" not in sheet
 
 
 # ---------------------------------------------------------------------------

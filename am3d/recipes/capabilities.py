@@ -17,14 +17,17 @@ _MISSING = object()
 
 @dataclass(frozen=True)
 class Parameter:
-    """A recipe parameter's type and validation constraints."""
+    """Intrinsic bounds plus optional, stricter AI-profile bounds."""
 
     type: str
     default: Any = _MISSING
     minimum: float | None = None
     maximum: float | None = None
     enum: tuple | None = None
-    length: tuple[int, int] | None = None
+    length: tuple[int, int | None] | None = None
+    ai_minimum: float | None = None
+    ai_maximum: float | None = None
+    ai_max_length: int | None = None
     required: bool = False
     description: str = ""
 
@@ -105,12 +108,15 @@ def _build_registry():
     from . import animation as action_builders
 
     positive = {"type": "number", "minimum": 0.0001}
-    subdivisions = {"type": "integer", "minimum": 4, "maximum": 128}
-    grid = {"type": "integer", "minimum": 3, "maximum": 128}
+    subdivisions = {"type": "integer", "minimum": 4,
+                    "ai_maximum": 128}
+    grid = {"type": "integer", "minimum": 3, "ai_maximum": 128}
     vec_color = {"type": "color", "minimum": 0, "maximum": 1,
                  "length": (3, 4)}
-    profile2 = {"type": "profile2", "length": (2, 4096)}
-    profile3 = {"type": "profile3", "length": (2, 4096)}
+    profile2 = {"type": "profile2", "length": (2, None),
+                "ai_max_length": 4096}
+    profile3 = {"type": "profile3", "length": (2, None),
+                "ai_max_length": 4096}
 
     primitive_overrides = {
         "sphere": {
@@ -145,7 +151,8 @@ def _build_registry():
             "profile": profile3,
             "height": {"type": "number"},
             "twist_deg": {"type": "number"},
-            "rings": {"type": "integer", "minimum": 2, "maximum": 128},
+            "rings": {"type": "integer", "minimum": 2,
+                      "ai_maximum": 128},
         },
     }
     primitive_descriptions = {
@@ -166,22 +173,32 @@ def _build_registry():
                          required=("profile",) if name in ("lathe", "extrude") else ()))
 
     color = _param("color", minimum=0, maximum=1, length=(3, 4))
-    size = {"type": "integer", "minimum": 1, "maximum": 256}
+    pattern_size = {"type": "integer", "minimum": 1,
+                    "ai_maximum": 256}
+    sheet_size = {"type": "integer", "minimum": 16,
+                  "ai_maximum": 256}
     pattern_overrides = {
-        "solid": {"color": {**vec_color}, "size": size},
+        "solid": {"color": {**vec_color}, "size": pattern_size},
         "checker": {"a": {**vec_color}, "b": {**vec_color},
-                    "cells": {"type": "integer", "minimum": 1, "maximum": 128},
-                    "size": size},
-        "gradient": {"top": {**vec_color}, "bottom": {**vec_color}, "size": size},
-        "noise": {"seed": {"type": "integer"}, "size": size,
-                  "octaves": {"type": "integer", "minimum": 1, "maximum": 8},
+                    "cells": {"type": "integer", "minimum": 1,
+                              "ai_maximum": 128},
+                    "size": pattern_size},
+        "gradient": {"top": {**vec_color}, "bottom": {**vec_color},
+                     "size": pattern_size},
+        "noise": {"seed": {"type": "integer", "minimum": 0},
+                  "size": pattern_size,
+                  "octaves": {"type": "integer", "minimum": 1,
+                              "ai_maximum": 8},
                   "base": {**vec_color},
                   "contrast": {"type": "number", "minimum": 0, "maximum": 1}},
         "bricks": {"brick": {**vec_color}, "mortar": {**vec_color},
-                   "rows": {"type": "integer", "minimum": 1, "maximum": 128},
-                   "cols": {"type": "integer", "minimum": 1, "maximum": 128},
-                   "mortar_px": {"type": "number", "minimum": 0, "maximum": 256},
-                   "size": size},
+                   "rows": {"type": "integer", "minimum": 1,
+                            "ai_maximum": 128},
+                   "cols": {"type": "integer", "minimum": 1,
+                            "ai_maximum": 128},
+                   "mortar_px": {"type": "number", "minimum": 0,
+                                 "ai_maximum": 256},
+                   "size": pattern_size},
     }
     pattern_descriptions = {
         "solid": "Fill a texture with one color.",
@@ -220,8 +237,9 @@ def _build_registry():
         elif node == "noise_overlay":
             caps.append(Capability("graph_node", node, {
                 "amount": _param("number", 0.15, minimum=0, maximum=1),
-                "seed": _param("integer", 7),
-                "octaves": _param("integer", 3, minimum=1, maximum=8),
+                "seed": _param("integer", 7, minimum=0),
+                "octaves": _param("integer", 3, minimum=1,
+                                   ai_maximum=8),
             }, "Modulate an upstream map with seeded grain.",
                 "Allocates one square RGBA texture."))
         elif node == "tint":
@@ -232,18 +250,12 @@ def _build_registry():
                 "Allocates one square RGBA texture."))
 
     action_overrides = {
-        "walk": {"duration": {"type": "number", "minimum": 0.001,
-                               "maximum": 3600},
-                 "stride": {"type": "number"},
+        "walk": {"stride": {"type": "number"},
                  "amplitude_deg": {"type": "number"},
                  "bob": {"type": "number"}},
-        "idle": {"duration": {"type": "number", "minimum": 0.001,
-                               "maximum": 3600},
-                 "sway_deg": {"type": "number"},
+        "idle": {"sway_deg": {"type": "number"},
                  "breathe": {"type": "number"}},
-        "jump": {"duration": {"type": "number", "minimum": 0.001,
-                               "maximum": 3600},
-                 "crouch": {"type": "number"},
+        "jump": {"crouch": {"type": "number"},
                  "height": {"type": "number"}},
     }
     action_desc = {
@@ -272,26 +284,26 @@ def _build_registry():
         Capability("export_format", "glb", {}, "Write a binary glTF mesh.", "Cost scales with evaluated mesh size."),
         Capability("export_format", "am3d", {}, "Save an editable project.", "Cost scales with project size."),
         Capability("export_format", "spritesheet", {
-            "views": _param("integer", 8, minimum=1, maximum=16),
-            "size": _param("integer", 256, minimum=16, maximum=256),
+            "views": _param("integer", 8, minimum=1, ai_maximum=16),
+            "size": _param("integer", 256, minimum=16, ai_maximum=256),
             "color": _param("color", (0.72, 0.74, 0.82), minimum=0, maximum=1, length=(3, 4)),
             "silhouette": _param("boolean", False),
         }, "Render orbit views into per-object PNG sheets.", "Allocates views × size² pixels per object."),
         Capability("export_format", "toon_sheet", {
-            "views": _param("integer", 8, minimum=1, maximum=16),
-            "size": _param("integer", 256, minimum=16, maximum=256),
+            "views": _param("integer", 8, minimum=1, ai_maximum=16),
+            "size": _param("integer", 256, minimum=16, ai_maximum=256),
             "color": _param("color", (0.85, 0.78, 0.55), minimum=0, maximum=1, length=(3, 4)),
             "bands": _param("integer", 4, minimum=2, maximum=8),
             "ink": _param("boolean", True),
         }, "Render toon-shaded orbit views into per-object PNG sheets.", "Allocates views × size² pixels per object."),
         Capability("export_format", "animation_sheet", {
             "action": _param("nullable_string"),
-            "frames": _param("integer", 8, minimum=1, maximum=16),
-            "size": _param("integer", 256, minimum=16, maximum=256),
+            "frames": _param("integer", 8, minimum=1, ai_maximum=16),
+            "size": _param("integer", 256, minimum=16, ai_maximum=256),
             "color": _param("color", (0.72, 0.74, 0.82), minimum=0, maximum=1, length=(3, 4)),
             "start": _param("number", 0.0),
             "end": _param("number"),
-            "columns": _param("integer", minimum=1, maximum=16),
+            "columns": _param("integer", minimum=1, ai_maximum=16),
         }, "Render the scene across one action into a PNG frame sheet.", "Allocates frames × size² pixels."),
     ])
 
@@ -328,7 +340,8 @@ def capabilities_for(category: str) -> tuple[Capability, ...]:
                  if kind == category)
 
 
-def validate_parameters(category: str, name: str, values, path: str) -> list[dict]:
+def validate_parameters(category: str, name: str, values, path: str, *,
+                        ai_mode: bool = False) -> list[dict]:
     """Validate a capability parameter object and return structured issues."""
     cap = get_capability(category, name)
     if cap is None:
@@ -352,7 +365,7 @@ def validate_parameters(category: str, name: str, values, path: str) -> list[dic
             })
             continue
         spec = cap.params[key]
-        problem = _parameter_problem(spec, values[key])
+        problem = _parameter_problem(spec, values[key], ai_mode=ai_mode)
         if problem is not None:
             issues.append({
                 "code": "invalid_parameter", "path": p_path,
@@ -374,10 +387,19 @@ def _received(value) -> str:
     return f"{type(value).__name__} {value!r}"
 
 
-def _parameter_problem(spec: Parameter, value) -> str | None:
+def _parameter_problem(spec: Parameter, value, *,
+                       ai_mode: bool = False) -> str | None:
     import math
 
     kind = spec.type
+    minimum, maximum = spec.minimum, spec.maximum
+    if ai_mode:
+        if spec.ai_minimum is not None:
+            minimum = (spec.ai_minimum if minimum is None
+                       else max(minimum, spec.ai_minimum))
+        if spec.ai_maximum is not None:
+            maximum = (spec.ai_maximum if maximum is None
+                       else min(maximum, spec.ai_maximum))
     if kind == "nullable_string" and value is None:
         return None
     if kind in ("number", "integer"):
@@ -388,10 +410,12 @@ def _parameter_problem(spec: Parameter, value) -> str | None:
             return f"expected {kind}, received {_received(value)}"
         if not math.isfinite(value):
             return f"expected finite {kind}, received {_received(value)}"
-        if spec.minimum is not None and value < spec.minimum:
-            return f"expected {kind} >= {spec.minimum}, received {_received(value)}"
-        if spec.maximum is not None and value > spec.maximum:
-            return f"expected {kind} <= {spec.maximum}, received {_received(value)}"
+        if minimum is not None and value < minimum:
+            label = "AI-mode minimum" if ai_mode and spec.ai_minimum is not None else "minimum"
+            return f"expected {kind} >= {minimum} ({label}), received {_received(value)}"
+        if maximum is not None and value > maximum:
+            label = "AI-mode maximum" if ai_mode and spec.ai_maximum is not None else "maximum"
+            return f"expected {kind} <= {maximum} ({label}), received {_received(value)}"
     elif kind == "boolean":
         if not isinstance(value, bool):
             return f"expected boolean, received {_received(value)}"
@@ -413,9 +437,13 @@ def _parameter_problem(spec: Parameter, value) -> str | None:
             rows = [value]
         else:
             width = 2 if kind == "profile2" else 3
-            lo, hi = spec.length or (2, 4096)
-            if not lo <= len(value) <= hi:
-                return f"expected {kind} with {lo} to {hi} points, received length {len(value)}"
+            lo, hi = spec.length or (2, None)
+            if ai_mode and spec.ai_max_length is not None:
+                hi = (spec.ai_max_length if hi is None
+                      else min(hi, spec.ai_max_length))
+            if len(value) < lo or (hi is not None and len(value) > hi):
+                limit = f"{lo} to {hi}" if hi is not None else f"at least {lo}"
+                return f"expected {kind} with {limit} points, received length {len(value)}"
             rows = value
         for row_index, row in enumerate(rows):
             if kind != "color" and (
@@ -425,10 +453,10 @@ def _parameter_problem(spec: Parameter, value) -> str | None:
                 if (not isinstance(item, (int, float)) or
                         isinstance(item, bool) or not math.isfinite(item)):
                     return f"expected finite number at [{row_index}][{item_index}], received {_received(item)}"
-                if spec.minimum is not None and item < spec.minimum:
-                    return f"expected values >= {spec.minimum}, received {_received(item)}"
-                if spec.maximum is not None and item > spec.maximum:
-                    return f"expected values <= {spec.maximum}, received {_received(item)}"
+                if minimum is not None and item < minimum:
+                    return f"expected values >= {minimum}, received {_received(item)}"
+                if maximum is not None and item > maximum:
+                    return f"expected values <= {maximum}, received {_received(item)}"
     elif kind == "object":
         if not isinstance(value, dict):
             return f"expected object, received {_received(value)}"

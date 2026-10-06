@@ -29,10 +29,20 @@ def _parameter(spec):
         limits.append(f"min {spec.minimum:g}")
     if spec.maximum is not None:
         limits.append(f"max {spec.maximum:g}")
+    if spec.ai_minimum is not None:
+        limits.append(f"AI min {spec.ai_minimum:g}")
+    if spec.ai_maximum is not None:
+        limits.append(f"AI max {spec.ai_maximum:g}")
     if spec.enum:
         limits.append("one of " + ", ".join(f"`{v}`" for v in spec.enum))
     if spec.length:
-        limits.append(f"length {spec.length[0]}–{spec.length[1]}")
+        upper = spec.length[1]
+        if upper is None:
+            limits.append(f"length ≥{spec.length[0]}")
+        else:
+            limits.append(f"length {spec.length[0]}–{upper}")
+    if spec.ai_max_length is not None:
+        limits.append(f"AI max length {spec.ai_max_length}")
     suffix = f"; {', '.join(limits)}" if limits else ""
     return f"`{spec.type}` ({detail}{suffix})"
 
@@ -52,9 +62,10 @@ def render_registry_table() -> str:
     lines = [
         "## Capability Registry (generated)",
         "",
-        "Validation accepts the parameter names and types listed here. Limits",
-        "apply during validation; `(hidden)` entries remain readable for legacy",
-        "recipes but are not offered to AI generation.",
+        "Validation accepts the parameter names and types listed here. Intrinsic",
+        "limits always apply; limits marked `AI` apply only in AI mode. Trusted",
+        "offline recipes retain engine-supported values. `(hidden)` entries remain",
+        "readable for legacy recipes but are not offered to AI generation.",
         "",
     ]
     for category, title in categories:

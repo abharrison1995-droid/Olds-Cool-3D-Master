@@ -34,6 +34,7 @@ import numpy as np
 
 from .capabilities import (CAPABILITIES, capabilities_for,
                            validate_parameters)
+from am3d.core.material_graph import graph_start_problem
 
 
 CURRENT_RECIPE_VERSION = 1
@@ -481,7 +482,8 @@ def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
     problems: list[ValidationIssue] = []
 
     def registry_issues(category, name, values, path):
-        for issue in validate_parameters(category, name, values, path):
+        for issue in validate_parameters(category, name, values, path,
+                                          ai_mode=ai_mode):
             problems.append(ValidationIssue(
                 f"{issue['path']}: {issue['message']}",
                 code=issue["code"], path=issue["path"],
@@ -677,17 +679,27 @@ def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
                         problems.append(ValidationIssue(f"object {obj.name!r}: transform must be 16 elements (4x4) or 3 elements (translation)", code="invalid_shape", path=t_path))
 
     # Check params.skeleton references
-    obj_names = {o.name for o in recipe.objects
-                 if isinstance(o.name, str)}
+    objects_by_name = {o.name: o for o in recipe.objects
+                       if isinstance(o.name, str)}
+    obj_names = set(objects_by_name)
     for index, obj in enumerate(recipe.objects):
         skel_ref = obj.params.get("skeleton") if isinstance(obj.params, dict) else None
-        if skel_ref and skel_ref not in obj_names:
+        ref_path = f"recipe.objects[{index}].params.skeleton"
+        if not isinstance(skel_ref, str) or not skel_ref:
+            continue
+        if skel_ref not in obj_names:
             problems.append(ValidationIssue(
                 f"object {obj.name!r} references nonexistent skeleton {skel_ref!r}",
                 code="missing_reference",
-                path=f"recipe.objects[{index}].params.skeleton",
+                path=ref_path,
                 hint="The referenced skeleton object must exist in recipe.objects."
             ))
+        elif not objects_by_name[skel_ref].bones:
+            problems.append(ValidationIssue(
+                f"object {obj.name!r} references {skel_ref!r} as a skeleton, "
+                "but that object declares no bones",
+                code="invalid_skeleton_reference", path=ref_path,
+                hint="Reference an object that declares at least one bone."))
 
     seen_materials = set()
     for index, material in enumerate(recipe.materials):
@@ -768,6 +780,17 @@ def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
                     problems.append(ValidationIssue(
                         f"graph node {node_name!r} is not available in AI mode",
                         code="unsupported_capability", path=f"{n_path}.type"))
+                if node_index == 0:
+                    # `mix` is retained as a trusted legacy recipe node even
+                    # though V1 hides it from providers. Keep that historical
+                    # acceptance; runtime graph validation still reports its
+                    # missing inputs if a caller attempts to evaluate it.
+                    graph_problem = (None if node_name == "mix" and not ai_mode
+                                     else graph_start_problem(node_name))
+                    if graph_problem:
+                        problems.append(ValidationIssue(
+                            graph_problem, code="graph_precondition",
+                            path=f"{n_path}.type"))
                 registry_issues("graph_node", node_name,
                                 node.get("params", {}), f"{n_path}.params")
 
@@ -932,5 +955,17 @@ def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
             problems.append(ValidationIssue(
                 f"export format {ex.format!r} has empty path",
                 code="missing_path", path=f"{path}.path"))
+        if (isinstance(ex.params, dict) and
+                normalize_export_format(ex.format) == "animation_sheet"):
+            requested_action = ex.params.get("action")
+            if (isinstance(requested_action, str) and requested_action and
+                    requested_action not in defined_actions):
+                available = sorted(defined_actions)
+                if len(available) > 16:
+                    available = available[:16] + ["…"]
+                problems.append(ValidationIssue(
+                    f"animation sheet references unknown action {requested_action!r}; available actions: {available}",
+                    code="missing_reference",
+                    path=f"{path}.params.action"))
 
     return problems

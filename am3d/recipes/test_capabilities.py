@@ -71,7 +71,10 @@ def test_registry_validation_collects_full_path_errors_in_one_pass():
         "exports": [{"format": "spritesheet", "path": "sheet",
                      "params": {"views": 64, "quality": 2}}],
     })
-    records = [problem.to_record() for problem in validate_recipe(recipe)]
+    trusted_paths = {problem.path for problem in validate_recipe(recipe)}
+    assert "recipe.exports[0].params.views" not in trusted_paths
+    records = [problem.to_record() for problem in
+               validate_recipe(recipe, ai_mode=True)]
     paths = {record["path"] for record in records}
     assert {
         "recipe.objects[0].params.radius",

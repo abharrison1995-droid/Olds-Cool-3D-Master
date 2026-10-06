@@ -19,8 +19,10 @@ and branch inventory; six GitHub issues; build-input manifest with digest
 limits/links and `git diff --check`; pinned offscreen suite: 738 passed, 4
 deprecation warnings (77.87s).
 
-**Still required:** push H1, get the Linux fast job green, then tag
-`v0.3.0-dev.1`. The Windows failure is recorded for follow-up under M2/M6.
+**Still required:** push the runner runtime fix, get the Linux fast job green, then tag
+`v0.3.0-dev.1`. First GitHub Linux run exposed missing runner `libEGL.so.1`
+during Qt test collection; the workflow now installs `libegl1`. The Windows
+failure is recorded for follow-up under M2/M6.
 
-**Next:** commit and push H1 to trigger GitHub Linux fast CI; tag only after a
-green run.
+**Next:** commit/push the `libegl1` runner setup fix; tag only after a green
+GitHub Linux run.

@@ -23,6 +23,15 @@ verified completed directory; for cross-volume copy, stage privately, verify,
 then rename. No active document is replaced. The editor opens a separate
 writable copy after the ordinary dirty-document guard.
 
+M2's local record format stores the host run ID, parent ID (null), UTC
+start/end times, application version, optional build identity, recipe hash and
+version, policy digest, check version, status, warnings, bounded errors,
+relative artifact paths/sizes/hashes, preview dimensions, and elapsed time.
+Provider, model, prompt, and usage fields are absent because M2 has no model
+call. Failed and cancelled diagnostics live under generation-failures/;
+they contain no publishable project or export artifacts and are never treated
+as completed generations.
+
 Credentials, credential-bearing URLs, raw HTTP responses, and provider
 transcripts never enter projects, workers, logs, or records. Sanitize errors
 before persistence. Full run sidecars are authoritative; a history list is a

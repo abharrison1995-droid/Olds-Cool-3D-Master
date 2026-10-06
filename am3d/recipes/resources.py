@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+from am3d.core.sheet_layout import calculate_sheet_layout
+
 from .capabilities import CAPABILITIES
 
 
@@ -124,17 +126,20 @@ def estimate_recipe_resources(recipe, *, tessellation=32) -> dict:
         params = export.params if isinstance(export.params, dict) else {}
         fmt = str(export.format).lower()
         if fmt in {"spritesheet", "toon_sheet"}:
-            cells = int(params.get("views", 8))
+            frames = int(params.get("views", 8))
             cell = int(params.get("size", 256))
-            sheet_cells = max(sheet_cells, cells)
+            layout = calculate_sheet_layout(frames, frames, cell)
+            sheet_cells = max(sheet_cells, layout.allocated_cells)
             max_sheet_cell_size = max(max_sheet_cell_size, cell)
-            sheet_pixels += cells * geometry_objects * cell * cell
+            sheet_pixels += layout.pixels * geometry_objects
         elif fmt == "animation_sheet":
-            cells = int(params.get("frames", 8))
+            frames = int(params.get("frames", 8))
+            columns = int(params.get("columns", frames))
             cell = int(params.get("size", 256))
-            sheet_cells = max(sheet_cells, cells)
+            layout = calculate_sheet_layout(frames, columns, cell)
+            sheet_cells = max(sheet_cells, layout.allocated_cells)
             max_sheet_cell_size = max(max_sheet_cell_size, cell)
-            sheet_pixels += cells * cell * cell
+            sheet_pixels += layout.pixels
 
     texture_pixels = 0
     uses_baked_textures = any(

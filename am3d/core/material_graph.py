@@ -119,6 +119,14 @@ NODE_INPUTS = {
     "tint": ["in"],
 }
 
+
+def graph_start_problem(node_type: str) -> str | None:
+    """Return the shared precondition error for a modifier-first chain."""
+    if node_type in NODE_TYPES and NODE_INPUTS[node_type]:
+        return (f"graph starts with {node_type!r}, which requires an "
+                "upstream generator node (e.g. bricks/noise/checker)")
+    return None
+
 @dataclass
 class Node:
     """One node in a material graph."""
@@ -179,11 +187,9 @@ class MaterialGraph:
             from ..renderer.materials import solid
             return solid((0.8, 0.8, 0.8), size=size)
 
-        first = self.nodes[0]
-        if NODE_INPUTS[first.type]:      # needs an upstream source
-            raise ValueError(
-                f"graph starts with {first.type!r}, which requires an "
-                f"upstream generator node (e.g. bricks/noise/checker)")
+        first_problem = graph_start_problem(self.nodes[0].type)
+        if first_problem:
+            raise ValueError(first_problem)
 
         current = None
         for i, node in enumerate(self.nodes):
@@ -211,10 +217,10 @@ class MaterialGraph:
     def validate(self) -> list:
         """Human-readable problems ([] = the graph is well-formed)."""
         problems = []
-        if self.nodes and NODE_INPUTS.get(self.nodes[0].type):
-            problems.append(
-                f"first node {self.nodes[0].type!r} requires an upstream "
-                f"generator (bricks/noise/checker/gradient/solid)")
+        if self.nodes:
+            first_problem = graph_start_problem(self.nodes[0].type)
+            if first_problem:
+                problems.append(first_problem)
         for i, node in enumerate(self.nodes):
             if node.type not in NODE_TYPES:
                 problems.append(f"node {i}: unknown type {node.type!r}")

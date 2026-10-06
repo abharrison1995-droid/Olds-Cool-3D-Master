@@ -22,6 +22,10 @@ def render() -> str:
                if kind == "graph_node" and cap.model_visible}
     schema["$defs"]["graphNode"]["properties"]["type"]["enum"] = [
         name for name in enum if name in visible]
+    # Material.texture is a trusted/offline input path. AI mode forbids model
+    # selected texture paths, so omit it from the model-facing contract while
+    # retaining it in the complete recipe schema.
+    schema["$defs"]["material"]["properties"].pop("texture", None)
     schema["$id"] = str(schema["$id"]).rstrip("/") + "/provider"
     schema.pop("title", None)
     return json.dumps(schema, ensure_ascii=False, separators=(",", ":")) + "\n"

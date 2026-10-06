@@ -124,12 +124,36 @@ class DocumentController:
 
     def do_open(self, path: str) -> None:
         """Load *path*, replacing the current session."""
-        self.session.load_project(path)
-        self._path = path
+        open_path = self._generation_working_copy_path(path)
+        try:
+            self.session.load_project(open_path)
+        except BaseException:
+            if open_path != path and Path(open_path).parent.name == "generated-working-copies":
+                Path(open_path).unlink(missing_ok=True)
+            raise
+        self._path = open_path
         # Same reasoning as do_new(): a newly opened document must not
         # inherit undo history from whatever was open before it.
         self._clear_undo()
         self._mark_clean()
+
+    @staticmethod
+    def _generation_working_copy_path(path: str) -> str:
+        """Never attach the editor to a read-only generation snapshot."""
+        from am3d.ai.storage import GenerationStore
+
+        store = GenerationStore()
+        source = Path(path).expanduser().resolve()
+        try:
+            relative = source.relative_to(store.generations.resolve())
+        except ValueError:
+            return str(path)
+        if (len(relative.parts) == 2 and relative.parts[1] == "project.am3d" and
+                len(relative.parts[0]) == 32):
+            return str(store.create_writable_project_copy(relative.parts[0]))
+        raise ValueError(
+            "Files inside immutable generations cannot be opened directly; "
+            "open the run's project.am3d through its verified copy.")
 
     def do_save(self) -> str | None:
         """Save to current path or prompt (Save As).  Returns path or None."""

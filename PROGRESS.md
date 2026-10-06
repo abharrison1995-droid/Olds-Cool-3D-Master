@@ -9,15 +9,14 @@ in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORMS.md).
 | --- | --- | --- |
 | M0 Repository/context | Complete | H1 merged; Linux CI green. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
 | M1 Contract | Complete | Independent exit verification passed at `81f9a979af6534d08f2c4803a2430fa24471451f`. |
-| M2 Local generation | In progress | Implementation candidate ready; focused independent worker-boundary verification pending on `v1/m2-local-generation`. |
-| M3 AI loop | Queued | Bounded providers/orchestrator and measured bake-off. |
+| M2 Local generation | Complete | Independently reviewed and accepted at `0f3413adebe1b07c582c4617aa0c18053fda1e1a`; tagged `v0.3.0-dev.2`. |
+| M3 AI loop | In progress | M3.1 provider boundary and one-call offline orchestration only. |
 | M4 Baseline | Queued | Benchmark baseline and evidence-based contract. |
 | M5 Product workflow | Queued | AI workspace, history/refinement, usability. |
 | M6 Release | Queued | Exact RC qualification on Windows 11 and Mint 22.3. |
 
-M2 is based directly on the verified M1 candidate above. Local recipe
-generation, deterministic checks, immutable records, and guarded writable-copy
-adoption are implemented; no model/provider work is included. M2 remains
-blocked pending focused independent worker-boundary verification. The known
-Windows ModernGL collection crash remains separate; M2 adds GPU-independent
-Windows worker CI. M3 has not started.
+M2 acceptance and its CI/review record are in
+[docs/evidence/v1/m2/m2-independent-acceptance.md](docs/evidence/v1/m2/m2-independent-acceptance.md).
+Its worker boundary remains frozen. The separate Windows ModernGL collection
+crash is a known limitation and is not Windows qualification. M3.1 starts from
+the accepted M2 SHA; no live provider calls or repair loops are in this phase.

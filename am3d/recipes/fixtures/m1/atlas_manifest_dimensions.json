@@ -1,0 +1,6 @@
+{
+  "name": "atlas_manifest_dimensions",
+  "objects": [{"name": "wall", "primitive": "box"}],
+  "materials": [{"name": "bricks", "pattern": "bricks", "params": {"rows": 4, "cols": 2}, "objects": ["wall"]}],
+  "exports": [{"format": "obj", "path": "out/wall"}]
+}

@@ -1,0 +1,10 @@
+{
+  "name": "primitive_degrees",
+  "objects": [
+    {"name": "box", "primitive": "box", "params": {"n": 3}},
+    {"name": "plane", "primitive": "plane", "params": {"n": 4}},
+    {"name": "torus", "primitive": "torus", "params": {"major_sections": 8, "minor_sections": 6}},
+    {"name": "lathe", "primitive": "lathe", "params": {"profile": [[0.4, 0.0], [0.6, 1.0]], "sections": 8}}
+  ],
+  "exports": [{"format": "am3d", "path": "degrees"}]
+}

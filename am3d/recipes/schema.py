@@ -726,6 +726,12 @@ def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
                 "material params require a recognized pattern",
                 code="unexpected_parameter", path=f"{path}.params"))
 
+        if ai_mode and material.texture:
+            problems.append(ValidationIssue(
+                "AI-mode recipes cannot select texture file paths",
+                code="unsupported_capability", path=f"{path}.texture",
+                hint="Use a registered procedural pattern or material graph node."))
+
         if not isinstance(material.graph, list):
             problems.append(ValidationIssue(
                 f"expected graph node list, received {type(material.graph).__name__}",

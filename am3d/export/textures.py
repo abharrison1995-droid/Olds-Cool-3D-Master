@@ -71,12 +71,6 @@ def texture_filename(stem: str, object_name: str) -> str:
     the name, so repeated exports of the same scene produce the same
     filenames.
     """
-    import hashlib
-
-    name = str(object_name)
-    safe = "".join(c if (c.isalnum() or c in "-_") else "_" for c in name)
-    if safe != name or not safe:
-        digest = hashlib.blake2s(name.encode("utf-8"),
-                                 digest_size=4).hexdigest()
-        safe = f"{safe or 'object'}_{digest}"
+    from am3d.core.paths import sanitize_filename_component
+    safe = sanitize_filename_component(object_name)
     return f"{stem}_{safe}.png"

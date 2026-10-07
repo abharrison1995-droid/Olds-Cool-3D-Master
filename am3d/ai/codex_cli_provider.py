@@ -8,6 +8,7 @@ treated as untrusted bytes by the existing provider parser.
 from __future__ import annotations
 
 from dataclasses import dataclass
+import hashlib
 import json
 import math
 import os
@@ -22,6 +23,7 @@ import time
 from typing import Any
 
 from .prompt import MAX_PROMPT_BYTES
+from .codex_output_schema import codex_output_schema
 from .provider_contracts import (FailureCode, MAX_PROVIDER_RESPONSE_BYTES,
                                  provider_response_schema)
 from .providers import (AdapterKind, ProviderCallStatus, ProviderRequest,
@@ -32,8 +34,15 @@ DEFAULT_CODEX_DEADLINE_SECONDS = 10 * 60
 MAX_EVENT_STREAM_BYTES = 1024 * 1024
 MAX_DIAGNOSTIC_BYTES = 64 * 1024
 _CAPABILITY_TIMEOUT_SECONDS = 5.0
+MAX_EVENT_MESSAGE_BYTES = 2048
 _MODEL_ID_RE = re.compile(r"^[A-Za-z0-9][A-Za-z0-9._:/-]{0,119}$")
 _EVENT_KIND_RE = re.compile(r"^[A-Za-z0-9_.:-]{1,80}$")
+_SCHEMA_KEYWORDS = (
+    "$defs", "$ref", "allOf", "anyOf", "oneOf", "additionalProperties",
+    "minItems", "maxItems", "minLength", "maxLength", "enum", "const",
+    "items", "type", "required", "properties", "propertyNames", "minimum",
+    "maximum", "exclusiveMinimum", "pattern", "format",
+)
 
 # These feature identifiers were checked against the installed Codex CLI's
 # `features list`; each becomes a host-owned `--disable FEATURE` argv pair.
@@ -46,6 +55,8 @@ DISABLED_TOOL_FEATURES = (
     "browser_use_external",
     "browser_use_full_cdp_access",
     "code_mode",
+    "code_mode_host",
+    "collaboration_modes",
     "computer_use",
     "image_generation",
     "in_app_browser",
@@ -60,14 +71,17 @@ DISABLED_TOOL_FEATURES = (
     "shell_snapshot",
     "shell_snapshot_v2",
     "shell_tool",
+    "sleep_tool",
     "skill_mcp_dependency_install",
     "skill_search",
     "tool_search",
     "tool_call_mcp_elicitation",
     "tool_suggest",
     "realtime_conversation",
+    "unified_exec_tty",
     "view_image",
     "workspace_dependencies",
+    "write_stdin_approval",
     "worktrees",
 )
 
@@ -109,6 +123,16 @@ class CodexCliConfig:
         if self.executable is not None and (
                 not isinstance(self.executable, str) or not self.executable.strip()):
             raise ValueError("Codex executable must be a host-selected path")
+
+
+@dataclass(frozen=True)
+class LocalDiagnosticSummary:
+    """Ephemeral bounded diagnostic metadata; never part of ProviderResult."""
+
+    event_kind: str
+    category: str
+    message_sha256: str | None
+    safe_detail: str | None = None
 
 
 class _BoundedPipeReader(threading.Thread):
@@ -169,6 +193,7 @@ class CodexCliProvider:
         self._cancel_requested = threading.Event()
         self.last_event_kinds: tuple[str, ...] = ()
         self.last_workspace_entries: tuple[str, ...] = ()
+        self.last_diagnostic_summary: LocalDiagnosticSummary | None = None
         self._verify_local_cli()
 
     @property
@@ -340,6 +365,7 @@ class CodexCliProvider:
         process = None
         self.last_event_kinds = ()
         self.last_workspace_entries = ()
+        self.last_diagnostic_summary = None
         if self._setup_failure is not None:
             return self._failure(self._setup_failure, 0.0, "setup_failed")
         if not isinstance(request, ProviderRequest):
@@ -382,7 +408,7 @@ class CodexCliProvider:
                 schema_path = workspace / "response.schema.json"
                 result_path = workspace / "final-response.json"
                 schema_path.write_text(
-                    json.dumps(provider_response_schema(), ensure_ascii=False,
+                    json.dumps(codex_output_schema(), ensure_ascii=False,
                                separators=(",", ":")),
                     encoding="utf-8")
                 if self._cancel_requested.is_set():
@@ -457,9 +483,10 @@ class CodexCliProvider:
                                          "event_stream_limit")
                 returncode = process.returncode
                 events = bytes(stdout.data)
-                model_id, usage, event_failure, event_kinds = _event_metadata(
+                model_id, usage, event_failure, event_kinds, diagnostic = _event_metadata(
                     events, self.config.model)
                 self.last_event_kinds = event_kinds
+                self.last_diagnostic_summary = diagnostic
                 if returncode != 0:
                     code = event_failure or _classify_diagnostic_failure(
                         bytes(stderr.data)) or FailureCode.NONZERO_EXIT
@@ -630,10 +657,11 @@ def _force_kill_process_tree(process: subprocess.Popen):
 
 def _event_metadata(raw: bytes, requested_model: str | None
                     ) -> tuple[str | None, UsageMetadata, FailureCode | None,
-                               tuple[str, ...]]:
+                               tuple[str, ...], LocalDiagnosticSummary | None]:
     model = requested_model
     usage = UsageMetadata()
-    failure = None
+    terminal_diagnostics: list[tuple[str, FailureCode | None,
+                                     LocalDiagnosticSummary]] = []
     kinds: list[str] = []
     for raw_line in raw.splitlines():
         if not raw_line or len(raw_line) > MAX_DIAGNOSTIC_BYTES:
@@ -674,9 +702,102 @@ def _event_metadata(raw: bytes, requested_model: str | None
             if not isinstance(detail, dict):
                 detail = event
             code = detail.get("code") or detail.get("type") or detail.get("codex_error_info")
+            event_failure = None
             if isinstance(code, str):
-                failure = _failure_from_code(code)
-    return model, usage, failure, tuple(kinds[:256])
+                event_failure = _failure_from_code(code)
+            message = detail.get("message")
+            if not isinstance(message, str):
+                message = event.get("message")
+            summary, message_failure = _diagnose_event_message(kind, message)
+            if event_failure is not None:
+                summary = LocalDiagnosticSummary(
+                    kind, "typed_" + event_failure.value,
+                    summary.message_sha256 if summary is not None else None)
+            if summary is not None:
+                terminal_diagnostics.append((
+                    kind, event_failure or message_failure, summary))
+    failure_codes = {item[1] for item in terminal_diagnostics if item[1] is not None}
+    categories = {item[2].category for item in terminal_diagnostics}
+    if len(failure_codes) == 1 and len(categories) <= 1:
+        failure = next(iter(failure_codes))
+    else:
+        failure = None
+    if len(terminal_diagnostics) == 1:
+        diagnostic = terminal_diagnostics[0][2]
+    elif terminal_diagnostics:
+        diagnostic = LocalDiagnosticSummary(
+            event_kind="conflict" if len(categories) > 1 else "multiple",
+            category=("conflicting_terminal_errors" if len(categories) > 1
+                      else terminal_diagnostics[-1][2].category),
+            message_sha256=_combined_diagnostic_hash(
+                item[2].message_sha256 for item in terminal_diagnostics),
+            safe_detail=None)
+    else:
+        diagnostic = None
+    return model, usage, failure, tuple(kinds[:256]), diagnostic
+
+
+def _diagnose_event_message(
+        event_kind: str, message: object
+        ) -> tuple[LocalDiagnosticSummary | None, FailureCode | None]:
+    if not isinstance(message, str):
+        return None, None
+    encoded = message.encode("utf-8", errors="backslashreplace")
+    digest = hashlib.sha256(encoded).hexdigest()
+    if len(encoded) > MAX_EVENT_MESSAGE_BYTES:
+        return (LocalDiagnosticSummary(event_kind, "diagnostic_message_too_large",
+                                       digest), None)
+    normalized = " ".join(message.casefold().split())
+    failure = None
+    category = "other_cli_error"
+    safe_detail = None
+
+    if any(phrase in normalized for phrase in (
+            "not logged in", "login required", "sign in required",
+            "authentication required", "unauthorized", "invalid api key",
+            "not authenticated")):
+        category = "authentication"
+        failure = FailureCode.AUTHENTICATION_FAILURE
+    elif any(phrase in normalized for phrase in (
+            "rate limit", "rate_limit", "quota exceeded", "insufficient quota",
+            "insufficient_quota")):
+        category = "quota_rate_limit"
+        failure = FailureCode.QUOTA_RATE_LIMIT
+    elif any(phrase in normalized for phrase in (
+            "refusal", "request was rejected by policy", "safety policy rejected")):
+        category = "refusal_policy"
+        failure = FailureCode.REFUSAL
+    elif ("schema" in normalized and any(phrase in normalized for phrase in (
+            "unsupported", "not supported", "invalid", "does not support"))):
+        category = "structured_output_schema"
+        match = re.search(r"\bkeyword\s+['\"`]?([a-z$][a-z0-9_$]*)", normalized)
+        if match:
+            candidate = match.group(1)
+            known = {keyword.casefold(): keyword for keyword in _SCHEMA_KEYWORDS}
+            if candidate in known:
+                safe_detail = "json_schema_keyword:" + known[candidate]
+    elif ("model" in normalized and any(phrase in normalized for phrase in (
+            "not found", "not available", "unsupported", "does not exist"))):
+        category = "model_routing"
+        failure = FailureCode.UNAVAILABLE_PROVIDER
+    elif any(phrase in normalized for phrase in (
+            "connection refused", "connection reset", "network error",
+            "failed to connect", "dns resolution", "service unavailable")):
+        category = "transport"
+        failure = FailureCode.TRANSPORT_FAILURE
+    elif any(phrase in normalized for phrase in (
+            "timed out", "deadline exceeded", "request timeout")):
+        category = "timeout"
+        failure = FailureCode.TIMEOUT
+
+    return LocalDiagnosticSummary(event_kind, category, digest, safe_detail), failure
+
+
+def _combined_diagnostic_hash(hashes) -> str | None:
+    present = [value for value in hashes if isinstance(value, str)]
+    if not present:
+        return None
+    return hashlib.sha256("\n".join(present).encode("ascii")).hexdigest()
 
 
 def _nullable_counter(value) -> int | None:

@@ -1,29 +1,11 @@
-# Current handoff — M3.1 provider boundary
+# Current handoff — M3.2 Codex CLI adapter
 
-**Status:** M2 independently reviewed and accepted. Accepted source:
-`0f3413adebe1b07c582c4617aa0c18053fda1e1a` on `v1/m2-local-generation`,
-tagged `v0.3.0-dev.2`. PR #14 remains open and stacked on M1c, following the
-repository's open milestone-PR chain. See
-[`docs/evidence/v1/m2/m2-independent-acceptance.md`](../evidence/v1/m2/m2-independent-acceptance.md).
+**Status:** M2 was independently accepted at `0f3413adebe1b07c582c4617aa0c18053fda1e1a` and remains frozen. M3.1 passed focused independent verification at `88a9b85cfc30854fe8f3234eca44cfce2b30e4e9`.
 
-**Active milestone:** M3.1 — provider boundary, strict structured response,
-offline fake provider, and one-call orchestration skeleton. Candidate source:
-`fb736871287d4059405121b9ddf4a55df776b963`
-(`Implement M3.1 provider boundary and orchestration`), based on the
-accepted M2 source above. Local Linux validation is green; focused independent
-verification is pending. Linux fast CI and Windows worker-boundary CI passed.
-The Windows candidate workflow stopped during collection at the known
-ModernGL access violation; this is not Windows qualification. M2
-worker/policy/publication behavior is frozen;
-change it only for a specific reproducible defect needed by M3.
+**Active milestone:** M3.2 — one subscription-backed Codex CLI adapter on `v1/m3.2-codex-cli`. Adapter commit: `98854a65ba94103b52c138ae6ddac31b03840a85`. M3.2a diagnostic/schema source candidate: `140445a03d3db9aed9a8fed6ed68ffe2b65f4c7b`, based on previous blocked tip `153133edc443720256ba20e3dbebc5a0e7dedd8b`.
 
-**M3.1 limits:** no real provider adapters, CLI flags, credential handling,
-automatic repair/retry/fallback, analytics UI, benchmark, model selection, or
-M4/M5 work. Provider data can only produce a recipe-v1 object; the existing
-`authorize_recipe(...)` and `GenerationRunner` remain mandatory. No live
-provider calls in validation.
+**Gate:** M3.2 implementation gate is satisfied and ready for focused independent Codex CLI sandbox review; M3.2 is not accepted yet. A strict Codex-only schema projection resolved the production-schema compatibility differential while the M3.1 parser and policy remained unchanged. One production live turn completed through parsing, `authorize_recipe`, and the M2 runner; all deterministic checks passed. Synthetic confinement probes found no workspace writes, outside writes, sentinel disclosure, or tool-call event. The two original raw failure messages were not retained, so their exact text is unavailable; schema incompatibility is strongly supported, but not retrospectively proven from those messages.
 
-**Gate:** strict 1 MiB provider response parsing, fake-provider tests, one-call
-orchestration through M2, focused and full Linux suites, and Linux fast CI.
-Windows worker CI is reported if triggered. M3.1 ends at this review
-checkpoint; M3.2 has not started and requires explicit instruction.
+**CI:** On M3.2a source `140445a03d3db9aed9a8fed6ed68ffe2b65f4c7b` plus evidence commit `4524d6c3a5fe6fbcaad6df260c8227cc78b1934b`, Linux fast tests and Windows worker/fake-Codex lifecycle passed on push and PR events. Windows candidate still fails at the same known ModernGL collection-time access violation. No Windows qualification is claimed.
+
+**Scope:** PR #16 remains draft and unmerged. No Claude/OpenCode/local/API adapter, credential storage, retries, fallback, repair, bake-off, selection UI, or M4+ work. No M2 worker, policy, check, or publication implementation changed. M3.3 has not started. See [`docs/evidence/v1/m3/m3.2-codex-cli.md`](../evidence/v1/m3/m3.2-codex-cli.md).

@@ -6,6 +6,7 @@ from dataclasses import dataclass, replace
 from datetime import datetime, timezone
 from enum import StrEnum
 import re
+import threading
 import time
 import uuid
 
@@ -112,24 +113,43 @@ class GenerationOrchestrator:
         self._usage: ProviderUsageRecord | None = None
         self._response: StructuredProviderResponse | None = None
         self.last_outcome: OrchestrationOutcome | None = None
+        self._state_lock = threading.RLock()
+        self._provider_active = False
+        self._attempt_in_progress = False
+        self._cancel_requested = False
 
     def start(self, brief: str) -> OrchestrationOutcome:
         """Run the provider once and start M2 only after strict policy passes."""
-        if self.runner.running:
+        with self._state_lock:
+            busy = self._attempt_in_progress or self.runner.running
+            if not busy:
+                self._attempt_in_progress = True
+                self._provider_active = True
+                self._cancel_requested = False
+                self._active_attempt_id = uuid.uuid4().hex
+                self._active_run_id = None
+                self._response = None
+                self._usage = None
+        if busy:
             return OrchestrationOutcome(
                 attempt_id=uuid.uuid4().hex,
                 status=OrchestrationStatus.FAILED,
                 failure_code=FailureCode.GENERATION_FAILURE,
                 message="The local generation worker is busy.")
 
-        self._active_attempt_id = uuid.uuid4().hex
-        self._active_run_id = None
-        self._response = None
-        self._usage = None
         try:
             request = self.prompt_compiler.compile(brief)
         except PromptBuildError as exc:
             return self._finish_without_call(exc.code, str(exc))
+
+        # A cancel can arrive while the prompt is being compiled. Honor it
+        # before beginning the one permitted provider call.
+        with self._state_lock:
+            if self._cancel_requested:
+                self._provider_active = False
+                return self._finish(
+                    FailureCode.CANCELLED,
+                    "Generation was cancelled before the provider request.")
 
         called_at = _iso_utc_now()
         started = time.monotonic()
@@ -145,8 +165,15 @@ class GenerationOrchestrator:
             # often contain environment or filesystem paths.
             provider_result = self._synthetic_provider_failure(
                 FailureCode.TRANSPORT_FAILURE, time.monotonic() - started)
-
+        with self._state_lock:
+            self._provider_active = False
         self._usage = self._usage_record(provider_result, called_at)
+        with self._state_lock:
+            if self._cancel_requested:
+                return self._finish(
+                    FailureCode.CANCELLED,
+                    "Generation was cancelled before local validation.")
+
         if provider_result.status is ProviderCallStatus.FAILED:
             failure = provider_result.failure_code or FailureCode.TRANSPORT_FAILURE
             return self._finish(failure, self._message_for(failure))
@@ -181,12 +208,18 @@ class GenerationOrchestrator:
         # root, creates the run ID/root on the host, and owns worker/checks/
         # publication. No provider field can configure that call.
         try:
-            run_id = self.runner.start(response.recipe)
+            with self._state_lock:
+                if self._cancel_requested:
+                    return self._finish(
+                        FailureCode.CANCELLED,
+                        "Generation was cancelled before local execution.")
+                run_id = self.runner.start(response.recipe)
+                self._active_run_id = run_id
+                self._attempt_in_progress = False
         except Exception:
             return self._finish(
                 FailureCode.GENERATION_FAILURE,
                 "The validated recipe could not be started by the local worker.")
-        self._active_run_id = run_id
 
         if not self.runner.running:
             result = self.runner.poll() or self.runner.last_result
@@ -222,8 +255,22 @@ class GenerationOrchestrator:
         return self._finish_generation(result)
 
     def cancel(self) -> bool:
-        """Delegate cancellation to M2; provider calls are not retried."""
-        return self.runner.cancel()
+        """Cancel the active provider call or delegate to M2 after worker start."""
+        with self._state_lock:
+            if self._provider_active:
+                self._cancel_requested = True
+                cancel_provider = getattr(self.provider, "cancel", None)
+                if callable(cancel_provider):
+                    cancel_provider()
+                # The request is accepted even if the provider has not yet
+                # created its process. start() checks this flag before launch.
+                return True
+            if self._attempt_in_progress:
+                self._cancel_requested = True
+                return True
+            if self._active_run_id is not None:
+                return self.runner.cancel()
+            return False
 
     def _finish_generation(self, result: GenerationResult) -> OrchestrationOutcome:
         if result.status is GenerationStatus.COMPLETE:
@@ -263,6 +310,9 @@ class GenerationOrchestrator:
             generation_result=generation_result,
             validation_issues=issues)
         self._active_run_id = None
+        with self._state_lock:
+            self._provider_active = False
+            self._attempt_in_progress = False
         return self.last_outcome
 
     def _finish_without_call(self, code: FailureCode,
@@ -271,6 +321,10 @@ class GenerationOrchestrator:
         self._active_run_id = None
         self._response = None
         self._usage = None
+        with self._state_lock:
+            self._provider_active = False
+            self._attempt_in_progress = False
+            self._cancel_requested = False
         return self._finish(code, message)
 
     def _synthetic_provider_failure(self, code: FailureCode,
@@ -322,6 +376,7 @@ class GenerationOrchestrator:
             FailureCode.UNAVAILABLE_PROVIDER: "Selected provider is unavailable.",
             FailureCode.UNSUPPORTED_ADAPTER: "Selected provider adapter is unsupported.",
             FailureCode.TIMEOUT: "Provider request exceeded its deadline.",
+            FailureCode.CANCELLED: "Generation was cancelled.",
             FailureCode.TRANSPORT_FAILURE: "Provider request failed in transport.",
             FailureCode.NONZERO_EXIT: "Provider CLI exited unsuccessfully.",
             FailureCode.RESPONSE_TOO_LARGE: "Provider response exceeded its size limit.",
@@ -336,7 +391,8 @@ class GenerationOrchestrator:
             FailureCode.GENERATION_FAILURE: "The local generation worker failed.",
             FailureCode.CHECK_FAILURE: "A deterministic generation check failed.",
             FailureCode.QUOTA_RATE_LIMIT: "Provider quota or rate limit was reached.",
-            FailureCode.AUTHENTICATION_FAILURE: "Provider authentication failed.",
+            FailureCode.AUTHENTICATION_FAILURE: (
+                "Codex CLI is not authenticated. Sign in with Codex separately and retry."),
             FailureCode.REFUSAL: "Provider declined the request.",
             FailureCode.INVALID_BRIEF: "Brief must be non-empty valid text.",
             FailureCode.PROMPT_TOO_LARGE: "Brief or compiled prompt exceeded its size limit.",

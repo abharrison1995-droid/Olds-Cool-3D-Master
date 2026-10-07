@@ -10,7 +10,7 @@ in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORMS.md).
 | M0 Repository/context | Complete | H1 merged; Linux CI green. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
 | M1 Contract | Complete | Independent exit verification passed at `81f9a979af6534d08f2c4803a2430fa24471451f`. |
 | M2 Local generation | Complete | Independently reviewed and accepted at `0f3413adebe1b07c582c4617aa0c18053fda1e1a`; tagged `v0.3.0-dev.2`. |
-| M3 AI loop | In progress | M3.1 passed focused verification at `88a9b85cfc30854fe8f3234eca44cfce2b30e4e9`. M3.2a source candidate `140445a03d3db9aed9a8fed6ed68ffe2b65f4c7b` adds a generated Codex-compatible schema projection and bounded local diagnostics. A live production-path turn passed parsing, policy, M2 generation, and synthetic confinement probes. Implementation gate is ready for focused independent review; M3.2 is not accepted and M3.3 has not started. |
+| M3 AI loop | In progress | M3.1 passed focused verification at `88a9b85cfc30854fe8f3234eca44cfce2b30e4e9`. M3.2a source candidate `140445a03d3db9aed9a8fed6ed68ffe2b65f4c7b` adds a generated Codex-compatible schema projection and bounded local diagnostics. A live production-path turn passed parsing, policy, M2 generation, and synthetic confinement probes; Linux and Windows worker/fake-Codex CI pass. The separate Windows candidate still hits the known ModernGL collection crash. Implementation gate is ready for focused independent review; M3.2 is not accepted and M3.3 has not started. |
 | M4 Baseline | Queued | Benchmark baseline and evidence-based contract. |
 | M5 Product workflow | Queued | AI workspace, history/refinement, usability. |
 | M6 Release | Queued | Exact RC qualification on Windows 11 and Mint 22.3. |

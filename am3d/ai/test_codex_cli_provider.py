@@ -14,13 +14,17 @@ import pytest
 
 from .codex_cli_provider import (DEFAULT_CODEX_DEADLINE_SECONDS,
                                  DISABLED_TOOL_FEATURES,
+                                 MAX_EVENT_MESSAGE_BYTES,
                                  MAX_DIAGNOSTIC_BYTES,
-                                MAX_EVENT_STREAM_BYTES,
-                                CodexCliConfig, CodexCliProvider)
+                                 MAX_EVENT_STREAM_BYTES,
+                                 CodexCliConfig, CodexCliProvider,
+                                 _event_metadata)
+from .codex_output_schema import codex_output_schema
 from .contracts import GenerationStatus
 from .orchestrator import GenerationOrchestrator, OrchestrationStatus
 from .prompt import PromptCompiler
-from .provider_contracts import FailureCode
+from .provider_contracts import (FailureCode, parse_provider_response,
+                                 provider_response_schema)
 from .providers import AdapterKind, ProviderCallStatus
 from .runner import GenerationRunner
 from .storage import GenerationStore
@@ -192,6 +196,68 @@ def _request(case="valid", *, deadline=2.0, extra=""):
 def _read_report(report: Path):
     lines = report.read_text(encoding="utf-8").splitlines()
     return [json.loads(line) for line in lines]
+
+
+def test_message_only_terminal_events_receive_bounded_local_diagnosis():
+    raw = b'{"type":"error","message":"Not logged in; sign in with ChatGPT"}\n'
+    _model, usage, failure, kinds, diagnostic = _event_metadata(raw, None)
+    assert failure is FailureCode.AUTHENTICATION_FAILURE
+    assert usage.input_tokens is None
+    assert kinds == ("error",)
+    assert diagnostic.event_kind == "error"
+    assert diagnostic.category == "authentication"
+    assert len(diagnostic.message_sha256) == 64
+    assert diagnostic.safe_detail is None
+
+
+def test_nested_message_only_failure_is_classified_without_persisting_message():
+    raw = (b'{"type":"turn.failed","error":'
+           b'{"message":"Rate limit exceeded"}}\n')
+    _model, _usage, failure, kinds, diagnostic = _event_metadata(raw, None)
+    assert failure is FailureCode.QUOTA_RATE_LIMIT
+    assert kinds == ("turn.failed",)
+    assert diagnostic.category == "quota_rate_limit"
+    assert "Rate limit exceeded" not in repr(diagnostic)
+
+
+def test_schema_message_diagnostic_is_sanitized_and_bounded():
+    message = ("Invalid JSON schema: unsupported keyword oneOf at "
+               "/home/alex/private; token=FAKE_SECRET_456")
+    raw = json.dumps({"type": "error", "message": message}).encode() + b"\n"
+    _model, _usage, failure, _kinds, diagnostic = _event_metadata(raw, None)
+    assert failure is None
+    assert diagnostic.category == "structured_output_schema"
+    assert diagnostic.safe_detail == "json_schema_keyword:oneOf"
+    assert "/home/alex/private" not in repr(diagnostic)
+    assert "FAKE_SECRET_456" not in repr(diagnostic)
+
+
+def test_conflicting_message_only_terminal_events_fail_closed():
+    raw = (
+        b'{"type":"error","message":"Not logged in"}\n'
+        b'{"type":"turn.failed","error":{"message":"Rate limit exceeded"}}\n'
+    )
+    _model, _usage, failure, _kinds, diagnostic = _event_metadata(raw, None)
+    assert failure is None
+    assert diagnostic.event_kind == "conflict"
+    assert diagnostic.category == "conflicting_terminal_errors"
+    assert diagnostic.safe_detail is None
+
+
+def test_oversized_or_malformed_error_messages_do_not_become_raw_diagnostics():
+    long_message = "x" * (MAX_EVENT_MESSAGE_BYTES + 1)
+    raw = json.dumps({"type": "error", "message": long_message}).encode() + b"\n"
+    _model, _usage, failure, _kinds, diagnostic = _event_metadata(raw, None)
+    assert failure is None
+    assert diagnostic.category == "diagnostic_message_too_large"
+    assert diagnostic.safe_detail is None
+    assert long_message not in repr(diagnostic)
+
+    _model, _usage, failure, kinds, diagnostic = _event_metadata(
+        b'{"type":"error","message":"truncated"\n', None)
+    assert failure is None
+    assert kinds == ()
+    assert diagnostic is None
 
 
 def test_codex_request_uses_fixed_argv_empty_cwd_stdin_and_host_schema(tmp_path,
@@ -522,6 +588,125 @@ def test_request_schema_cannot_be_changed_by_the_adapter_caller(tmp_path):
     result = provider.generate(replace(request, response_schema=changed_schema))
     assert result.failure_code is FailureCode.UNSUPPORTED_ADAPTER
     assert not report.exists()
+
+
+def test_codex_output_schema_is_generated_as_strict_canonical_subset():
+    from copy import deepcopy
+    from jsonschema import Draft202012Validator, ValidationError
+
+    canonical = provider_response_schema()
+    projected = codex_output_schema()
+    assert codex_output_schema() == projected
+    assert "oneOf" not in json.dumps(projected)
+    assert "propertyNames" not in json.dumps(projected)
+    assert "minLength" not in json.dumps(projected)
+    assert "maxLength" not in json.dumps(projected)
+
+    objects = []
+
+    def visit(value):
+        if isinstance(value, dict):
+            if value.get("type") == "object":
+                objects.append(value)
+            for child in value.values():
+                visit(child)
+        elif isinstance(value, list):
+            for child in value:
+                visit(child)
+
+    visit(projected)
+    assert objects
+    assert all(obj.get("additionalProperties") is False for obj in objects)
+    assert all(set(obj.get("required", ())) == set(obj.get("properties", {}))
+               for obj in objects)
+
+    # Complete a minimal canonical recipe with valid values for the additional
+    # fields strict mode requires, then prove it survives both schemas and the
+    # unchanged M3.1 parser.
+    def minimal(node, root):
+        if "$ref" in node:
+            target = root
+            for part in node["$ref"].lstrip("#/").split("/"):
+                target = target[part]
+            return minimal(target, root)
+        if "anyOf" in node:
+            return minimal(node["anyOf"][0], root)
+        kind = node.get("type")
+        if isinstance(kind, list):
+            kind = next((part for part in kind if part != "null"), "null")
+        if "enum" in node:
+            return node["enum"][0]
+        if kind == "object":
+            return {key: minimal(child, root)
+                    for key, child in node.get("properties", {}).items()}
+        if kind == "array":
+            minimum = node.get("minItems", 0)
+            return [minimal(node["items"], root) for _ in range(minimum)]
+        if kind == "string":
+            return "x"
+        if kind == "integer":
+            return max(1, int(node.get("minimum", 0)))
+        if kind == "number":
+            minimum = node.get("minimum", 0)
+            return float(minimum + 1 if node.get("exclusiveMinimum") else minimum)
+        if kind == "boolean":
+            return False
+        if kind == "null":
+            return None
+        raise AssertionError(f"unsupported projected schema node: {node}")
+
+    # Use the known-valid response from the actual host fake, recursively
+    # filling every strict-mode required property from the generated schema.
+    from .providers import _valid_response
+    payload = json.loads(_valid_response())
+
+    def complete(value, schema, root):
+        if "$ref" in schema:
+            target = root
+            for part in schema["$ref"].lstrip("#/").split("/"):
+                target = target[part]
+            return complete(value, target, root)
+        if "anyOf" in schema:
+            return complete(value, schema["anyOf"][0], root)
+        if schema.get("type") == "object":
+            if not isinstance(value, dict):
+                value = {}
+            for key, child in schema.get("properties", {}).items():
+                if key in value:
+                    value[key] = complete(value[key], child, root)
+                else:
+                    value[key] = minimal(child, root)
+            return value
+        if schema.get("type") == "array":
+            return [complete(item, schema["items"], root) for item in value]
+        return value
+
+    payload = complete(payload, projected, projected)
+    raw = json.dumps(payload, separators=(",", ":")).encode("utf-8")
+    Draft202012Validator(projected).validate(payload)
+    assert parse_provider_response(raw).recipe == payload["recipe"]
+
+    hostile = deepcopy(payload)
+    hostile["recipe"]["materials"] = [{"name": "m", "texture": "/tmp/x.png"}]
+    with pytest.raises(ValidationError):
+        Draft202012Validator(projected).validate(hostile)
+
+    # The canonical schema intentionally permits arbitrary params for backward
+    # compatibility; the Codex dialect cannot safely express such maps, so its
+    # generated subset allows only {}. M1 policy still rejects unknown params.
+    wider_canonical_case = deepcopy(payload)
+    wider_canonical_case["recipe"]["objects"][0]["params"] = {
+        "unlisted_builder_parameter": "inert"
+    }
+    assert Draft202012Validator(canonical).is_valid(wider_canonical_case)
+    with pytest.raises(ValidationError):
+        Draft202012Validator(projected).validate(wider_canonical_case)
+
+    for key in ("command", "output_root"):
+        authority_attempt = deepcopy(payload)
+        authority_attempt[key] = "must remain inert"
+        assert not Draft202012Validator(projected).is_valid(authority_attempt)
+        assert not Draft202012Validator(canonical).is_valid(authority_attempt)
 
 
 def test_host_default_uses_ten_minutes_and_no_config_escape_hatch():

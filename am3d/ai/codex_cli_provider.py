@@ -16,7 +16,9 @@ from pathlib import Path
 import re
 import shutil
 import signal
+import stat
 import subprocess
+import sys
 import tempfile
 import threading
 import time
@@ -31,6 +33,9 @@ from .providers import (AdapterKind, ProviderCallStatus, ProviderRequest,
 
 
 DEFAULT_CODEX_DEADLINE_SECONDS = 10 * 60
+DEFAULT_CODEX_PROCESS_MEMORY_BYTES = 1024 * 1024 * 1024
+MIN_CODEX_PROCESS_MEMORY_BYTES = 64 * 1024 * 1024
+MAX_CODEX_PROCESS_MEMORY_BYTES = 1024 * 1024 * 1024
 MAX_EVENT_STREAM_BYTES = 1024 * 1024
 MAX_DIAGNOSTIC_BYTES = 64 * 1024
 _CAPABILITY_TIMEOUT_SECONDS = 5.0
@@ -50,7 +55,9 @@ _SCHEMA_KEYWORDS = (
 # depth if a future CLI adds another local tool behind one of these switches.
 DISABLED_TOOL_FEATURES = (
     "apps",
+    "api_key_model_discovery",
     "auth_elicitation",
+    "browser_annotation_api",
     "browser_use",
     "browser_use_external",
     "browser_use_full_cdp_access",
@@ -58,6 +65,7 @@ DISABLED_TOOL_FEATURES = (
     "code_mode_host",
     "collaboration_modes",
     "computer_use",
+    "daemon_auto_start",
     "image_generation",
     "in_app_browser",
     "in_app_local_automation",
@@ -65,6 +73,7 @@ DISABLED_TOOL_FEATURES = (
     "multi_agent",
     "multi_agent_v2",
     "hooks",
+    "network_proxy",
     "plugin_sharing",
     "plugins",
     "remote_plugin",
@@ -77,6 +86,11 @@ DISABLED_TOOL_FEATURES = (
     "tool_search",
     "tool_call_mcp_elicitation",
     "tool_suggest",
+    "standalone_web_search",
+    "system_proxy_fallback",
+    "unbounded_connection_retries",
+    "web_search_cached",
+    "web_search_request",
     "realtime_conversation",
     "unified_exec_tty",
     "view_image",
@@ -85,7 +99,29 @@ DISABLED_TOOL_FEATURES = (
     "worktrees",
 )
 
-_REQUIRED_ROOT_HELP = ("--ask-for-approval",)
+# Codex 0.162 reports some active UI/model-protocol features which do not
+# expose local or network tools. Unknown enabled features are rejected at
+# startup. `unified_exec` is the exec backend, but is safe only while the
+# separately required `shell_tool` feature is confirmed disabled. Codex's
+# feature list is re-read during startup, so a new active feature fails closed.
+SAFE_ENABLED_FEATURES = frozenset({
+    "compaction_image_budget",
+    "content_item_kinds",
+    "enable_request_compression",
+    "fast_mode",
+    "goals",
+    "guardian_approval",
+    "guardian_reuse_parent_compaction",
+    "in_app_chat",
+    "in_app_dictation",
+    "in_app_updates",
+    "in_app_voice",
+    "mentions_v2",
+    "ultrafast_mode",
+    "unified_exec",
+})
+
+_REQUIRED_ROOT_HELP = ("--ask-for-approval", "--no-daemon")
 _REQUIRED_EXEC_HELP = (
     "--model", "--sandbox", "--cd",
     "--skip-git-repo-check", "--ephemeral", "--ignore-user-config",
@@ -109,6 +145,7 @@ class CodexCliConfig:
     executable: str | None = None
     model: str | None = None
     deadline_seconds: float = DEFAULT_CODEX_DEADLINE_SECONDS
+    process_memory_limit_bytes: int = DEFAULT_CODEX_PROCESS_MEMORY_BYTES
 
     def __post_init__(self):
         if self.model is not None and (
@@ -123,6 +160,10 @@ class CodexCliConfig:
         if self.executable is not None and (
                 not isinstance(self.executable, str) or not self.executable.strip()):
             raise ValueError("Codex executable must be a host-selected path")
+        if (type(self.process_memory_limit_bytes) is not int or
+                not MIN_CODEX_PROCESS_MEMORY_BYTES <=
+                self.process_memory_limit_bytes <= MAX_CODEX_PROCESS_MEMORY_BYTES):
+            raise ValueError("Codex process memory limit must be between 64 MiB and 1 GiB")
 
 
 @dataclass(frozen=True)
@@ -282,14 +323,28 @@ class CodexCliProvider:
             self._setup_message = "Codex CLI tool-isolation flags could not be verified."
             return
         feature_text = feature_result[0].decode("utf-8", "replace")
-        states = {}
-        for line in feature_text.splitlines():
-            parts = line.split()
-            if len(parts) >= 3:
-                states[parts[0]] = parts[-1].lower()
-        if any(states.get(feature) != "false" for feature in DISABLED_TOOL_FEATURES):
+        states = _parse_feature_registry(feature_text)
+        if states is None:
+            self._setup_failure = FailureCode.UNSUPPORTED_ADAPTER
+            self._setup_message = "Codex CLI feature registry is unrecognized."
+            return
+        if any(states.get(feature) is None or
+               (states[feature][0] != "removed" and states[feature][1] != "false")
+               for feature in DISABLED_TOOL_FEATURES):
             self._setup_failure = FailureCode.UNSUPPORTED_ADAPTER
             self._setup_message = "Codex CLI cannot disable every configured model tool."
+            return
+        for feature, (stage, enabled) in states.items():
+            if stage == "removed" or enabled == "false":
+                continue
+            if feature not in DISABLED_TOOL_FEATURES and feature not in SAFE_ENABLED_FEATURES:
+                self._setup_failure = FailureCode.UNSUPPORTED_ADAPTER
+                self._setup_message = "Codex CLI has an unreviewed enabled capability."
+                return
+        if states.get("unified_exec", (None, None))[1] == "true" and \
+                states.get("shell_tool") != ("stable", "false"):
+            self._setup_failure = FailureCode.UNSUPPORTED_ADAPTER
+            self._setup_message = "Codex CLI execution backend is not safely disabled."
             return
 
     def _probe(self, argv: list[str], env: dict[str, str]):
@@ -340,7 +395,8 @@ class CodexCliProvider:
         # This release defines --ask-for-approval at the root parser, so it
         # must precede the `exec` subcommand.  The supported placement was
         # verified with the installed binary's root and exec help.
-        argv = [self.executable, "--ask-for-approval", "never", "exec"]
+        argv = [self.executable, "--ask-for-approval", "never",
+                "--no-daemon", "exec"]
         if self.config.model is not None:
             argv.extend(("--model", self.config.model))
         argv.extend((
@@ -417,8 +473,17 @@ class CodexCliProvider:
                 env = self._environment(workspace)
                 argv = self._argv(request, workspace, schema_path, result_path)
                 try:
+                    command = _bounded_process_command(
+                        self._command(argv),
+                        self.config.process_memory_limit_bytes)
+                except OSError:
+                    return self._failure(
+                        FailureCode.UNSUPPORTED_ADAPTER,
+                        time.monotonic() - started,
+                        "process_resource_limit_unavailable")
+                try:
                     process = subprocess.Popen(
-                        self._command(argv), cwd=workspace, env=env,
+                        command, cwd=workspace, env=env,
                         stdin=subprocess.PIPE, stdout=subprocess.PIPE,
                         stderr=subprocess.PIPE, shell=False, close_fds=True,
                         **_process_group_options())
@@ -430,6 +495,17 @@ class CodexCliProvider:
                     return self._failure(FailureCode.UNAVAILABLE_PROVIDER,
                                          time.monotonic() - started,
                                          "process_start_failed")
+                job_handle = None
+                if os.name == "nt":
+                    try:
+                        job_handle = _assign_windows_job(
+                            process, self.config.process_memory_limit_bytes)
+                    except OSError:
+                        _terminate_process_tree(process)
+                        return self._failure(
+                            FailureCode.UNSUPPORTED_ADAPTER,
+                            time.monotonic() - started,
+                            "process_resource_limit_unavailable")
                 with self._state_lock:
                     self._active_process = process
 
@@ -450,17 +526,26 @@ class CodexCliProvider:
                 while process.poll() is None:
                     if self._cancel_requested.is_set():
                         terminal = FailureCode.CANCELLED
-                        _terminate_process_tree(process)
+                        _terminate_process_tree(process, job_handle)
                         break
                     if stdout.overflowed.is_set():
                         terminal = FailureCode.RESPONSE_TOO_LARGE
-                        _terminate_process_tree(process)
+                        _terminate_process_tree(process, job_handle)
+                        break
+                    response_state = _response_file_state(result_path)
+                    if response_state == "oversized":
+                        terminal = FailureCode.RESPONSE_TOO_LARGE
+                        _terminate_process_tree(process, job_handle)
+                        break
+                    if response_state == "invalid":
+                        terminal = FailureCode.INVALID_STRUCTURED_RESPONSE
+                        _terminate_process_tree(process, job_handle)
                         break
                     if time.monotonic() - started >= deadline:
                         terminal = FailureCode.TIMEOUT
-                        _terminate_process_tree(process)
+                        _terminate_process_tree(process, job_handle)
                         break
-                    time.sleep(0.02)
+                    time.sleep(0.005)
                 try:
                     process.wait(timeout=2.0)
                 except subprocess.TimeoutExpired:
@@ -474,13 +559,24 @@ class CodexCliProvider:
                 stderr.join(timeout=1.0)
                 with self._state_lock:
                     self._active_process = None
+                if os.name == "nt" and job_handle is not None:
+                    # Closing a kill-on-close job also cleans up descendants
+                    # after a nominal CLI exit, before the workspace is removed.
+                    _close_windows_job(job_handle)
+                    job_handle = None
+                elif os.name != "nt":
+                    _kill_process_group_children(process)
 
                 latency = time.monotonic() - started
                 if terminal is not None:
+                    terminal_status = {
+                        FailureCode.CANCELLED: "cancelled",
+                        FailureCode.TIMEOUT: "deadline_expired",
+                        FailureCode.RESPONSE_TOO_LARGE: "response_file_limit",
+                        FailureCode.INVALID_STRUCTURED_RESPONSE: "invalid_response_file",
+                    }.get(terminal, "process_limit")
                     return self._failure(terminal, latency,
-                                         "cancelled" if terminal is FailureCode.CANCELLED else
-                                         "deadline_expired" if terminal is FailureCode.TIMEOUT else
-                                         "event_stream_limit")
+                                         terminal_status)
                 returncode = process.returncode
                 events = bytes(stdout.data)
                 model_id, usage, event_failure, event_kinds, diagnostic = _event_metadata(
@@ -536,11 +632,14 @@ class CodexCliProvider:
             # Never surface exception text: paths/environment details are not
             # suitable provider diagnostics.
             if process is not None and process.poll() is None:
-                _terminate_process_tree(process)
+                _terminate_process_tree(
+                    process, locals().get("job_handle"))
             return self._failure(FailureCode.TRANSPORT_FAILURE,
                                  time.monotonic() - started,
                                  "provider_process_error")
         finally:
+            if os.name == "nt" and "job_handle" in locals() and job_handle:
+                _close_windows_job(job_handle)
             with self._state_lock:
                 self._active_process = None
             self._finish_call()
@@ -597,8 +696,146 @@ def _process_group_options() -> dict[str, Any]:
     return {"start_new_session": True}
 
 
-def _terminate_process_tree(process: subprocess.Popen):
+def _parse_feature_registry(text: str) -> dict[str, tuple[str, str]] | None:
+    states: dict[str, tuple[str, str]] = {}
+    for line in text.splitlines():
+        parts = line.split()
+        if len(parts) < 3:
+            return None
+        feature, state = parts[0], parts[-1]
+        stage = " ".join(parts[1:-1])
+        if (not re.fullmatch(r"[a-z][a-z0-9_.]*", feature) or
+                stage not in {"stable", "beta", "experimental", "under development",
+                              "deprecated", "removed"} or
+                state not in {"true", "false"} or feature in states):
+            return None
+        states[feature] = (stage, state)
+    return states or None
+
+
+def _bounded_process_command(command: list[str], memory_limit_bytes: int) -> list[str]:
+    """Apply process-tree limits before the CLI starts (Linux) or fail closed."""
     if os.name == "nt":
+        return command
+    if not sys.platform.startswith("linux"):
+        raise OSError("Codex process limits are unsupported on this platform")
+    prlimit = shutil.which("prlimit")
+    if not prlimit:
+        raise OSError("Linux prlimit is unavailable")
+    return [prlimit, f"--as={memory_limit_bytes}", "--core=0", "--", *command]
+
+
+def _response_file_state(path: Path) -> str | None:
+    try:
+        info = path.lstat()
+    except FileNotFoundError:
+        return None
+    except OSError:
+        return "invalid"
+    if not stat.S_ISREG(info.st_mode):
+        return "invalid"
+    if info.st_size > MAX_PROVIDER_RESPONSE_BYTES:
+        return "oversized"
+    return None
+
+
+def _assign_windows_job(process: subprocess.Popen,
+                        memory_limit_bytes: int):
+    """Assign the CLI immediately to a bounded, kill-on-close Windows job."""
+    import ctypes
+    from ctypes import wintypes
+
+    class BasicLimitInformation(ctypes.Structure):
+        _fields_ = [
+            ("PerProcessUserTimeLimit", ctypes.c_longlong),
+            ("PerJobUserTimeLimit", ctypes.c_longlong),
+            ("LimitFlags", wintypes.DWORD),
+            ("MinimumWorkingSetSize", ctypes.c_size_t),
+            ("MaximumWorkingSetSize", ctypes.c_size_t),
+            ("ActiveProcessLimit", wintypes.DWORD),
+            ("Affinity", ctypes.c_size_t),
+            ("PriorityClass", wintypes.DWORD),
+            ("SchedulingClass", wintypes.DWORD),
+        ]
+
+    class IoCounters(ctypes.Structure):
+        _fields_ = [(name, ctypes.c_ulonglong) for name in (
+            "ReadOperationCount", "WriteOperationCount", "OtherOperationCount",
+            "ReadTransferCount", "WriteTransferCount", "OtherTransferCount")]
+
+    class ExtendedLimitInformation(ctypes.Structure):
+        _fields_ = [
+            ("BasicLimitInformation", BasicLimitInformation),
+            ("IoInfo", IoCounters),
+            ("ProcessMemoryLimit", ctypes.c_size_t),
+            ("JobMemoryLimit", ctypes.c_size_t),
+            ("PeakProcessMemoryUsed", ctypes.c_size_t),
+            ("PeakJobMemoryUsed", ctypes.c_size_t),
+        ]
+
+    kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel32.CreateJobObjectW.restype = wintypes.HANDLE
+    kernel32.CreateJobObjectW.argtypes = (ctypes.c_void_p, wintypes.LPCWSTR)
+    kernel32.SetInformationJobObject.argtypes = (
+        wintypes.HANDLE, ctypes.c_int, ctypes.c_void_p, wintypes.DWORD)
+    kernel32.SetInformationJobObject.restype = wintypes.BOOL
+    kernel32.AssignProcessToJobObject.argtypes = (wintypes.HANDLE, wintypes.HANDLE)
+    kernel32.AssignProcessToJobObject.restype = wintypes.BOOL
+    kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+    kernel32.CloseHandle.restype = wintypes.BOOL
+    handle = kernel32.CreateJobObjectW(None, None)
+    if not handle:
+        raise OSError(ctypes.get_last_error(), "CreateJobObjectW failed")
+    info = ExtendedLimitInformation()
+    # JOB_OBJECT_LIMIT_ACTIVE_PROCESS | JOB_OBJECT_LIMIT_JOB_MEMORY |
+    # JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE.
+    info.BasicLimitInformation.LimitFlags = 0x00000008 | 0x00000200 | 0x00002000
+    info.BasicLimitInformation.ActiveProcessLimit = 64
+    info.JobMemoryLimit = memory_limit_bytes
+    if not kernel32.SetInformationJobObject(
+            handle, 9, ctypes.byref(info), ctypes.sizeof(info)):
+        error = ctypes.get_last_error()
+        kernel32.CloseHandle(handle)
+        raise OSError(error, "SetInformationJobObject failed")
+    if not kernel32.AssignProcessToJobObject(
+            handle, wintypes.HANDLE(process._handle)):
+        error = ctypes.get_last_error()
+        kernel32.CloseHandle(handle)
+        raise OSError(error, "AssignProcessToJobObject failed")
+    return handle
+
+
+def _terminate_windows_job(job_handle):
+    if job_handle:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.TerminateJobObject.argtypes = (wintypes.HANDLE, wintypes.UINT)
+        kernel32.TerminateJobObject.restype = wintypes.BOOL
+        kernel32.TerminateJobObject(wintypes.HANDLE(job_handle), 1)
+
+
+def _close_windows_job(job_handle):
+    if job_handle:
+        import ctypes
+        from ctypes import wintypes
+        kernel32 = ctypes.WinDLL("kernel32", use_last_error=True)
+        kernel32.CloseHandle.argtypes = (wintypes.HANDLE,)
+        kernel32.CloseHandle.restype = wintypes.BOOL
+        kernel32.CloseHandle(wintypes.HANDLE(job_handle))
+
+
+def _kill_process_group_children(process: subprocess.Popen):
+    if os.name != "nt":
+        try:
+            os.killpg(process.pid, signal.SIGKILL)
+        except (OSError, ProcessLookupError):
+            pass
+
+
+def _terminate_process_tree(process: subprocess.Popen, job_handle=None):
+    if os.name == "nt":
+        _terminate_windows_job(job_handle)
         try:
             if process.poll() is None:
                 process.send_signal(getattr(signal, "CTRL_BREAK_EVENT", signal.SIGTERM))

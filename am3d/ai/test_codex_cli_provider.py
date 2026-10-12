@@ -13,12 +13,13 @@ from unittest.mock import patch
 import pytest
 
 from .codex_cli_provider import (DEFAULT_CODEX_DEADLINE_SECONDS,
+                                 DEFAULT_CODEX_PROCESS_MEMORY_BYTES,
                                  DISABLED_TOOL_FEATURES,
                                  MAX_EVENT_MESSAGE_BYTES,
                                  MAX_DIAGNOSTIC_BYTES,
                                  MAX_EVENT_STREAM_BYTES,
                                  CodexCliConfig, CodexCliProvider,
-                                 _event_metadata)
+                                 _bounded_process_command, _event_metadata)
 from .codex_output_schema import codex_output_schema
 from .contracts import GenerationStatus
 from .orchestrator import GenerationOrchestrator, OrchestrationStatus
@@ -52,7 +53,7 @@ if args == ["--version"]:
     print("codex-cli 0.159.0-test")
     raise SystemExit(0)
 if args == ["--help"]:
-    print("--model --sandbox" +
+    print("--model --sandbox --no-daemon" +
           ("" if mode == "no-approval" else " --ask-for-approval"))
     raise SystemExit(0)
 if args == ["exec", "--help"]:
@@ -70,6 +71,9 @@ if args and args[-2:] == ["features", "list"]:
     for feature in disabled:
         if not (mode == "missing-shell-disable" and feature == "shell_tool"):
             print(f"{feature} stable false")
+    print("unified_exec stable true")
+    if mode == "unknown-enabled-feature":
+        print("unreviewed_tool stable true")
     raise SystemExit(0)
 
 assert "exec" in args, args
@@ -83,8 +87,9 @@ prompt_bytes = sys.stdin.buffer.read()
 prompt = prompt_bytes.decode("utf-8", "replace")
 case = "valid"
 for candidate in ("nonzero-auth", "nonzero-quota", "nonzero-refusal", "missing",
-                  "malformed", "invalid-utf8", "oversized", "stdout-flood",
-                  "stderr-flood", "hang", "child-hang", "extra-file",
+                  "malformed", "invalid-utf8", "oversized-hang", "oversized",
+                  "stdout-flood", "memory-limit", "stderr-flood", "hang",
+                  "child-hang", "extra-file",
                   "unknown-usage", "policy-denied"):
     if "FAKE_CASE=" + candidate in prompt:
         case = candidate
@@ -116,6 +121,17 @@ if case == "child-hang":
 if report_path:
     with report_path.open("a", encoding="utf-8") as stream:
         stream.write(json.dumps(record) + "\n")
+
+if case == "memory-limit":
+    try:
+        _memory_probe = bytearray(512 * 1024 * 1024)
+        allocation = "succeeded"
+    except MemoryError:
+        allocation = "blocked"
+    if report_path:
+        with report_path.open("a", encoding="utf-8") as stream:
+            stream.write(json.dumps({"allocation": allocation}) + "\n")
+    raise SystemExit(71 if allocation == "blocked" else 0)
 
 events = {"type": "turn.started", "model": "gpt-codex-test"}
 if case == "unknown-usage":
@@ -152,6 +168,10 @@ elif case == "invalid-utf8":
     result_path.write_bytes(b"\xff")
 elif case == "oversized":
     result_path.write_bytes(b" " * (1024 * 1024 + 1))
+elif case == "oversized-hang":
+    result_path.write_bytes(b" " * (1024 * 1024 + 1))
+    while True:
+        time.sleep(0.1)
 else:
     payload = {
         "schema_version": 1,
@@ -171,17 +191,20 @@ raise SystemExit(0)
 '''
 
 
-def _harness(tmp_path: Path, *, mode="normal", model=None, deadline=2.0):
+def _harness(tmp_path: Path, *, mode="normal", model=None, deadline=2.0,
+             memory_limit=DEFAULT_CODEX_PROCESS_MEMORY_BYTES):
     tmp_path.mkdir(parents=True, exist_ok=True)
     script = tmp_path / "fake_codex_cli.py"
     script.write_text(_FAKE_CLI, encoding="utf-8")
     report = tmp_path / "invocations.jsonl"
     config = CodexCliConfig(executable=sys.executable, model=model,
-                            deadline_seconds=deadline)
+                            deadline_seconds=deadline,
+                            process_memory_limit_bytes=memory_limit)
     provider = CodexCliProvider(
         config, argv_prefix_for_tests=(str(script), "--fake-report", str(report),
                                        "--fake-mode", mode))
-    if mode not in {"api-login", "no-approval", "missing-shell-disable"}:
+    if mode not in {"api-login", "no-approval", "missing-shell-disable",
+                    "unknown-enabled-feature"}:
         assert provider.ready, provider._setup_message
     return provider, script, report
 
@@ -295,12 +318,14 @@ def test_codex_request_uses_fixed_argv_empty_cwd_stdin_and_host_schema(tmp_path,
     assert result.latency_ms is not None and result.latency_ms >= 0
     call, = _read_report(report)
     argv = call["argv"]
-    assert argv[:4] == ["--ask-for-approval", "never", "exec", "--model"]
+    assert argv[:5] == ["--ask-for-approval", "never", "--no-daemon",
+                        "exec", "--model"]
     assert argv[argv.index("--sandbox") + 1] == "read-only"
     assert argv[argv.index("--cd") + 1] == call["cwd"]
     assert argv[-1] == "-"
     assert "--ignore-user-config" in argv
     assert "--ignore-rules" in argv
+    assert "--no-daemon" in argv
     disabled = [argv[i + 1] for i, item in enumerate(argv[:-1])
                 if item == "--disable"]
     assert disabled == list(DISABLED_TOOL_FEATURES)
@@ -320,6 +345,48 @@ def test_codex_request_uses_fixed_argv_empty_cwd_stdin_and_host_schema(tmp_path,
     assert provider.last_event_kinds == ("turn.started", "turn.completed")
     assert spawned == [{"shell": False, "cwd": call["cwd"]}]
     assert not Path(call["cwd"]).exists()
+
+
+def test_codex_feature_profile_rejects_unknown_enabled_capabilities(tmp_path):
+    provider, _script, report = _harness(
+        tmp_path, mode="unknown-enabled-feature")
+    assert not provider.ready
+    assert provider._setup_failure is FailureCode.UNSUPPORTED_ADAPTER
+    assert "unreviewed enabled capability" in provider._setup_message
+    assert not report.exists()
+
+
+def test_final_response_file_growth_is_terminated_before_cli_exit(tmp_path):
+    provider, _script, report = _harness(tmp_path, deadline=3.0)
+    started = time.monotonic()
+    result = provider.generate(_request("oversized-hang", deadline=3.0))
+    elapsed = time.monotonic() - started
+    assert result.failure_code is FailureCode.RESPONSE_TOO_LARGE
+    assert result.transport_status == "response_file_limit"
+    assert elapsed < 2.0
+    assert len(_read_report(report)) == 1
+
+
+def test_codex_process_memory_limit_is_applied_to_the_fake_cli(tmp_path):
+    provider, _script, report = _harness(
+        tmp_path, memory_limit=128 * 1024 * 1024)
+    result = provider.generate(_request("memory-limit"))
+    assert result.status is ProviderCallStatus.FAILED
+    assert result.failure_code is FailureCode.NONZERO_EXIT
+    records = _read_report(report)
+    assert Path(records[0]["cwd"]).name.startswith("am3d-codex-")
+    assert records[1] == {"allocation": "blocked"}
+
+
+@pytest.mark.skipif(not sys.platform.startswith("linux"),
+                    reason="Linux prlimit wrapper only")
+def test_linux_process_wrapper_does_not_apply_process_wide_file_size_limit():
+    command = _bounded_process_command(
+        ["/usr/bin/example-codex"], 128 * 1024 * 1024)
+    assert Path(command[0]).name == "prlimit"
+    assert "--as=134217728" in command
+    assert "--core=0" in command
+    assert "--fsize" not in " ".join(command)
 
 
 def test_codex_rejects_unexpected_workspace_artifacts(tmp_path):
@@ -712,5 +779,6 @@ def test_codex_output_schema_is_generated_as_strict_canonical_subset():
 def test_host_default_uses_ten_minutes_and_no_config_escape_hatch():
     config = CodexCliConfig(executable="codex")
     assert config.deadline_seconds == DEFAULT_CODEX_DEADLINE_SECONDS
+    assert config.process_memory_limit_bytes == DEFAULT_CODEX_PROCESS_MEMORY_BYTES
     assert config.model is None
     assert not hasattr(config, "reasoning_effort")

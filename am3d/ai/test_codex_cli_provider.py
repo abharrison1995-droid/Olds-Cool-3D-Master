@@ -57,7 +57,7 @@ if args == ["--help"]:
           ("" if mode == "no-approval" else " --ask-for-approval"))
     raise SystemExit(0)
 if args == ["exec", "--help"]:
-    print("--model --sandbox --cd --skip-git-repo-check --ephemeral "
+    print("--model --config --sandbox --cd --skip-git-repo-check --ephemeral "
           "--ignore-user-config --ignore-rules --output-schema "
           "--output-last-message --json --color --disable stdin")
     raise SystemExit(0)
@@ -321,6 +321,7 @@ def test_codex_request_uses_fixed_argv_empty_cwd_stdin_and_host_schema(tmp_path,
     assert argv[:5] == ["--ask-for-approval", "never", "--no-daemon",
                         "exec", "--model"]
     assert argv[argv.index("--sandbox") + 1] == "read-only"
+    assert argv[argv.index("--config") + 1] == 'web_search="disabled"'
     assert argv[argv.index("--cd") + 1] == call["cwd"]
     assert argv[-1] == "-"
     assert "--ignore-user-config" in argv

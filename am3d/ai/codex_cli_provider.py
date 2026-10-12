@@ -62,6 +62,7 @@ DISABLED_TOOL_FEATURES = (
     "browser_use_external",
     "browser_use_full_cdp_access",
     "code_mode",
+    "code_mode_only",
     "code_mode_host",
     "collaboration_modes",
     "computer_use",
@@ -123,7 +124,7 @@ SAFE_ENABLED_FEATURES = frozenset({
 
 _REQUIRED_ROOT_HELP = ("--ask-for-approval", "--no-daemon")
 _REQUIRED_EXEC_HELP = (
-    "--model", "--sandbox", "--cd",
+    "--model", "--config", "--sandbox", "--cd",
     "--skip-git-repo-check", "--ephemeral", "--ignore-user-config",
     "--ignore-rules", "--output-schema", "--output-last-message",
     "--json", "--color", "--disable", "stdin",
@@ -400,6 +401,9 @@ class CodexCliProvider:
         if self.config.model is not None:
             argv.extend(("--model", self.config.model))
         argv.extend((
+            # Disabling web-search feature flags alone leaves this Codex
+            # version's default cached hosted search mode active.
+            "--config", 'web_search="disabled"',
             "--sandbox", "read-only",
             "--cd", str(workspace),
             "--skip-git-repo-check",

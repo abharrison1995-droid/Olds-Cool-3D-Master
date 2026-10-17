@@ -45,6 +45,7 @@ a = Analysis(
         # for reference alongside the packaged app, per Phase 6's "bundle
         # ... recipe schema/agent guide" requirement.
         _data("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
+        _data("docs/recipes/recipe-v1.provider.schema.json", "docs/recipes"),
         _data("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
     ],
     hiddenimports=[
@@ -56,6 +57,7 @@ a = Analysis(
         "moderngl",
         "PIL",
         "PIL.Image",
+        "am3d.ai.orchestrator",
         "am3d.ai.worker",
     ],
     hookspath=[],

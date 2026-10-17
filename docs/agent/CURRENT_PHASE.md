@@ -1,27 +1,29 @@
-# Current handoff — M2 local generation
+# Current handoff — M3.1 provider boundary
 
-**Status:** M1 passed focused independent exit verification. Verified M1 source:
-`81f9a979af6534d08f2c4803a2430fa24471451f`. The verified M1c source checkpoint
-is `e7aa5ff22a5e34ff307d2b1213679451b5791bbb`; the final M1 branch tip adds
-the verification evidence record.
+**Status:** M2 independently reviewed and accepted. Accepted source:
+`0f3413adebe1b07c582c4617aa0c18053fda1e1a` on `v1/m2-local-generation`,
+tagged `v0.3.0-dev.2`. PR #14 remains open and stacked on M1c, following the
+repository's open milestone-PR chain. See
+[`docs/evidence/v1/m2/m2-independent-acceptance.md`](../evidence/v1/m2/m2-independent-acceptance.md).
 
-**Active milestone:** M2, local generation without a model. Branch:
-`v1/m2-local-generation`, based directly on the verified M1 SHA above.
-**Checkpoint:** M2 implementation candidate ready on `v1/m2-local-generation`.
+**Active milestone:** M3.1 — provider boundary, strict structured response,
+offline fake provider, and one-call orchestration skeleton. Candidate source:
+`fb736871287d4059405121b9ddf4a55df776b963`
+(`Implement M3.1 provider boundary and orchestration`), based on the
+accepted M2 source above. Local Linux validation is green; focused independent
+verification is pending. Linux fast CI and Windows worker-boundary CI passed.
+The Windows candidate workflow stopped during collection at the known
+ModernGL access violation; this is not Windows qualification. M2
+worker/policy/publication behavior is frozen;
+change it only for a specific reproducible defect needed by M3.
 
-M2 exercises recipe-v1 through strict AI policy, a fixed terminable worker,
-deterministic checks and preview, immutable app-data records, and guarded
-opening of a writable copy. No provider, prompt, model, credential, or M3
-functionality is in scope. M3 has not started.
+**M3.1 limits:** no real provider adapters, CLI flags, credential handling,
+automatic repair/retry/fallback, analytics UI, benchmark, model selection, or
+M4/M5 work. Provider data can only produce a recipe-v1 object; the existing
+`authorize_recipe(...)` and `GenerationRunner` remain mandatory. No live
+provider calls in validation.
 
-**Implementation state:** local recipe policy, fixed worker lifecycle,
-deterministic checks and preview, immutable records, Windows worker CI, and
-guarded writable-copy editor adoption are implemented. Linux full and focused
-tests pass. M2 remains blocked pending focused independent worker-boundary
-verification. M3 has not started.
-
-**M2 gate:** the Windows worker workflow must exercise worker launch,
-cancellation, timeout, and stale-result handling independently of the
-separate pre-existing ModernGL test-collection crash. Do not claim Windows
-qualification. M2 is not complete until the local desktop path and independent
-worker-boundary review pass.
+**Gate:** strict 1 MiB provider response parsing, fake-provider tests, one-call
+orchestration through M2, focused and full Linux suites, and Linux fast CI.
+Windows worker CI is reported if triggered. M3.1 ends at this review
+checkpoint; M3.2 has not started and requires explicit instruction.

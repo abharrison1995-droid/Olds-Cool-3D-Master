@@ -1,22 +1,22 @@
-# Current handoff — M1a / H2
+# Current handoff — M1b / H3
 
-**Status:** H2 ready for review; base checkpoint `v0.3.0-dev.1` (`897dba3`).
+**Status:** PR #12 pushed; Linux fast CI is green. M1 independent review is
+the remaining exit gate before M2.
 
-H2 implements the capability registry and registry-driven recipe validation
-for issue [#3](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/issues/3).
-Keep this handoff to one reviewable PR, based on H1 branch `v1/m0-context`.
+H3 commit `06f22c7` is stacked on H2 / PR #11 for issue
+[#3](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/issues/3).
 
-**Acceptance:** one accurate entry for every primitive, material pattern and
-graph node, action kind, export format, and channel property. Entries include
-typed params, defaults, ranges/enums, cost hints, and model-facing descriptions.
-Test name/default parity with builders and validate unknown/mistyped params,
-names, and enums with full paths. Keep legacy recipe behavior intact.
+**Implemented:** AI-mode estimates and constructed-scene recount; `MemoryError`
+mapping; no-op action checks; patch-degree persistence and GUI parity; correct
+atlas dimensions and OBJ-only sidecars with per-export staging; bone-parent
+path fix; compact path-relative CLI; hidden legacy nodes in provider schema;
+three regression recipe fixtures.
 
-**Implemented:** `am3d/recipes/capabilities.py`, registry-driven parameter and
-enum validation, TRS shorthand compilation, path-safe derived filenames,
-validate-only path resolution/resource estimates, generated guide summary,
-signature-parity tests, and schema enum checks.
+**Validation:** full pinned Linux suite: 763 passed, 4 Qt deprecation warnings;
+recipe suite: 158 passed. Both Linux fast jobs pass on [PR #12](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/pull/12).
+Both Windows candidate jobs fail during pytest collection with the same
+ModernGL access violation at `_has_gl` seen on H1/H2. This is recorded as an
+existing runner issue; Windows qualification is not claimed.
 
-**Validation:** focused recipe/path/export tests: 191 passed. Full pinned Linux
-suite: 747 passed, 4 deprecation warnings. H3 adds the M1b defects, resource
-ceilings, compact CLI contract, and defect probes.
+**Exit gate:** independent review of the combined M1 changes must pass before
+starting M2. Review the PR diff, M1 acceptance list, and CI evidence.

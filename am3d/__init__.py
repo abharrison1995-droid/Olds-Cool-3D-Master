@@ -1,8 +1,8 @@
-"""3D MASTER:2005 — a pure spline-based 3D character animation suite.
+"""3D MASTER:2005 — a spline-based 3D character animation suite.
 
-Inspired by the no-longer-updated Animation Master 2005, this is a
-complete, decoupled 3D content pipeline built around B-spline patch
-geometry — no polygon meshes anywhere.
+Inspired by Animation Master 2005, this is a decoupled 3D content pipeline
+built around editable B-spline patch geometry. Polygon meshes are derived for
+rendering and export; the spline patches remain the authoritative model.
 
 The application is divided into four progressive work modes:
 
@@ -11,10 +11,8 @@ The application is divided into four progressive work modes:
     3. Material Mode     — shading pipeline
     4. Choreography Mode — layout / animation / rendering
 
-This package exposes a clean, scriptable API designed so an external
-agentic pipeline (e.g. an AI assistant) can drive it via Python:
-calling, reading/modifying/writing project data and invoking tools the
-same way a user would through the UI.
+This package exposes a scriptable API for external tools to create, inspect,
+modify, and save project data through the same document model used by the UI.
 
 The canonical, public, scriptable API lives in :mod:`am3d.script` and is
 re-exported at the package top level so `import am3d` provides everything

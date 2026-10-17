@@ -22,15 +22,14 @@ The product position is an integrated editor and recipe pipeline. Its distinct m
 
 - The desktop editor is organized into Layout, Model, Rig, Animate, and Render workspaces.
 - The recipe CLI accepts declarative JSON and writes project files and supported asset exports.
-- The documented standalone Linux release includes the GUI and recipe CLI and does not require Python on the user's machine.
-- The repository has Windows build definitions and historical packaging evidence, but no Windows artifact is verified in the current release acceptance evidence.
+- Artifact availability and platform qualification are maintained in `docs/SUPPORTED_PLATFORMS.md`.
 
 ## Capabilities and Constraints
 
 - The native `.am3d` project format stores editable project data. OBJ and GLB exports are static, tessellated snapshots; they do not carry skeletons, skin weights, or keyframes.
 - Supported workflows include spline profile lathe/extrusion, patch editing, rigging with automatic proximity weights, forward-kinematic posing, keyframed actions, rendering, and OBJ/GLB export. The recipe interface additionally supports procedural primitives, generated actions, and sprite/toon/animation sheets.
 - Repository documentation lists third-party 3D format import, inverse kinematics, hand-painted weights, video encoding, and ray-traced rendering as unavailable.
-- Linux x86-64 is the verified standalone release target. The documented Windows target is unverified; no macOS support claim is present.
+- Platform support claims are maintained only in `docs/SUPPORTED_PLATFORMS.md`.
 
 ## Brand Commitments
 

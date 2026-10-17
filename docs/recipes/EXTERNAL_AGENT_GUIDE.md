@@ -42,17 +42,12 @@ Without `--out`, relative exports resolve next to the recipe file.
 
 ### Packaged entry points (no Python required)
 
-The previously accepted Linux archive for source commit `b96c922` included
-`./am3d-recipe` alongside the GUI. The current source tree does not yet have
-a rebuilt, accepted archive; current-source packaged invocation is deferred
-to its Phase 3 release check. Once accepted, invoke `./am3d-recipe` with the
-same options shown above. It is a standalone build of this entry point for
-an external process that cannot rely on Python being installed.
+See [`../SUPPORTED_PLATFORMS.md`](../SUPPORTED_PLATFORMS.md) for current
+packaged CLI availability and qualification status. When available, invoke
+`./am3d-recipe` with the same options shown above. It is a standalone build
+of this entry point for an external process that cannot rely on Python.
 
-The Windows build definition is intended to produce `am3d-recipe.exe`
-alongside the GUI executable. No Windows artifact is verified for the current
-release, so do not assume this executable is available until a Windows release
-passes its acceptance gate. When available, invoke it as follows:
+When a Windows package is available, invoke it as follows:
 
 ```text
 am3d-recipe.exe --recipe recipe.json --out output-directory

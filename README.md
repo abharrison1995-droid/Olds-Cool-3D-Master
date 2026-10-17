@@ -45,14 +45,9 @@ and GUI features.
 
 ## Status and supported platforms
 
-The current-source Linux x86-64 bundle is a preview candidate built and
-checked on Linux Mint 22.3. Its source suite and packaged CLI/GUI smoke checks
-passed; GUI checks used Qt offscreen mode and software paths. This does not
-establish native-desktop, hardware-GPU, MX Linux, or general Linux support.
-MX 25.2 and Windows are follow-on qualification targets; no Windows artifact
-is included. See
-[supported platforms](docs/SUPPORTED_PLATFORMS.md) and the
-[implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md).
+See [supported platforms](docs/SUPPORTED_PLATFORMS.md) for verified builds,
+platform status, and qualification limits. Historical build and review
+evidence is linked from that document.
 
 The recipe path is currently code-first and external-agent driven. There is
 no in-app prompt box or model-provider integration. The desktop app is the
@@ -76,7 +71,5 @@ Run the project checks with:
 python -m pytest am3d/
 ```
 
-Build scripts and platform-specific acceptance instructions are documented
-in [the implementation roadmap](docs/IMPLEMENTATION_ROADMAP.md),
-[the Windows acceptance plan](docs/WINDOWS_ACCEPTANCE_PLAN.md), and
-`docs/evidence/desktop-release/`.
+The active product plan is [docs/V1_PLAN.md](docs/V1_PLAN.md). Build scripts
+and their evidence remain in the repository history.

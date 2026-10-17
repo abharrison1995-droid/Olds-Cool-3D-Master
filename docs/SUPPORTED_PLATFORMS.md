@@ -4,12 +4,16 @@ Scope note: a row is only marked **Verified** when the check was actually
 executed in this environment. This document separates preview-candidate
 evidence from a platform support claim.
 
+V1 development starts from `3f6f7f0`; no artifact built from that baseline
+has passed V1 qualification. The preview and historical rows below refer only
+to the exact earlier source/artifact described in their evidence.
+
 Artifact-scope note: the current-source preview candidate was built and
 checked on Linux Mint 22.3. Its GUI checks used Qt offscreen mode and software
 rendering. They do not certify native desktop interaction, DPI scaling,
 physical GPU rendering, MX Linux, or general Linux support. Earlier MX
 acceptance below applies only to the historical artifact built from
-`b96c922`. See `docs/IMPLEMENTATION_ROADMAP.md` for the active preview scope.
+`b96c922`. See [`V1_PLAN.md`](V1_PLAN.md) for the active product scope.
 
 ## Standalone desktop distributions (no Python required)
 
@@ -17,7 +21,7 @@ acceptance below applies only to the historical artifact built from
 | --- | --- |
 | Linux Mint 22.3 (Zena), x86-64 | Current-source preview candidate built; source suite and packaged checks passed. GUI checks used Qt offscreen mode/software paths; this is not a native-desktop support claim. |
 | Linux x86-64, Debian 13 / MX Linux 25.2 KDE | Historical artifact from `b96c922` was accepted on the reference machine; current-source candidate not qualified there. Follow-on release qualification. |
-| Windows x86-64 (minimum version not yet selected) | No Windows artifact is verified. Build definition and reviewed CI workflow exist; native execution and host acceptance are follow-on work. |
+| Windows x86-64 (minimum version not yet selected) | No Windows artifact is verified. The GitHub candidate workflow has two recorded runs; both failed during pytest collection with a `moderngl` access violation before a build or acceptance run completed. |
 
 The Linux preview bundle contains the windowed GUI application and the
 standalone `am3d-recipe` console CLI. Neither requires a Python installation

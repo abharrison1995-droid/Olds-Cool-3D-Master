@@ -1,0 +1,794 @@
+diff --git a/codex-rs/app-server-protocol/src/protocol/v2/turn.rs b/codex-rs/app-server-protocol/src/protocol/v2/turn.rs
+index 6b784ad..0c272b0 100644
+--- a/codex-rs/app-server-protocol/src/protocol/v2/turn.rs
++++ b/codex-rs/app-server-protocol/src/protocol/v2/turn.rs
+@@ -166,6 +166,10 @@ pub struct TurnToolOutput {
+ #[ts(export_to = "v2/")]
+ pub struct TurnStartParams {
+     pub thread_id: String,
++    /// Internal host-selected mode that disables every model-executable tool for this turn.
++    #[serde(default, skip_serializing_if = "std::ops::Not::not")]
++    #[ts(optional)]
++    pub recipe_only: bool,
+     /// Replace this thread's disabled plugin IDs.
+     /// Omitted/null preserves the list; [] clears it.
+     #[ts(optional = nullable)]
+diff --git a/codex-rs/app-server/src/request_processors/turn_processor.rs b/codex-rs/app-server/src/request_processors/turn_processor.rs
+index 67946c8..d8623da 100644
+--- a/codex-rs/app-server/src/request_processors/turn_processor.rs
++++ b/codex-rs/app-server/src/request_processors/turn_processor.rs
+@@ -653,6 +653,7 @@ impl TurnRequestProcessor {
+             .start_or_steer_turn(
+                 TurnInputRequest::new(input)
+                     .with_thread_settings(thread_settings)
++                    .with_recipe_only(params.recipe_only)
+                     .on_start(TurnStartOptions {
+                         turn_trigger: params.turn_trigger,
+                         parent_turn_id: params.parent_turn_id,
+diff --git a/codex-rs/core/src/session/turn.rs b/codex-rs/core/src/session/turn.rs
+index 0879533..490f6e3 100644
+--- a/codex-rs/core/src/session/turn.rs
++++ b/codex-rs/core/src/session/turn.rs
+@@ -2684,6 +2684,12 @@ async fn try_run_sampling_request(
+                 }
+             }
+             ResponseEvent::OutputItemDone(mut item) => {
++                if turn_context.recipe_only && !ToolRouter::allows_recipe_only_response_item(&item)
++                {
++                    break Err(CodexErr::Fatal(
++                        "model tool invocation rejected in recipe-only mode".to_string(),
++                    ));
++                }
+                 assign_missing_streamed_response_item_id(&mut item, active_item.as_ref());
+                 sess.reserve_assistant_message_order(&turn_context, &item)
+                     .await;
+@@ -2817,6 +2823,12 @@ async fn try_run_sampling_request(
+                 }
+             }
+             ResponseEvent::OutputItemAdded(mut item) => {
++                if turn_context.recipe_only && !ToolRouter::allows_recipe_only_response_item(&item)
++                {
++                    break Err(CodexErr::Fatal(
++                        "model tool invocation rejected in recipe-only mode".to_string(),
++                    ));
++                }
+                 assign_missing_streamed_response_item_id(&mut item, /*active_item*/ None);
+                 sess.reserve_assistant_message_order(&turn_context, &item)
+                     .await;
+diff --git a/codex-rs/core/src/session/turn_context.rs b/codex-rs/core/src/session/turn_context.rs
+index 9a57d40..4e66d5d 100644
+--- a/codex-rs/core/src/session/turn_context.rs
++++ b/codex-rs/core/src/session/turn_context.rs
+@@ -314,6 +314,7 @@ impl std::fmt::Debug for TurnEnvironment {
+ pub(crate) struct NewTurnContextOptions {
+     pub(crate) final_output_json_schema: Option<Value>,
+     pub(crate) cyber_access_program: Option<CyberAccessProgram>,
++    pub(crate) recipe_only: bool,
+ }
+ 
+ /// The context needed for a single turn of the thread.
+@@ -367,6 +368,8 @@ pub struct TurnContext {
+     pub(crate) available_models: Vec<ModelPreset>,
+     pub(crate) unified_exec_shell_mode: UnifiedExecShellMode,
+     pub(crate) final_output_json_schema: Option<Value>,
++    /// Host-selected hard restriction for this turn; stays fixed across model continuations.
++    pub(crate) recipe_only: bool,
+     pub(crate) dynamic_tools: Vec<DynamicToolSpec>,
+     pub(crate) turn_metadata_state: Arc<TurnMetadataState>,
+     pub(crate) extension_data: Arc<codex_extension_api::ExtensionData>,
+@@ -425,6 +428,7 @@ impl TurnContext {
+             trace_id: current_span_trace_id(),
+             realtime_active: self.realtime_active,
+             code_mode_available: self.code_mode_available,
++            recipe_only: self.recipe_only,
+             configured_token_budget: config.token_budget.clone(),
+             use_model_token_budget_defaults: config.features.enabled(Feature::TokenBudget)
+                 && !has_explicit_settings(&config),
+@@ -849,6 +853,7 @@ impl TurnContext {
+             trace_id: self.trace_id.clone(),
+             realtime_active: self.realtime_active,
+             code_mode_available: self.code_mode_available,
++            recipe_only: self.recipe_only,
+             config: Arc::new(config),
+             configured_token_budget: self.configured_token_budget.clone(),
+             use_model_token_budget_defaults: self.use_model_token_budget_defaults,
+@@ -1182,6 +1187,7 @@ impl Session {
+             trace_id: current_span_trace_id(),
+             realtime_active: false,
+             code_mode_available: true,
++            recipe_only: false,
+             config: per_turn_config,
+             configured_token_budget,
+             use_model_token_budget_defaults,
+@@ -1444,7 +1450,9 @@ impl Session {
+             sub_id,
+             skills_snapshot,
+         );
+-        turn_context.code_mode_available = self.services.code_mode_service.is_available();
++        turn_context.recipe_only = options.recipe_only;
++        turn_context.code_mode_available =
++            !options.recipe_only && self.services.code_mode_service.is_available();
+         turn_context.extension_data.insert(trusted_plugin_roots);
+         turn_context.active_host_plugin_identities = Some(
+             plugin_outcome
+diff --git a/codex-rs/core/src/session/turn_input.rs b/codex-rs/core/src/session/turn_input.rs
+index 7672b54..b21c62a 100644
+--- a/codex-rs/core/src/session/turn_input.rs
++++ b/codex-rs/core/src/session/turn_input.rs
+@@ -90,6 +90,7 @@ impl TurnStartKind {
+ struct PreparedTurnInputSettings {
+     thread_settings_update: Option<SessionSettingsUpdate>,
+     start_options: TurnStartOptions,
++    recipe_only: bool,
+ }
+ 
+ impl PreparedTurnInputSettings {
+@@ -99,6 +100,7 @@ impl PreparedTurnInputSettings {
+         session: &Session,
+         thread_settings: impl Into<WithTurnExtensionData<ThreadSettingsOverrides>>,
+         start_options: TurnStartOptions,
++        recipe_only: bool,
+     ) -> CodexResult<Self> {
+         let thread_settings = thread_settings.into();
+         let thread_settings_update = if thread_settings.request
+@@ -117,6 +119,7 @@ impl PreparedTurnInputSettings {
+         Ok(Self {
+             thread_settings_update,
+             start_options,
++            recipe_only,
+         })
+     }
+ 
+@@ -154,6 +157,7 @@ impl PreparedTurnInputSettings {
+         let options = NewTurnContextOptions {
+             final_output_json_schema,
+             cyber_access_program,
++            recipe_only: self.recipe_only,
+         };
+         let turn_context = match kind {
+             TurnStartKind::User | TurnStartKind::Recovery => Some(
+@@ -326,6 +330,7 @@ async fn start_or_steer(
+         mut input,
+         thread_settings,
+         start,
++        recipe_only,
+         additional_context,
+         responsesapi_client_metadata,
+         ..
+@@ -351,6 +356,7 @@ async fn start_or_steer(
+             turn_extension_init,
+         },
+         start,
++        recipe_only,
+     )
+     .await?;
+     match session
+@@ -447,6 +453,7 @@ async fn start_if_idle(
+         input,
+         thread_settings,
+         start,
++        recipe_only,
+         additional_context,
+         responsesapi_client_metadata,
+         ..
+@@ -521,6 +528,7 @@ async fn start_if_idle(
+             turn_extension_init,
+         },
+         start,
++        recipe_only,
+     )
+     .await
+     {
+@@ -602,6 +610,7 @@ async fn steer(
+         mut input,
+         thread_settings,
+         start,
++        recipe_only,
+         additional_context,
+         responsesapi_client_metadata,
+         ..
+@@ -619,6 +628,7 @@ async fn steer(
+             turn_extension_init,
+         },
+         start,
++        recipe_only,
+     )
+     .await?;
+     match session
+diff --git a/codex-rs/core/src/session/turn_input_tests.rs b/codex-rs/core/src/session/turn_input_tests.rs
+index eef3de7..a891e50 100644
+--- a/codex-rs/core/src/session/turn_input_tests.rs
++++ b/codex-rs/core/src/session/turn_input_tests.rs
+@@ -423,10 +423,14 @@ async fn prepared_user_updates_merge_with_settings_at_turn_start() {
+             }))
+             .await
+             .expect("set initial model and effort");
+-        let prepared =
+-            PreparedTurnInputSettings::prepare(&session, requested, TurnStartOptions::default())
+-                .await
+-                .expect("prepare partial protocol update");
++        let prepared = PreparedTurnInputSettings::prepare(
++            &session,
++            requested,
++            TurnStartOptions::default(),
++            false,
++        )
++        .await
++        .expect("prepare partial protocol update");
+         session
+             .update_settings(thread_settings::prepare_update(intervening))
+             .await
+@@ -479,6 +483,7 @@ async fn automatic_admission_uses_current_candidate_after_plan_preview() {
+             ..Default::default()
+         },
+         TurnStartOptions::default(),
++        false,
+     )
+     .await
+     .expect("validate the patch while the preview is Plan");
+@@ -569,13 +574,18 @@ async fn automatic_admission_rechecks_plan_mode_without_committing_sparse_settin
+         &session,
+         overrides.clone(),
+         TurnStartOptions::default(),
++        false,
+     )
+     .await
+     .expect("sparse settings should preview successfully");
+-    let prepared_default =
+-        PreparedTurnInputSettings::prepare(&session, default_override, TurnStartOptions::default())
+-            .await
+-            .expect("Default replacement should preview successfully");
++    let prepared_default = PreparedTurnInputSettings::prepare(
++        &session,
++        default_override,
++        TurnStartOptions::default(),
++        false,
++    )
++    .await
++    .expect("Default replacement should preview successfully");
+ 
+     // Another settings writer changes the effective mode after preview. The
+     // sparse patch must not commit in Plan, and a full Default replacement
+@@ -674,6 +684,7 @@ async fn admission_revalidates_constraints_before_committing(kind: TurnStartKind
+             ..Default::default()
+         },
+         TurnStartOptions::default(),
++        false,
+     )
+     .await
+     .expect("approval-policy edit should initially be valid");
+diff --git a/codex-rs/core/src/tasks/mod.rs b/codex-rs/core/src/tasks/mod.rs
+index bfc9c13..9a798f3 100644
+--- a/codex-rs/core/src/tasks/mod.rs
++++ b/codex-rs/core/src/tasks/mod.rs
+@@ -497,6 +497,7 @@ impl Session {
+                 NewTurnContextOptions {
+                     final_output_json_schema: start_options.final_output_json_schema,
+                     cyber_access_program: start_options.cyber_access_program,
++                    recipe_only: false,
+                 },
+             )
+             .await;
+diff --git a/codex-rs/core/src/tools/router.rs b/codex-rs/core/src/tools/router.rs
+index baf39f0..40f0029 100644
+--- a/codex-rs/core/src/tools/router.rs
++++ b/codex-rs/core/src/tools/router.rs
+@@ -75,6 +75,7 @@ pub struct ToolRouter {
+     registry: ToolRegistry,
+     model_visible_specs: Arc<[ToolSpec]>,
+     tool_mode: ToolMode,
++    recipe_only: bool,
+     code_mode_tool_names: BTreeMap<String, ToolName>,
+     tool_namespaces_info: Option<TurnToolNamespacesInfo>,
+     can_manage_children: bool,
+@@ -123,6 +124,7 @@ impl ToolRouter {
+             registry,
+             model_visible_specs: model_visible_specs.into(),
+             tool_mode,
++            recipe_only: false,
+             code_mode_tool_names,
+             tool_namespaces_info,
+             can_manage_children: false,
+@@ -134,6 +136,26 @@ impl ToolRouter {
+         router
+     }
+ 
++    pub(crate) fn recipe_only() -> Self {
++        let mut router = Self::from_parts(
++            ToolRegistry::default(),
++            Vec::new(),
++            ToolMode::Direct,
++            BTreeMap::new(),
++            None,
++            &[],
++        );
++        router.recipe_only = true;
++        router
++    }
++
++    pub(crate) fn allows_recipe_only_response_item(item: &ResponseItem) -> bool {
++        matches!(
++            item,
++            ResponseItem::Message { .. } | ResponseItem::Reasoning { .. }
++        )
++    }
++
+     pub(crate) fn model_visible_specs(&self) -> Arc<[ToolSpec]> {
+         Arc::clone(&self.model_visible_specs)
+     }
+@@ -355,6 +377,12 @@ impl ToolRouter {
+         source: ToolCallSource,
+         call_state: Option<Arc<ToolCallState>>,
+     ) -> Result<AnyToolResult, FunctionCallError> {
++        if self.recipe_only {
++            return Err(FunctionCallError::Fatal(
++                "model tool invocation rejected in recipe-only mode".to_string(),
++            ));
++        }
++
+         let ToolCall {
+             tool_name,
+             call_id,
+diff --git a/codex-rs/core/src/tools/router_tests.rs b/codex-rs/core/src/tools/router_tests.rs
+index 05a1e2e..a9e6916 100644
+--- a/codex-rs/core/src/tools/router_tests.rs
++++ b/codex-rs/core/src/tools/router_tests.rs
+@@ -4,11 +4,16 @@ use std::sync::Arc;
+ use crate::config::Config;
+ use crate::session::step_context::StepContext;
+ use crate::session::tests::make_session_and_context;
++use crate::tools::context::FunctionToolOutput;
++use crate::tools::context::ToolInvocation;
++use crate::tools::context::ToolOutput;
+ use crate::tools::context::ToolPayload;
+ use crate::tools::handlers::McpHandler;
+ use crate::tools::registry::CoreToolRuntime;
+ use crate::tools::registry::RegisteredTool;
++use crate::tools::registry::ToolExecutor as CoreToolExecutor;
+ use crate::tools::registry::ToolExposure;
++use crate::tools::registry::ToolRegistry;
+ use crate::tools::spec_plan::append_source_tools;
+ use crate::tools::spec_plan::build_core_tool_registry;
+ use crate::tools::spec_plan::extension_tool_executors;
+@@ -27,6 +32,7 @@ use codex_protocol::dynamic_tools::DynamicToolSpec;
+ use codex_protocol::models::ContentItem;
+ use codex_protocol::models::FunctionCallOutputBody;
+ use codex_protocol::models::ResponseItem;
++use codex_protocol::openai_models::ToolMode;
+ use codex_tools::ResponsesApiNamespace;
+ use codex_tools::ResponsesApiNamespaceTool;
+ use codex_tools::ToolName;
+@@ -35,6 +41,8 @@ use codex_tools::default_namespace_description;
+ use core_test_support::responses::strip_response_item_ids_from_json;
+ use pretty_assertions::assert_eq;
+ use serde_json::json;
++use std::sync::atomic::AtomicUsize;
++use std::sync::atomic::Ordering;
+ use tokio_util::sync::CancellationToken;
+ 
+ use super::ToolCall;
+@@ -42,6 +50,197 @@ use super::ToolCallSource;
+ use super::ToolRouter;
+ use super::tool_log_payload;
+ 
++struct DispatchSpy {
++    calls: Arc<AtomicUsize>,
++}
++
++impl CoreToolExecutor<ToolInvocation> for DispatchSpy {
++    fn tool_name(&self) -> ToolName {
++        ToolName::plain("recipe_only_spy")
++    }
++
++    fn spec(&self) -> ToolSpec {
++        ToolSpec::Function(codex_tools::ResponsesApiTool {
++            name: "recipe_only_spy".to_string(),
++            description: "test spy".to_string(),
++            strict: false,
++            defer_loading: None,
++            parameters: codex_tools::JsonSchema::default(),
++            output_schema: None,
++        })
++    }
++
++    fn handle<'a>(&'a self, _invocation: ToolInvocation) -> codex_tools::ToolExecutorFuture<'a>
++    where
++        ToolInvocation: 'a,
++    {
++        self.calls.fetch_add(1, Ordering::SeqCst);
++        Box::pin(async {
++            Ok(Box::new(FunctionToolOutput::from_text(
++                "called".to_string(),
++                Some(true),
++            )) as Box<dyn ToolOutput>)
++        })
++    }
++}
++
++impl CoreToolRuntime for DispatchSpy {}
++
++#[tokio::test]
++async fn recipe_only_dispatch_fails_fatally_before_registered_handler() {
++    let (session, turn) = make_session_and_context().await;
++    let step_context = StepContext::for_test(Arc::new(turn));
++    let calls = Arc::new(AtomicUsize::new(0));
++    let handler = Arc::new(DispatchSpy {
++        calls: Arc::clone(&calls),
++    });
++    let spec = handler.spec();
++    let runtime: Arc<dyn CoreToolRuntime> = handler;
++    let mut router = ToolRouter::from_parts(
++        ToolRegistry::from_tools([runtime]),
++        vec![spec],
++        ToolMode::Direct,
++        BTreeMap::new(),
++        None,
++        &[],
++    );
++    router.recipe_only = true;
++    let call = ToolCall {
++        tool_name: ToolName::plain("recipe_only_spy"),
++        call_id: "call-spy".to_string(),
++        payload: ToolPayload::Function {
++            arguments: "{}".to_string(),
++        },
++        encrypted_function_args: None,
++    };
++
++    let result = router
++        .dispatch_tool_call_with_code_mode_result(
++            Arc::new(session),
++            step_context,
++            CancellationToken::new(),
++            Arc::new(tokio::sync::Mutex::new(TurnDiffTracker::new())),
++            call,
++            ToolCallSource::Direct,
++        )
++        .await;
++    let error = match result {
++        Err(error) => error,
++        Ok(_) => panic!("recipe-only must reject dispatch"),
++    };
++
++    assert!(matches!(
++        error,
++        crate::function_tool::FunctionCallError::Fatal(_)
++    ));
++    assert_eq!(calls.load(Ordering::SeqCst), 0);
++}
++
++#[test]
++fn recipe_only_response_gate_allows_structured_text_and_rejects_tool_items() {
++    let message = ResponseItem::Message {
++        id: None,
++        role: "assistant".to_string(),
++        content: vec![ContentItem::InputText {
++            text: "{\"schema_version\":1}".to_string(),
++        }],
++        phase: None,
++        internal_chat_message_metadata_passthrough: None,
++    };
++    assert!(ToolRouter::allows_recipe_only_response_item(&message));
++
++    let blocked_items = [
++        ResponseItem::FunctionCall {
++            id: None,
++            name: "apply_patch".to_string(),
++            namespace: None,
++            arguments: "{}".to_string(),
++            encrypted_function_args: None,
++            call_id: "patch-call".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::FunctionCall {
++            id: None,
++            name: "external_escape".to_string(),
++            namespace: Some("mcp__test__".to_string()),
++            arguments: "{}".to_string(),
++            encrypted_function_args: None,
++            call_id: "mcp-call".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::FunctionCall {
++            id: None,
++            name: "exec_command".to_string(),
++            namespace: None,
++            arguments: "{}".to_string(),
++            encrypted_function_args: None,
++            call_id: "unified-exec-call".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::CustomToolCall {
++            id: None,
++            status: None,
++            call_id: "codemode-exec-call".to_string(),
++            name: "codemode_exec".to_string(),
++            namespace: None,
++            input: "{}".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::CustomToolCall {
++            id: None,
++            status: None,
++            call_id: "codemode-wait-call".to_string(),
++            name: "codemode_wait".to_string(),
++            namespace: None,
++            input: "{}".to_string(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::ToolSearchCall {
++            id: None,
++            call_id: Some("search-call".to_string()),
++            status: None,
++            execution: "client".to_string(),
++            arguments: json!({"query": "synthetic"}),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::LocalShellCall {
++            id: None,
++            call_id: Some("shell-call".to_string()),
++            status: codex_protocol::models::LocalShellStatus::Completed,
++            action: codex_protocol::models::LocalShellAction::Exec(
++                codex_protocol::models::LocalShellExecAction {
++                    command: vec!["true".to_string()],
++                    timeout_ms: None,
++                    working_directory: None,
++                    env: None,
++                    user: None,
++                },
++            ),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::WebSearchCall {
++            id: None,
++            status: Some("completed".to_string()),
++            action: None,
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::ImageGenerationCall {
++            id: None,
++            status: "completed".to_string(),
++            revised_prompt: None,
++            result: String::new(),
++            internal_chat_message_metadata_passthrough: None,
++        },
++        ResponseItem::Other,
++    ];
++    for item in blocked_items {
++        assert!(
++            !ToolRouter::allows_recipe_only_response_item(&item),
++            "unexpectedly permitted {item:?}"
++        );
++    }
++}
++
+ struct ExtensionEchoContributor;
+ 
+ #[test]
+diff --git a/codex-rs/core/src/tools/spec_plan.rs b/codex-rs/core/src/tools/spec_plan.rs
+index 7e22134..17920c6 100644
+--- a/codex-rs/core/src/tools/spec_plan.rs
++++ b/codex-rs/core/src/tools/spec_plan.rs
+@@ -130,6 +130,10 @@ pub(crate) fn build_tool_router(
+     step_store: &ExtensionData,
+     tool_suggest_candidates: Option<&crate::tools::router::ToolSuggestCandidates>,
+ ) -> CodexResult<ToolRouter> {
++    if turn_context.recipe_only {
++        return Ok(ToolRouter::recipe_only());
++    }
++
+     let default_agent_type_description =
+         crate::agent::role::spawn_tool_spec::build(&std::collections::BTreeMap::new());
+     let wait_for_environment_tool_config = session
+@@ -374,6 +378,10 @@ pub(crate) fn finalize_tool_router(
+     mut hosted_specs: Vec<ToolSpec>,
+     tool_search_handler_cache: &ToolSearchHandlerCache,
+ ) -> CodexResult<ToolRouter> {
++    if turn_context.recipe_only {
++        return Ok(ToolRouter::recipe_only());
++    }
++
+     hosted_specs.retain(|spec| registry.tool_policy.allows(&ToolName::plain(spec.name())));
+     apply_direct_model_only_namespace_overrides(turn_context, &mut registry);
+     enforce_strict_3p_tools(turn_context, model_info, &mut registry);
+diff --git a/codex-rs/core/src/tools/spec_plan_tests.rs b/codex-rs/core/src/tools/spec_plan_tests.rs
+index 395cc95..73ff517 100644
+--- a/codex-rs/core/src/tools/spec_plan_tests.rs
++++ b/codex-rs/core/src/tools/spec_plan_tests.rs
+@@ -613,6 +613,76 @@ async fn reviewer_tool_policy_exclude_optional_core_tools() {
+     );
+ }
+ 
++#[tokio::test]
++async fn recipe_only_router_registers_and_advertises_no_tools_under_server_code_mode() {
++    let (session, mut turn) = make_session_and_context().await;
++    turn.recipe_only = true;
++    turn.dynamic_tools = vec![dynamic_tool(
++        None,
++        "dynamic_escape",
++        /*defer_loading*/ false,
++    )];
++    update_turn_settings_for_test(&mut turn, |settings| {
++        Arc::make_mut(&mut settings.model_info).tool_mode = Some(ToolMode::CodeModeOnly);
++        Arc::make_mut(&mut settings.model_info).supports_search_tool = true;
++    });
++    let turn = Arc::new(turn);
++    let step_context = StepContext::for_test(Arc::clone(&turn));
++
++    let router = super::build_tool_router(
++        &session,
++        step_context.turn.as_ref(),
++        &step_context.settings.model_info,
++        &step_context.environments,
++        &step_context.mcp,
++        /*apps_enabled*/ true,
++        &turn.extension_data,
++        /*tool_suggest_candidates*/ None,
++    )
++    .expect("recipe-only router construction should succeed");
++
++    assert!(router.model_visible_specs().is_empty());
++    assert!(router.registered_tool_names_for_test().is_empty());
++    assert!(router.code_mode_tool_names().is_empty());
++    assert!(!router.requires_code_mode_worker());
++    assert_eq!(router.tool_mode(), ToolMode::Direct);
++}
++
++#[tokio::test]
++async fn recipe_only_finalizer_discards_registered_external_and_dynamic_tools() {
++    let (_session, mut turn) = make_session_and_context().await;
++    turn.recipe_only = true;
++    update_turn_settings_for_test(&mut turn, |settings| {
++        Arc::make_mut(&mut settings.model_info).tool_mode = Some(ToolMode::CodeModeOnly);
++        Arc::make_mut(&mut settings.model_info).supports_search_tool = true;
++    });
++    let router = ToolPlanProbe::from_router(plan_with_model(
++        &turn,
++        turn.model_info(),
++        ToolPlanInputs {
++            tool_runtimes: vec![mcp_runtime(
++                "test-server",
++                "mcp__test__",
++                "external_escape",
++                ToolExposure::Direct,
++            )],
++            tool_suggest_candidates: Some(plugin_candidates(ToolSuggestPresentation::ListTool)),
++            extension_tool_executors: vec![Arc::new(TestNamespaceExtensionTool {
++                namespace: "extension/",
++                tool_name: "escape",
++            })],
++            dynamic_tools: vec![dynamic_tool(None, "dynamic_escape", false)],
++            ..ToolPlanInputs::default()
++        },
++    ));
++
++    assert!(router.visible_names.is_empty());
++    assert!(router.registered_names.is_empty());
++    assert!(router.code_mode_tool_names.is_empty());
++    assert!(!router.requires_code_mode_worker);
++    assert_eq!(router.tool_mode, ToolMode::Direct);
++}
++
+ #[tokio::test]
+ async fn reviewer_tool_policy_respect_managed_shell_restrictions() {
+     for (disabled_feature, shell_type) in [
+diff --git a/codex-rs/exec/src/cli.rs b/codex-rs/exec/src/cli.rs
+index 6a268da..1fb9a3c 100644
+--- a/codex-rs/exec/src/cli.rs
++++ b/codex-rs/exec/src/cli.rs
+@@ -49,6 +49,15 @@ pub struct Cli {
+     #[arg(long = "ignore-rules", global = true, default_value_t = false)]
+     pub ignore_rules: bool,
+ 
++    /// Experimental: run a text/structured-output-only turn with no model tools.
++    #[arg(
++        long = "recipe-only",
++        global = true,
++        default_value_t = false,
++        hide = true
++    )]
++    pub recipe_only: bool,
++
+     /// Path to a JSON Schema file describing the model's final response shape.
+     #[arg(long = "output-schema", value_name = "FILE", global = true)]
+     pub output_schema: Option<PathBuf>,
+diff --git a/codex-rs/exec/src/lib.rs b/codex-rs/exec/src/lib.rs
+index 8bf9262..8d04357 100644
+--- a/codex-rs/exec/src/lib.rs
++++ b/codex-rs/exec/src/lib.rs
+@@ -230,6 +230,7 @@ struct ExecRunArgs {
+     oss: bool,
+     output_schema_path: Option<PathBuf>,
+     prompt: Option<String>,
++    recipe_only: bool,
+     skip_git_repo_check: bool,
+     stderr_with_ansi: bool,
+     thread_source: ThreadSource,
+@@ -274,6 +275,7 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
+         ephemeral,
+         ignore_user_config,
+         ignore_rules,
++        recipe_only,
+         color,
+         last_message_file,
+         json: json_mode,
+@@ -281,6 +283,9 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
+         output_schema: output_schema_path,
+         mut config_overrides,
+     } = cli;
++    if recipe_only && command.is_some() {
++        anyhow::bail!("--recipe-only only supports a new `codex exec` turn");
++    }
+     if cyber_access_program.is_some() {
+         match command.as_ref() {
+             Some(ExecCommand::Review(_)) => {
+@@ -767,6 +772,7 @@ pub async fn run_main(cli: Cli, arg0_paths: Arg0DispatchPaths) -> anyhow::Result
+         oss,
+         output_schema_path,
+         prompt,
++        recipe_only,
+         skip_git_repo_check,
+         stderr_with_ansi,
+         thread_source: thread_source.map(Into::into).unwrap_or(ThreadSource::User),
+@@ -868,6 +874,7 @@ async fn run_exec_session(args: ExecRunArgs) -> anyhow::Result<()> {
+         managed_worktree,
+         oss,
+         output_schema_path,
++        recipe_only,
+         prompt,
+         skip_git_repo_check,
+         stderr_with_ansi,
+@@ -1254,6 +1261,7 @@ async fn run_exec_session(args: ExecRunArgs) -> anyhow::Result<()> {
+                         summary: None,
+                         personality: None,
+                         output_schema,
++                        recipe_only,
+                         collaboration_mode: None,
+                         multi_agent_mode: None,
+                         cyber_access_program,
+diff --git a/codex-rs/protocol/src/turn_input.rs b/codex-rs/protocol/src/turn_input.rs
+index 3069a5f..ec02e9f 100644
+--- a/codex-rs/protocol/src/turn_input.rs
++++ b/codex-rs/protocol/src/turn_input.rs
+@@ -48,6 +48,8 @@ pub struct TurnInputRequest {
+     pub input: TurnInput,
+     pub thread_settings: ThreadSettingsOverrides,
+     pub start: TurnStartOptions,
++    /// Host-controlled per-turn restriction; never derived from model output or config.
++    pub recipe_only: bool,
+     pub additional_context: BTreeMap<String, AdditionalContextEntry>,
+     pub responsesapi_client_metadata: Option<HashMap<String, String>>,
+     pub trace: Option<W3cTraceContext>,
+@@ -96,6 +98,7 @@ impl TurnInputRequest {
+             input,
+             thread_settings: ThreadSettingsOverrides::default(),
+             start: TurnStartOptions::default(),
++            recipe_only: false,
+             additional_context: BTreeMap::new(),
+             responsesapi_client_metadata: None,
+             trace: None,
+@@ -120,6 +123,12 @@ impl TurnInputRequest {
+         self
+     }
+ 
++    /// Restricts a new turn to ordinary text/structured output with no executable tools.
++    pub fn with_recipe_only(mut self, enabled: bool) -> Self {
++        self.recipe_only = enabled;
++        self
++    }
++
+     /// Options for new turns, also consulted for input provenance and active-turn
+     /// compatibility when steering.
+     pub fn on_start(mut self, start: TurnStartOptions) -> Self {
+diff --git a/codex-rs/tui/src/app_server_session.rs b/codex-rs/tui/src/app_server_session.rs
+index 6d15c85..d0a94f8 100644
+--- a/codex-rs/tui/src/app_server_session.rs
++++ b/codex-rs/tui/src/app_server_session.rs
+@@ -1436,6 +1436,7 @@ impl AppServerSession {
+             .request_typed(ClientRequest::TurnStart {
+                 request_id,
+                 params: TurnStartParams {
++                    recipe_only: false,
+                     disabled_plugin_ids: None,
+                     thread_id: thread_id.to_string(),
+                     turn_trigger: Some("user".to_string()),

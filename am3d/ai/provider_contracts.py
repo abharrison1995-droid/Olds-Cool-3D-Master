@@ -30,6 +30,7 @@ class FailureCode(StrEnum):
     UNAVAILABLE_PROVIDER = "unavailable_provider"
     UNSUPPORTED_ADAPTER = "unsupported_adapter"
     TIMEOUT = "timeout"
+    CANCELLED = "cancelled"
     TRANSPORT_FAILURE = "transport_failure"
     NONZERO_EXIT = "nonzero_cli_exit"
     RESPONSE_TOO_LARGE = "response_too_large"

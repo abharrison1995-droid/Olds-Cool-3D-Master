@@ -1,28 +1,22 @@
-# Current handoff — M0 / H1
+# Current handoff — M1a / H2
 
-**Status:** M0/H1 complete on baseline `3f6f7f0` (6 Oct 2026). Next handoff is M1a/H2.
+**Status:** H2 ready for review; base checkpoint `v0.3.0-dev.1` (`897dba3`).
 
-M0 is repository/context setup. Branch inventory found only `master` at
-`3f6f7f0`, equal to `origin/master`; no stash or local-only commits exist.
-GitHub's Windows workflow has two runs (Oct 4 and Sep 28); both reach pytest
-and then crash during collection with a `moderngl` access violation.
-`checkout@v7`, `setup-python@v7`, and `upload-artifact@v7` match current
-releases checked from GitHub. See `docs/evidence/v1/m0/repository-inventory.md`.
-Checkpoint tags will use `v0.3.0-dev.N`; package metadata agrees at `0.2.0b1`.
+H2 implements the capability registry and registry-driven recipe validation
+for issue [#3](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/issues/3).
+Keep this handoff to one reviewable PR, based on H1 branch `v1/m0-context`.
 
-**GitHub tracking:** [V1 milestone](https://github.com/abharrison1995-droid/Olds-Cool-3D-Master/milestone/1);
-M1–M6 issues are #3, #8, #6, #5, #4, and #7. Duplicate M3 issue #9 is closed.
+**Acceptance:** one accurate entry for every primitive, material pattern and
+graph node, action kind, export format, and channel property. Entries include
+typed params, defaults, ranges/enums, cost hints, and model-facing descriptions.
+Test name/default parity with builders and validate unknown/mistyped params,
+names, and enums with full paths. Keep legacy recipe behavior intact.
 
-**Complete:** compact docs/archives and platform authority; version and branch
-inventory; six GitHub issues; build-input manifest digest
-`2ecca41c98d723fd4f8f28c9928bc8542cd53250c4a5a5495d4be8eef0631980`; doc
-limits/links and `git diff --check`; local suite 738 passed, 4 deprecation
-warnings; Linux fast CI passed on push run `37480298448` and PR run
-`37480303103`. PR #10 is open.
+**Implemented:** `am3d/recipes/capabilities.py`, registry-driven parameter and
+enum validation, TRS shorthand compilation, path-safe derived filenames,
+validate-only path resolution/resource estimates, generated guide summary,
+signature-parity tests, and schema enum checks.
 
-The first Linux fast run exposed missing runner `libEGL.so.1`; the workflow
-now installs `libegl1`. The existing Windows candidate workflow still fails
-on its `moderngl` access violation and is recorded for M2/M6 follow-up.
-
-**Next — M1a/H2:** implement the registry and registry-driven validation
-from issue #3. Keep its PR focused and use the pinned offscreen suite.
+**Validation:** focused recipe/path/export tests: 191 passed. Full pinned Linux
+suite: 747 passed, 4 deprecation warnings. H3 adds the M1b defects, resource
+ceilings, compact CLI contract, and defect probes.

@@ -28,8 +28,12 @@ from __future__ import annotations
 
 from dataclasses import asdict, dataclass, field
 import math
+import re
 
 import numpy as np
+
+from .capabilities import (CAPABILITIES, capabilities_for,
+                           validate_parameters)
 
 
 CURRENT_RECIPE_VERSION = 1
@@ -84,23 +88,22 @@ class ValidationIssue(str):
         return record
 
 
-# Primitive names accepted in ObjectRecipe.primitive.
-PRIMITIVES = frozenset({
-    "sphere", "box", "cylinder", "cone", "torus", "plane",
-    "lathe", "extrude",
-})
+# Capability names accepted in recipe documents. Keeping these views derived
+# from the registry prevents the validator, CLI and schema guide from drifting.
+PRIMITIVES = frozenset(cap.name for cap in capabilities_for("primitive"))
 
 # Procedural action generators accepted in ActionRecipe.kind.
-ACTION_KINDS = frozenset({"walk", "idle", "jump", "custom", "retarget"})
+ACTION_KINDS = frozenset(cap.name for cap in capabilities_for("action_kind"))
 
 # Only formats ``RecipeExecutor._run_exports`` actually writes belong here.
 # Advertising a format with no writer makes the run report success while
 # producing no file, so this set and that dispatch must stay in step.
-EXPORT_FORMATS = frozenset({"obj", "glb", "spritesheet",
-                            "toon_sheet", "am3d", "animation_sheet"})
+EXPORT_FORMATS = frozenset(cap.name for cap in capabilities_for("export_format"))
 
 # Accepted spellings that are not writer names in their own right.
 _FORMAT_ALIASES = {"gltf": "glb"}      # we always emit binary glTF
+
+AI_OBJECT_NAME_RE = re.compile(r"^[A-Za-z0-9_][A-Za-z0-9_ .-]{0,63}$")
 
 
 def normalize_export_format(fmt) -> str:
@@ -295,8 +298,41 @@ def _coerce(value, cls, path: str):
         hint=f"Provide an object matching {cls.__name__}.")
 
 
+def _compile_trs_shorthand(transform, path: str):
+    """Compile the documented translate/rotate_deg/scale shorthand."""
+    if not isinstance(transform, dict):
+        return transform
+    allowed = {"translate", "rotate_deg", "scale"}
+    unknown = sorted(set(transform) - allowed)
+    if unknown:
+        key = unknown[0]
+        raise RecipeValidationError(
+            "unknown_field", f"unknown TRS transform field {key!r}",
+            path=f"{path}.{key}",
+            hint=f"Use only: {sorted(allowed)}.")
+    from am3d.core.mathutil import compose_trs
+    defaults = {"translate": (0.0, 0.0, 0.0),
+                "rotate_deg": (0.0, 0.0, 0.0),
+                "scale": (1.0, 1.0, 1.0)}
+    values = {}
+    for key, default in defaults.items():
+        value = transform.get(key, default)
+        _validate_finite_sequence(value, f"{path}.{key}", expected_len=3)
+        values[key] = value
+    if any(abs(float(v)) < 1e-12 for v in values["scale"]):
+        raise RecipeValidationError(
+            "singular_transform", "TRS transform scale components must be non-zero",
+            path=f"{path}.scale")
+    return compose_trs(values["translate"], values["rotate_deg"],
+                       values["scale"]).tolist()
+
+
 def recipe_from_dict(data: dict) -> Recipe:
-    """Build a validated :class:`Recipe` from a plain dict (parsed JSON)."""
+    """Parse a :class:`Recipe` from JSON-shaped data.
+
+    Structural errors raise immediately. Semantic capability errors are
+    collected by :func:`validate_recipe` so callers receive all bad paths.
+    """
     if not isinstance(data, dict):
         raise RecipeValidationError(
             "invalid_type", "recipe root must be a JSON object", path="recipe")
@@ -333,7 +369,7 @@ def recipe_from_dict(data: dict) -> Recipe:
             path="recipe.version",
             hint=f"Set version to {CURRENT_RECIPE_VERSION}.")
 
-    recipe = Recipe(version=version, name=str(data.get("name", "asset")))
+    recipe = Recipe(version=version, name=data.get("name", "asset"))
 
     for index, od in enumerate(data.get("objects", []) or []):
         path = f"recipe.objects[{index}]"
@@ -348,12 +384,6 @@ def recipe_from_dict(data: dict) -> Recipe:
             raise RecipeValidationError(
                 "missing_name", "every object needs a 'name'",
                 path=f"{path}.name")
-        if obj.primitive is not None and obj.primitive not in PRIMITIVES:
-            raise RecipeValidationError(
-                "unsupported_primitive",
-                f"object {obj.name!r}: unknown primitive {obj.primitive!r} "
-                f"(choose from {sorted(PRIMITIVES)})",
-                path=f"{path}.primitive")
         if not isinstance(obj.splines, list):
             raise RecipeValidationError("invalid_type", f"{path}.splines must be a list", path=f"{path}.splines")
         if not isinstance(obj.bones, list):
@@ -364,6 +394,9 @@ def recipe_from_dict(data: dict) -> Recipe:
         obj.bones = [
             _coerce(bd, BoneRecipe, f"{path}.bones[{i}]")
             for i, bd in enumerate(obj.bones or [])]
+        if isinstance(obj.transform, dict):
+            obj.transform = _compile_trs_shorthand(obj.transform,
+                                                    f"{path}.transform")
         if obj.transform:
             if not isinstance(obj.transform, (list, tuple)):
                 raise RecipeValidationError("invalid_type", f"{path}.transform must be a list", path=f"{path}.transform")
@@ -410,12 +443,6 @@ def recipe_from_dict(data: dict) -> Recipe:
                 path=path,
                 hint="Provide a dictionary with at least 'name'.")
         act = _coerce(ad, ActionRecipe, path)
-        if act.kind not in ACTION_KINDS:
-            raise RecipeValidationError(
-                "unsupported_action_kind",
-                f"action {act.name!r}: unknown kind {act.kind!r} "
-                f"(choose from {sorted(ACTION_KINDS)})",
-                path=f"{path}.kind")
         if not isinstance(act.channels, list):
             raise RecipeValidationError("invalid_type", f"{path}.channels must be a list", path=f"{path}.channels")
         act.channels = [
@@ -442,22 +469,32 @@ def recipe_from_dict(data: dict) -> Recipe:
                 path=path,
                 hint="Provide a dictionary with 'format' and 'path'.")
         ex = _coerce(ed, ExportRecipe, path)
-        fmt = normalize_export_format(ex.format)
-        if fmt not in EXPORT_FORMATS:
-            raise RecipeValidationError(
-                "unsupported_export_format",
-                f"unknown export format {ex.format!r} "
-                f"(choose from {sorted(EXPORT_FORMATS)})",
-                path=f"{path}.format")
-        ex.format = fmt
+        if isinstance(ex.format, str):
+            ex.format = normalize_export_format(ex.format)
         recipe.exports.append(ex)
 
     return recipe
 
 
-def validate_recipe(recipe: Recipe) -> list:
-    """Validate *recipe*, returning a list of :class:`ValidationIssue` strings."""
+def validate_recipe(recipe: Recipe, *, ai_mode: bool = False) -> list:
+    """Validate *recipe* and collect all schema and registry issues."""
     problems: list[ValidationIssue] = []
+
+    def registry_issues(category, name, values, path):
+        for issue in validate_parameters(category, name, values, path):
+            problems.append(ValidationIssue(
+                f"{issue['path']}: {issue['message']}",
+                code=issue["code"], path=issue["path"],
+                hint=issue.get("hint")))
+
+    if not isinstance(recipe.name, str):
+        problems.append(ValidationIssue(
+            f"expected string recipe name, received {type(recipe.name).__name__}",
+            code="invalid_type", path="recipe.name"))
+    elif not recipe.name:
+        problems.append(ValidationIssue(
+            "recipe name must not be empty", code="missing_name",
+            path="recipe.name"))
     if recipe.version != CURRENT_RECIPE_VERSION:
         problems.append(ValidationIssue(
             f"unsupported recipe version {recipe.version!r}; supported version is {CURRENT_RECIPE_VERSION}",
@@ -467,21 +504,63 @@ def validate_recipe(recipe: Recipe) -> list:
     seen_objects = set()
     for index, obj in enumerate(recipe.objects):
         path = f"recipe.objects[{index}]"
-        if not obj.name:
+        if not isinstance(obj.name, str):
+            problems.append(ValidationIssue(
+                f"expected string object name, received {type(obj.name).__name__}",
+                code="invalid_type", path=f"{path}.name"))
+        elif not obj.name:
             problems.append(ValidationIssue(
                 "every object needs a 'name'",
                 code="missing_name", path=f"{path}.name"))
+        elif ai_mode and not AI_OBJECT_NAME_RE.fullmatch(obj.name):
+            problems.append(ValidationIssue(
+                f"AI object name {obj.name!r} must match {AI_OBJECT_NAME_RE.pattern}",
+                code="invalid_name", path=f"{path}.name",
+                hint="Use 1–64 letters, digits, spaces, '.', '_' or '-'; start with a letter, digit or underscore."))
         elif obj.name in seen_objects:
             problems.append(ValidationIssue(
                 f"duplicate object name {obj.name!r}",
                 code="duplicate_name", path=f"{path}.name"))
-        seen_objects.add(obj.name)
+        if isinstance(obj.name, str):
+            seen_objects.add(obj.name)
 
-        if obj.primitive is not None and obj.primitive not in PRIMITIVES:
+        if obj.primitive is not None and not isinstance(obj.primitive, str):
             problems.append(ValidationIssue(
-                f"object {obj.name!r}: unknown primitive {obj.primitive!r} (choose from {sorted(PRIMITIVES)})",
+                f"expected primitive name string, received {type(obj.primitive).__name__}",
+                code="invalid_type", path=f"{path}.primitive"))
+        elif obj.primitive is not None and obj.primitive not in PRIMITIVES:
+            valid = sorted(PRIMITIVES)
+            problems.append(ValidationIssue(
+                f"expected primitive in {valid}, received {obj.primitive!r}",
                 code="unsupported_primitive", path=f"{path}.primitive",
-                hint=f"Choose from {sorted(PRIMITIVES)}"))
+                hint=f"Choose from {valid}"))
+
+        valid_object_params = {"auto_weights", "skeleton"}
+        primitive_is_known = (isinstance(obj.primitive, str) and
+                              obj.primitive in PRIMITIVES)
+        if primitive_is_known:
+            valid_object_params |= set(CAPABILITIES[("primitive", obj.primitive)].params)
+        params = obj.params
+        if not isinstance(params, dict):
+            registry_issues("object_metadata", "object", params,
+                            f"{path}.params")
+        else:
+            primitive_params = {key: value for key, value in params.items()
+                                if key not in valid_object_params or
+                                key not in {"auto_weights", "skeleton"}}
+            if primitive_is_known:
+                registry_issues("primitive", obj.primitive,
+                                primitive_params, f"{path}.params")
+            elif primitive_params:
+                for key in sorted(primitive_params):
+                    problems.append(ValidationIssue(
+                        f"unknown object parameter {key!r}; valid keys: {sorted(valid_object_params)}",
+                        code="unknown_parameter", path=f"{path}.params.{key}",
+                        hint=f"Use one of: {sorted(valid_object_params)}."))
+            metadata_params = {key: value for key, value in params.items()
+                               if key in {"auto_weights", "skeleton"}}
+            registry_issues("object_metadata", "object", metadata_params,
+                            f"{path}.params")
 
         if obj.primitive is None and not obj.splines and not obj.bones:
             problems.append(ValidationIssue(
@@ -492,7 +571,11 @@ def validate_recipe(recipe: Recipe) -> list:
         bone_names = set()
         for b_idx, bone in enumerate(obj.bones):
             b_path = f"{path}.bones[{b_idx}]"
-            if not bone.name:
+            if not isinstance(bone.name, str):
+                problems.append(ValidationIssue(
+                    f"expected string bone name, received {type(bone.name).__name__}",
+                    code="invalid_type", path=f"{b_path}.name"))
+            elif not bone.name:
                 problems.append(ValidationIssue(
                     f"object {obj.name!r}: bone at index {b_idx} has no name",
                     code="missing_name", path=f"{b_path}.name"))
@@ -500,21 +583,37 @@ def validate_recipe(recipe: Recipe) -> list:
                 problems.append(ValidationIssue(
                     f"object {obj.name!r}: duplicate bone name {bone.name!r}",
                     code="duplicate_bone_name", path=f"{b_path}.name"))
-            bone_names.add(bone.name)
+            if isinstance(bone.name, str):
+                bone_names.add(bone.name)
+            if bone.parent is not None and not isinstance(bone.parent, str):
+                problems.append(ValidationIssue(
+                    f"expected string or null bone parent, received {type(bone.parent).__name__}",
+                    code="invalid_type", path=f"{b_path}.parent"))
+
+        for spline_idx, spline in enumerate(obj.splines):
+            if not isinstance(spline.name, str):
+                problems.append(ValidationIssue(
+                    f"expected string spline name, received {type(spline.name).__name__}",
+                    code="invalid_type", path=f"{path}.splines[{spline_idx}].name"))
 
         for b_idx, bone in enumerate(obj.bones):
             b_path = f"{path}.bones[{b_idx}]"
-            if bone.parent and bone.parent not in bone_names:
+            if (isinstance(bone.parent, str) and bone.parent and
+                    bone.parent not in bone_names):
                 problems.append(ValidationIssue(
                     f"object {obj.name!r}: bone {bone.name!r} references unknown parent {bone.parent!r}",
                     code="missing_parent_bone", path=f"{b_path}.parent"))
 
         # Bone hierarchy cycle detection
-        parent_map = {b.name: b.parent for b in obj.bones if b.parent}
+        parent_map = {b.name: b.parent for b in obj.bones
+                      if isinstance(b.name, str) and isinstance(b.parent, str)
+                      and b.parent}
         for b_idx, bone in enumerate(obj.bones):
+            if not isinstance(bone.name, str):
+                continue
             visited = {bone.name}
             curr = bone.parent
-            while curr:
+            while isinstance(curr, str) and curr:
                 if curr in visited:
                     problems.append(ValidationIssue(
                         f"object {obj.name!r}: cyclic bone hierarchy detected involving bone {bone.name!r}",
@@ -578,7 +677,8 @@ def validate_recipe(recipe: Recipe) -> list:
                         problems.append(ValidationIssue(f"object {obj.name!r}: transform must be 16 elements (4x4) or 3 elements (translation)", code="invalid_shape", path=t_path))
 
     # Check params.skeleton references
-    obj_names = {o.name for o in recipe.objects}
+    obj_names = {o.name for o in recipe.objects
+                 if isinstance(o.name, str)}
     for index, obj in enumerate(recipe.objects):
         skel_ref = obj.params.get("skeleton") if isinstance(obj.params, dict) else None
         if skel_ref and skel_ref not in obj_names:
@@ -592,7 +692,11 @@ def validate_recipe(recipe: Recipe) -> list:
     seen_materials = set()
     for index, material in enumerate(recipe.materials):
         path = f"recipe.materials[{index}]"
-        if not material.name:
+        if not isinstance(material.name, str):
+            problems.append(ValidationIssue(
+                f"expected string material name, received {type(material.name).__name__}",
+                code="invalid_type", path=f"{path}.name"))
+        elif not material.name:
             problems.append(ValidationIssue(
                 "material name must not be empty",
                 code="missing_name", path=f"{path}.name"))
@@ -600,7 +704,66 @@ def validate_recipe(recipe: Recipe) -> list:
             problems.append(ValidationIssue(
                 f"duplicate material name {material.name!r}",
                 code="duplicate_material_name", path=f"{path}.name"))
-        seen_materials.add(material.name)
+        if isinstance(material.name, str):
+            seen_materials.add(material.name)
+
+        if material.pattern is not None:
+            if not isinstance(material.pattern, str):
+                problems.append(ValidationIssue(
+                    f"expected pattern name string, received {type(material.pattern).__name__}",
+                    code="invalid_type", path=f"{path}.pattern"))
+            elif material.pattern not in {cap.name for cap in capabilities_for("pattern")}:
+                valid = sorted(cap.name for cap in capabilities_for("pattern"))
+                problems.append(ValidationIssue(
+                    f"expected material pattern in {valid}, received {material.pattern!r}",
+                    code="unsupported_pattern", path=f"{path}.pattern",
+                    hint=f"Choose from {valid}."))
+            else:
+                registry_issues("pattern", material.pattern, material.params,
+                                f"{path}.params")
+        elif material.params not in ({}, None):
+            problems.append(ValidationIssue(
+                "material params require a recognized pattern",
+                code="unexpected_parameter", path=f"{path}.params"))
+
+        if not isinstance(material.graph, list):
+            problems.append(ValidationIssue(
+                f"expected graph node list, received {type(material.graph).__name__}",
+                code="invalid_type", path=f"{path}.graph"))
+        else:
+            graph_names = {cap.name for cap in capabilities_for("graph_node")}
+            for node_index, node in enumerate(material.graph):
+                n_path = f"{path}.graph[{node_index}]"
+                if not isinstance(node, dict):
+                    problems.append(ValidationIssue(
+                        f"expected graph node object, received {type(node).__name__}",
+                        code="invalid_type", path=n_path))
+                    continue
+                unknown_node_fields = sorted(set(node) - {"type", "params"})
+                for key in unknown_node_fields:
+                    problems.append(ValidationIssue(
+                        f"unknown graph node field {key!r}; valid keys: ['params', 'type']",
+                        code="unknown_field", path=f"{n_path}.{key}"))
+                node_name = node.get("type", "source")
+                if not isinstance(node_name, str):
+                    problems.append(ValidationIssue(
+                        f"expected graph node type string, received {type(node_name).__name__}",
+                        code="invalid_type", path=f"{n_path}.type"))
+                    continue
+                if node_name not in graph_names:
+                    valid = sorted(graph_names)
+                    problems.append(ValidationIssue(
+                        f"expected graph node in {valid}, received {node_name!r}",
+                        code="unsupported_node", path=f"{n_path}.type",
+                        hint=f"Choose from {valid}."))
+                    continue
+                cap = CAPABILITIES[("graph_node", node_name)]
+                if ai_mode and not cap.model_visible:
+                    problems.append(ValidationIssue(
+                        f"graph node {node_name!r} is not available in AI mode",
+                        code="unsupported_capability", path=f"{n_path}.type"))
+                registry_issues("graph_node", node_name,
+                                node.get("params", {}), f"{n_path}.params")
 
         if not (0.0 <= material.roughness <= 1.0) or not math.isfinite(material.roughness):
             problems.append(ValidationIssue(
@@ -611,18 +774,32 @@ def validate_recipe(recipe: Recipe) -> list:
                 f"material {material.name!r}: metalness must be between 0.0 and 1.0",
                 code="invalid_value", path=f"{path}.metalness"))
 
-        for target_obj in material.objects:
+        if not isinstance(material.objects, list):
+            problems.append(ValidationIssue(
+                f"expected object name list, received {type(material.objects).__name__}",
+                code="invalid_type", path=f"{path}.objects"))
+        for obj_idx, target_obj in enumerate(material.objects if isinstance(material.objects, list) else []):
+            if not isinstance(target_obj, str):
+                problems.append(ValidationIssue(
+                    f"expected string object name, received {type(target_obj).__name__}",
+                    code="invalid_type", path=f"{path}.objects[{obj_idx}]"))
+                continue
             if target_obj not in seen_objects:
                 problems.append(ValidationIssue(
                     f"material {material.name!r} coats unknown object {target_obj!r}",
                     code="unknown_target_object", path=f"{path}.objects",
                     hint=f"Target one of the defined objects: {sorted(seen_objects)}"))
 
-    object_bones = {o.name: [b.name for b in o.bones or []] for o in recipe.objects}
+    object_bones = {o.name: [b.name for b in o.bones or []]
+                    for o in recipe.objects if isinstance(o.name, str)}
     defined_actions = set()
     for index, act in enumerate(recipe.actions):
         path = f"recipe.actions[{index}]"
-        if not act.name:
+        if not isinstance(act.name, str):
+            problems.append(ValidationIssue(
+                f"expected string action name, received {type(act.name).__name__}",
+                code="invalid_type", path=f"{path}.name"))
+        elif not act.name:
             problems.append(ValidationIssue(
                 "action name must not be empty",
                 code="missing_name", path=f"{path}.name"))
@@ -630,19 +807,33 @@ def validate_recipe(recipe: Recipe) -> list:
             problems.append(ValidationIssue(
                 f"duplicate action name {act.name!r}",
                 code="duplicate_action_name", path=f"{path}.name"))
-        defined_actions.add(act.name)
+        if isinstance(act.name, str):
+            defined_actions.add(act.name)
 
-        if act.kind not in ACTION_KINDS:
+        if not isinstance(act.kind, str):
             problems.append(ValidationIssue(
-                f"action {act.name!r}: unknown kind {act.kind!r} (choose from {sorted(ACTION_KINDS)})",
-                code="unsupported_action_kind", path=f"{path}.kind"))
+                f"expected action kind string, received {type(act.kind).__name__}",
+                code="invalid_type", path=f"{path}.kind"))
+        elif act.kind not in ACTION_KINDS:
+            valid = sorted(ACTION_KINDS)
+            problems.append(ValidationIssue(
+                f"expected action kind in {valid}, received {act.kind!r}",
+                code="unsupported_action_kind", path=f"{path}.kind",
+                hint=f"Choose from {valid}."))
+        else:
+            registry_issues("action_kind", act.kind, act.params,
+                            f"{path}.params")
 
         if not math.isfinite(act.duration) or act.duration <= 0:
             problems.append(ValidationIssue(
                 f"action {act.name!r}: duration must be a positive number",
                 code="invalid_value", path=f"{path}.duration"))
 
-        if act.character and act.character not in seen_objects:
+        if act.character is not None and not isinstance(act.character, str):
+            problems.append(ValidationIssue(
+                f"expected string or null character, received {type(act.character).__name__}",
+                code="invalid_type", path=f"{path}.character"))
+        elif act.character and act.character not in seen_objects:
             problems.append(ValidationIssue(
                 f"action {act.name!r}: unknown character {act.character!r}",
                 code="unknown_character", path=f"{path}.character"))
@@ -650,16 +841,49 @@ def validate_recipe(recipe: Recipe) -> list:
             problems.append(ValidationIssue(
                 f"action {act.name!r}: character {act.character!r} declares no bones, so the action cannot be applied to it",
                 code="action_precondition", path=f"{path}.character"))
-
         if act.character and act.character in object_bones:
             char_bones = set(object_bones[act.character])
             for ch_idx, ch in enumerate(act.channels or []):
-                if ch.bone and ch.bone not in char_bones:
+                if isinstance(ch.bone, str) and ch.bone and ch.bone not in char_bones:
                     problems.append(ValidationIssue(
                         f"action {act.name!r}: channel {ch_idx} references unknown bone {ch.bone!r} for character {act.character!r}",
                         code="unknown_bone",
                         path=f"{path}.channels[{ch_idx}].bone",
                         hint=f"Choose from character bones: {sorted(char_bones)}"))
+
+        for channel_index, channel in enumerate(act.channels or []):
+            ch_path = f"{path}.channels[{channel_index}]"
+            if not isinstance(channel.bone, str):
+                problems.append(ValidationIssue(
+                    f"expected string bone name, received {type(channel.bone).__name__}",
+                    code="invalid_type", path=f"{ch_path}.bone"))
+            if not isinstance(channel.property, str):
+                problems.append(ValidationIssue(
+                    f"expected channel property string, received {type(channel.property).__name__}",
+                    code="invalid_type", path=f"{ch_path}.property"))
+            elif ("channel_property", channel.property) not in CAPABILITIES:
+                valid = sorted(cap.name for cap in capabilities_for("channel_property"))
+                problems.append(ValidationIssue(
+                    f"expected channel property in {valid}, received {channel.property!r}",
+                    code="unsupported_channel_property", path=f"{ch_path}.property",
+                    hint=f"Choose from {valid}."))
+            for key_index, key in enumerate(channel.keys or []):
+                k_path = f"{ch_path}.keys[{key_index}]"
+                if not isinstance(key.interp, str):
+                    problems.append(ValidationIssue(
+                        f"expected interpolation string, received {type(key.interp).__name__}",
+                        code="invalid_type", path=f"{k_path}.interp"))
+                elif ("interpolation", key.interp) not in CAPABILITIES:
+                    valid = sorted(cap.name for cap in capabilities_for("interpolation"))
+                    problems.append(ValidationIssue(
+                        f"expected interpolation in {valid}, received {key.interp!r}",
+                        code="unsupported_interpolation", path=f"{k_path}.interp",
+                        hint=f"Choose from {valid}."))
+                expected_value_len = 1 if channel.property == "weight" else 3
+                if isinstance(key.value, (list, tuple)) and len(key.value) != expected_value_len:
+                    problems.append(ValidationIssue(
+                        f"expected {expected_value_len} values for channel property {channel.property!r}, received {len(key.value)}",
+                        code="invalid_length", path=f"{k_path}.value"))
 
         if act.kind == "retarget":
             if not act.character:
@@ -681,13 +905,26 @@ def validate_recipe(recipe: Recipe) -> list:
 
     for index, ex in enumerate(recipe.exports):
         path = f"recipe.exports[{index}]"
-        if not ex.path:
+        if not isinstance(ex.format, str):
+            problems.append(ValidationIssue(
+                f"expected export format string, received {type(ex.format).__name__}",
+                code="invalid_type", path=f"{path}.format"))
+        elif normalize_export_format(ex.format) not in EXPORT_FORMATS:
+            valid = sorted(EXPORT_FORMATS | set(_FORMAT_ALIASES))
+            problems.append(ValidationIssue(
+                f"expected export format in {valid}, received {ex.format!r}",
+                code="unsupported_export_format", path=f"{path}.format",
+                hint=f"Choose from {valid}."))
+        else:
+            registry_issues("export_format", normalize_export_format(ex.format),
+                            ex.params, f"{path}.params")
+        if not isinstance(ex.path, str):
+            problems.append(ValidationIssue(
+                f"expected export path string, received {type(ex.path).__name__}",
+                code="invalid_type", path=f"{path}.path"))
+        elif not ex.path:
             problems.append(ValidationIssue(
                 f"export format {ex.format!r} has empty path",
                 code="missing_path", path=f"{path}.path"))
-        if normalize_export_format(ex.format) not in EXPORT_FORMATS:
-            problems.append(ValidationIssue(
-                f"export {ex.path!r}: unknown format {ex.format!r} (choose from {sorted(EXPORT_FORMATS)})",
-                code="unsupported_export_format", path=f"{path}.format"))
 
     return problems

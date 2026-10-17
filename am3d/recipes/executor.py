@@ -19,7 +19,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.paths import (classify_portable_relative_path,
-                          is_absolute_any_platform, normalize_separators)
+                          is_absolute_any_platform, normalize_separators,
+                          sanitize_filename_component)
 from .animation import generate_action
 from .primitives import build_primitive
 from .schema import (Recipe, RecipeValidationError, recipe_from_dict,
@@ -222,6 +223,24 @@ class RecipeExecutor:
                 raise RecipeValidationError(
                     "invalid_type", "export path must be a string or path-like value",
                     path=f"recipe.exports[{index}].path") from exc
+
+    def _recheck_final_path(self, path: str, index: int) -> None:
+        """Recheck a derived destination immediately before publication."""
+        if self.output_root is None:
+            return
+        root = os.path.realpath(os.path.abspath(self.output_root))
+        candidate = os.path.realpath(os.path.abspath(os.fspath(path)))
+        try:
+            common = os.path.commonpath((root, candidate))
+        except ValueError as exc:
+            raise RecipeValidationError(
+                "output_path_escape", f"derived export path escapes the output root: {exc}",
+                path=f"recipe.exports[{index}].path", stage="resource") from exc
+        if candidate == root or common != root:
+            raise RecipeValidationError(
+                "output_path_escape", "derived export path escapes the output root",
+                path=f"recipe.exports[{index}].path", stage="resource",
+                hint="Use a relative path within the host-chosen output root.")
 
     @staticmethod
     def _record_artifact(res: ExecutionResult, fmt: str, path: str,
@@ -661,8 +680,9 @@ class RecipeExecutor:
                         continue
                     p = dict(spec.params)
                     for oname, mesh in meshes.items():
-                        final_path = _with_ext(f"{base}_{oname}", ".png")
-                        staged_path = os.path.join(stage_dir, f"export_{index}_{oname}.png")
+                        safe_name = sanitize_filename_component(oname)
+                        final_path = _with_ext(f"{base}_{safe_name}", ".png")
+                        staged_path = os.path.join(stage_dir, f"export_{index}_{safe_name}.png")
                         views = int(p.get("views", 8))
                         size = int(p.get("size", 256))
                         common = {
@@ -768,8 +788,9 @@ class RecipeExecutor:
             if atlases and atlas_dir:
                 from am3d.renderer.materials import save_image
                 for oname, atlas in atlases.items():
-                    final_path = _with_ext(f"{atlas_dir}/{oname}_atlas", ".png")
-                    staged_path = os.path.join(stage_dir, f"atlas_{oname}.png")
+                    safe_name = sanitize_filename_component(oname)
+                    final_path = _with_ext(f"{atlas_dir}/{safe_name}_atlas", ".png")
+                    staged_path = os.path.join(stage_dir, f"atlas_{safe_name}.png")
                     meta = {"format": "png", "object": oname, "width": getattr(atlas, "width", 256), "height": getattr(atlas, "height", 256)}
                     try:
                         save_image(atlas, staged_path)
@@ -786,8 +807,12 @@ class RecipeExecutor:
 
             # Publish staged artifacts safely to final paths
             for staged_path, final_path, fmt, meta in staged_items:
+                # Check before creating directories and again after resolving
+                # them so a symlink cannot redirect an export outside its root.
+                self._recheck_final_path(final_path, 0)
                 _ensure_parent(final_path)
                 try:
+                    self._recheck_final_path(final_path, 0)
                     shutil.copy2(staged_path, final_path)
                     res.exports.append((fmt, final_path))
                     self._record_artifact(res, fmt, final_path, metadata=meta)

@@ -16,6 +16,8 @@ import math
 
 import numpy as np
 
+from am3d.core.sheet_layout import calculate_sheet_layout
+
 try:
     from PIL import Image
     _HAS_PIL = True
@@ -346,10 +348,10 @@ def render_sprite_sheet(mesh, views: int = 8, size: int = 256,
     ]
 
     cols = columns if columns and columns > 0 else views
-    rows = int(math.ceil(views / cols))
-    sheet = np.zeros((rows * size, cols * size, 4), dtype=np.uint8)
+    layout = calculate_sheet_layout(views, cols, size)
+    sheet = np.zeros((layout.height, layout.width, 4), dtype=np.uint8)
     for idx, frame in enumerate(frames):
-        r, c = divmod(idx, cols)
+        r, c = divmod(idx, layout.columns)
         # frames are float RGBA 0..1; convert to uint8 at the export edge
         sheet[r * size:(r + 1) * size, c * size:(c + 1) * size] = \
             (np.clip(frame, 0.0, 1.0) * 255).astype(np.uint8)

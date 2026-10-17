@@ -18,6 +18,7 @@ from dataclasses import dataclass, field
 
 import numpy as np
 
+from ..core.sheet_layout import calculate_sheet_layout
 from ..core.paths import (classify_portable_relative_path,
                           is_absolute_any_platform, normalize_separators,
                           sanitize_filename_component)
@@ -86,6 +87,31 @@ def _ensure_parent(path: str) -> str:
 def _with_ext(path: str, ext: str) -> str:
     root, current = os.path.splitext(path)
     return path if current.lower() == ext.lower() else root + ext
+
+
+def _named_sheet_path(path: str, object_name: str) -> str:
+    """Derive a per-object PNG from a path's stem, preserving its directory."""
+    stem, suffix = os.path.splitext(path)
+    if suffix.lower() != ".png":
+        stem = path
+    safe_name = sanitize_filename_component(object_name)
+    return f"{stem}_{safe_name}.png"
+
+
+def _destination_key(path: str) -> str:
+    """Portable identity for a final destination, including Windows casing."""
+    absolute = os.path.realpath(os.path.abspath(os.fspath(path)))
+    return os.path.normcase(os.path.normpath(absolute)).replace("\\", "/").casefold()
+
+
+def _has_duplicate_destinations(staged_items) -> bool:
+    destinations = set()
+    for _, final_path, _, _ in staged_items:
+        key = _destination_key(final_path)
+        if key in destinations:
+            return True
+        destinations.add(key)
+    return False
 
 
 def _atlas_outdir(export_specs) -> str:
@@ -370,6 +396,11 @@ class RecipeExecutor:
         for index, spec in enumerate(recipe.actions):
             action = self.session.actions.get(spec.name)
             if action is None:
+                continue
+            if not any(action_name == spec.name
+                       for action_name in self.session.action_assignments.values()):
+                # Actions may be reusable library data. Only check a clip that
+                # the recipe actually assigned to a character.
                 continue
             bound_names = {
                 obj.name for obj in recipe.objects
@@ -800,7 +831,7 @@ class RecipeExecutor:
                     p = dict(spec.params)
                     for oname, mesh in meshes.items():
                         safe_name = sanitize_filename_component(oname)
-                        final_path = _with_ext(f"{base}_{safe_name}", ".png")
+                        final_path = _named_sheet_path(base, oname)
                         staged_path = os.path.join(stage_dir, f"export_{index}_{safe_name}.png")
                         views = int(p.get("views", 8))
                         size = int(p.get("size", 256))
@@ -852,12 +883,13 @@ class RecipeExecutor:
                     t_start = float(p.get("start", 0.0))
                     t_end = float(p.get("end", duration))
                     from am3d.renderer.sprite import render_scene
-                    import math as _math
                     cols = int(p.get("columns", n_frames))
-                    rows = int(_math.ceil(n_frames / cols))
+                    layout = calculate_sheet_layout(n_frames, cols, size)
+                    rows = layout.rows
                     try:
                         import numpy as _np
-                        sheet = _np.zeros((rows * size, cols * size, 4), dtype=_np.uint8)
+                        sheet = _np.zeros((layout.height, layout.width, 4),
+                                          dtype=_np.uint8)
                         for fi in range(n_frames):
                             t = t_start + (t_end - t_start) * fi / max(n_frames - 1, 1)
                             frame_scene = self.session.evaluate_scene(
@@ -872,11 +904,14 @@ class RecipeExecutor:
                             live_meshes = {n: m for n, m in frame_scene.meshes.items()
                                           if len(m.vertices)}
                             frame_img = render_scene(live_meshes, size=size, color=color)
-                            r_idx, c_idx = divmod(fi, cols)
+                            r_idx, c_idx = divmod(fi, layout.columns)
                             sheet[r_idx * size:(r_idx + 1) * size,
                                   c_idx * size:(c_idx + 1) * size] = (
                                 _np.clip(frame_img, 0.0, 1.0) * 255).astype(_np.uint8)
 
+                        if sheet.shape[:2] != (layout.height, layout.width):
+                            raise RuntimeError(
+                                "animation sheet allocation differs from its validated layout")
                         from PIL import Image as _PIL_Image
                         pil_sheet = _PIL_Image.fromarray(sheet, "RGBA")
                         # One composited whole-scene sheet per export spec —
@@ -955,6 +990,14 @@ class RecipeExecutor:
                         path="recipe.exports",
                         hint="Reduce the number or size of exports and retry.")
                     return
+
+            if _has_duplicate_destinations(staged_items):
+                res.add_error(
+                    "multiple staged artifacts target the same final destination; no files were published",
+                    code="duplicate_export_destination", stage="resource",
+                    path="recipe.exports",
+                    hint="Choose distinct paths for each export and derived sidecar.")
+                return
 
             # Publish staged artifacts safely to final paths
             for staged_path, final_path, fmt, meta in staged_items:

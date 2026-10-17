@@ -3,6 +3,10 @@
 These initial ceilings bound AI-mode validation, estimation, worker execution,
 and publication. Apply checks before expensive allocation and again to actual
 results. They do not change the trusted offline CLI's existing behavior.
+Capability parameter metadata keeps intrinsic type/range constraints separate
+from AI-only maxima and profile-length limits. Trusted/offline validation uses
+intrinsic constraints; the strict AI profile enables those additional maxima.
+Global resource estimates and recounts also run only in AI mode.
 
 | Resource | Initial ceiling |
 | --- | ---: |

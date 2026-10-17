@@ -8,15 +8,16 @@ in [docs/SUPPORTED_PLATFORMS.md](docs/SUPPORTED_PLATFORMS.md).
 | Milestone | Status | Next gate |
 | --- | --- | --- |
 | M0 Repository/context | Complete | H1 merged; Linux CI green. [Inventory](docs/evidence/v1/m0/repository-inventory.md). |
-| M1 Contract | Blocked | M1c remediated six independent-review blockers; focused independent verification pending. |
-| M2 Local worker | Not started | Starts only after M1 review passes. |
+| M1 Contract | Complete | Independent exit verification passed at `81f9a979af6534d08f2c4803a2430fa24471451f`. |
+| M2 Local generation | In progress | Implementation candidate ready; focused independent worker-boundary verification pending on `v1/m2-local-generation`. |
 | M3 AI loop | Queued | Bounded providers/orchestrator and measured bake-off. |
 | M4 Baseline | Queued | Benchmark baseline and evidence-based contract. |
 | M5 Product workflow | Queued | AI workspace, history/refinement, usability. |
 | M6 Release | Queued | Exact RC qualification on Windows 11 and Mint 22.3. |
 
-M1c candidate: `v1/m1c-review-remediation`, based on M1b
-`fb01f0be7bde8de2fbf01182535390cd18bfdcb9`. Linux local suite: 787 passed,
-4 Qt deprecation warnings; Windows runner retains the pre-existing ModernGL
-pytest-collection crash. No Windows qualification is claimed. M1 remains
-blocked pending focused verification of M1-01 through M1-06; M2 has not started.
+M2 is based directly on the verified M1 candidate above. Local recipe
+generation, deterministic checks, immutable records, and guarded writable-copy
+adoption are implemented; no model/provider work is included. M2 remains
+blocked pending focused independent worker-boundary verification. The known
+Windows ModernGL collection crash remains separate; M2 adds GPU-independent
+Windows worker CI. M3 has not started.

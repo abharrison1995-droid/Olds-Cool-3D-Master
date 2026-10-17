@@ -11,7 +11,17 @@ state indefinitely, which is why this was not caught by a shallow
 "process didn't exit after N seconds" check.
 """
 
-from am3d.ui.app import main
+import sys
 
 if __name__ == "__main__":
+    if "--am3d-generation-worker" in sys.argv:
+        # The frozen GUI executable doubles as the fixed headless worker.
+        # Dispatch before importing the Qt application entry point.
+        worker_args = list(sys.argv[1:])
+        worker_args.remove("--am3d-generation-worker")
+        from am3d.ai.worker import main as worker_main
+        raise SystemExit(worker_main(worker_args))
+    from am3d.ui.app import main
     raise SystemExit(main())
+else:
+    from am3d.ui.app import main

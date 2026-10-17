@@ -33,6 +33,13 @@ message. Use OS memory enforcement when available; on every platform retain
 preflight estimates, count limits, process termination, and deadline bounds.
 No case may rely solely on OS memory control.
 
+M2 local generation gives the worker a 20-minute parent-enforced deadline.
+On Linux the worker also applies a best-effort 1 GiB address-space headroom
+limit after imports; Windows relies on preflight limits and forced process
+termination rather than claiming an OS memory cap. The child receives a
+small allowlisted runtime environment, not the desktop's arbitrary
+environment variables.
+
 Names are strings. AI object names match
 `^[A-Za-z0-9_][A-Za-z0-9_ .-]{0,63}$`. Derived filenames use one sanitizer;
 the resolved destination is checked against the host-chosen output root both

@@ -56,6 +56,7 @@ a = Analysis(
         "moderngl",
         "PIL",
         "PIL.Image",
+        "am3d.ai.worker",
     ],
     hookspath=[],
     hooksconfig={},

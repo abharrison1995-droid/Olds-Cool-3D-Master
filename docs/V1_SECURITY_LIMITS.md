@@ -26,6 +26,7 @@ Global resource estimates and recounts also run only in AI mode.
 | Atlas cell / combined atlas pixels | 256 / 64 million |
 | Published output bytes | 256 MiB |
 | Worker memory target | 1 GiB |
+| Codex CLI process-tree memory | 1 GiB |
 
 Estimate control nets and texture memory before constructing them, then count
 the built scene. Convert `MemoryError` to `resource_exhausted` with a useful
@@ -39,6 +40,13 @@ limit after imports; Windows relies on preflight limits and forced process
 termination rather than claiming an OS memory cap. The child receives a
 small allowlisted runtime environment, not the desktop's arbitrary
 environment variables.
+
+The Codex CLI provider applies a host-selected 1 GiB process-tree memory cap
+before execution (Linux `prlimit`, Windows Job Object). All supported
+platforms monitor the final response file during execution and reject
+anything above the 1 MiB parser ceiling, then read at most one extra byte
+after exit. Do not apply a process-wide file-size limit: it can also block
+unrelated Codex runtime files. The host parser remains authoritative.
 
 Names are strings. AI object names match
 `^[A-Za-z0-9_][A-Za-z0-9_ .-]{0,63}$`. Derived filenames use one sanitizer;

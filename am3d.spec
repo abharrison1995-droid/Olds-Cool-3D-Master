@@ -58,6 +58,7 @@ a = Analysis(
         "PIL",
         "PIL.Image",
         "am3d.ai.orchestrator",
+        "am3d.ai.codex_cli_provider",
         "am3d.ai.worker",
     ],
     hookspath=[],

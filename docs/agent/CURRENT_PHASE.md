@@ -1,29 +1,15 @@
-# Current handoff — M3.1 provider boundary
+# Current handoff — M3.2f Codex recipe-only integration
 
-**Status:** M2 independently reviewed and accepted. Accepted source:
-`0f3413adebe1b07c582c4617aa0c18053fda1e1a` on `v1/m2-local-generation`,
-tagged `v0.3.0-dev.2`. PR #14 remains open and stacked on M1c, following the
-repository's open milestone-PR chain. See
-[`docs/evidence/v1/m2/m2-independent-acceptance.md`](../evidence/v1/m2/m2-independent-acceptance.md).
+**Baseline:** V1 plan rev. 3, 6 Oct 2026. M0–M2 are accepted; M3.1 passed independent verification at `88a9b85cfc30854fe8f3234eca44cfce2b30e4e9`.
 
-**Active milestone:** M3.1 — provider boundary, strict structured response,
-offline fake provider, and one-call orchestration skeleton. Candidate source:
-`fb736871287d4059405121b9ddf4a55df776b963`
-(`Implement M3.1 provider boundary and orchestration`), based on the
-accepted M2 source above. Local Linux validation is green; focused independent
-verification is pending. Linux fast CI and Windows worker-boundary CI passed.
-The Windows candidate workflow stopped during collection at the known
-ModernGL access violation; this is not Windows qualification. M2
-worker/policy/publication behavior is frozen;
-change it only for a specific reproducible defect needed by M3.
+**Active milestone:** M3.2 on `v1/m3.2-codex-cli`, PR #16. Current GitHub tip is `55ff49a10ec1b90b716adef620df3612e7d3bac9`; PR #16 is open and draft against `master` (M2 PR #14 and M3.1 PR #15 are merged). The owner reports that the pinned Codex recipe-only source gate passed independent review. That gate does not approve a compiled executable or accept M3.2.
 
-**M3.1 limits:** no real provider adapters, CLI flags, credential handling,
-automatic repair/retry/fallback, analytics UI, benchmark, model selection, or
-M4/M5 work. Provider data can only produce a recipe-v1 object; the existing
-`authorize_recipe(...)` and `GenerationRunner` remain mandatory. No live
-provider calls in validation.
+**M3.2f state:** The offline prototype source is reproducible from the tracked `third_party/codex/recipe_only/m3.2f-prototype-snapshot.patch.gz`, based on Codex `740e5af33c71225640e0c1c1555c514c2c93ab74`; the prior `/tmp` checkout is machine-local. The approved recipe-only patch SHA-256 is `0481c3e9c2969871b2f2455dd52e6b9be6afe9f57cdec48175f0d6e0912a7e66`; the full prototype diff SHA-256 is `c675a03d3051192bfce3b8e960cf7966b91c4eac24298fa4131d7b09a32a3ee1`. The earlier focused core test passed (8). The bounded 24 GiB continuation stopped at 23.5 GiB while Cargo compiled dependencies; it produced no new test summary or Codex executable. No candidate binary or offline capability self-test exists. The 3D MASTER adapter integration has not begun.
 
-**Gate:** strict 1 MiB provider response parsing, fake-provider tests, one-call
-orchestration through M2, focused and full Linux suites, and Linux fast CI.
-Windows worker CI is reported if triggered. M3.1 ends at this review
-checkpoint; M3.2 has not started and requires explicit instruction.
+**Resource gate:** The authorized hard ceiling remains 24 GiB (`25769803776` bytes); the bounded attempt has been used. Current preserved scratch is `25233518592` bytes, leaving `536285184` bytes below the ceiling. The root filesystem has `4436742144` bytes free, below the required 5 GiB reserve; a separate `/mnt` filesystem has ample space, but the Cargo target has not been moved. Do not retry compilation or move artifacts without a new bounded resource decision. Build space required to finish remains unknown.
+
+**M3.2 acceptance remains blocked:** The candidate binary identity and approval, production-path capability self-test, app integration, independent integration review, subscription compatibility, and platform qualification remain outstanding. A prior adapter review also identified process-boundary concerns that must be checked in the integration: fail-closed capability detection, response-file size enforcement during execution, and an effective subprocess memory limit.
+
+**CI / PR:** PR #16 is open and draft against `master`. As of the 17 Oct sync, Linux fast tests, Windows local-generation worker, and Windows candidate checks were queued for tip `55ff49a10ec1b90b716adef620df3612e7d3bac9`; no Windows qualification is claimed. See the dated sync addendum for exact runs and preserved local history.
+
+M2 worker/policy/check/publication code remains frozen. No live provider calls, credential access, modified-binary installation, merge, or M3.3 work occurred. Details are in [`docs/evidence/v1/m3/m3.2f-resumption.md`](../evidence/v1/m3/m3.2f-resumption.md) and the [17 Oct sync addendum](../evidence/v1/m3/m3.2f-resumption-2026-10-17.md); historical M3.2b evidence remains unchanged.

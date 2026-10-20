@@ -28,6 +28,24 @@ def test_smoke_test_passes_every_step(tmp_path):
     assert manifest["artifacts"]["export_size_bytes"] > 0
 
 
+def test_smoke_skips_native_gpu_probe_without_explicit_opt_in(
+    tmp_path, monkeypatch,
+):
+    import am3d.gpu as gpu
+
+    monkeypatch.delenv("AM3D_TEST_REAL_GPU", raising=False)
+
+    def unexpected_gpu_probe(*_args, **_kwargs):
+        raise AssertionError("smoke must not probe native GL by default")
+
+    monkeypatch.setattr(gpu, "create_offscreen_context", unexpected_gpu_probe)
+    manifest = run_smoke_test(tmp_path)
+
+    assert manifest["ok"] is True
+    assert manifest["artifacts"]["gpu_parity"].startswith(
+        "skipped: real GPU tests disabled")
+
+
 def test_smoke_test_manifest_records_a_failing_step(tmp_path, monkeypatch):
     """A step that raises must be recorded as failed, not silently
     swallowed, and must stop the run rather than limping into steps that

@@ -1,0 +1,23 @@
+{
+  "baseline_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "working_tree_state": "uncommitted; no Phase 3 commit or push",
+  "scope": "Phase 3 policy and worker source, focused regressions, narrowly authorized path/writer support, and implementation evidence",
+  "sha256": {
+    "am3d/ai/policy.py": "9d80cf3174b491191e577811b97e5a2389d90796319065cce4978e08c0ae962e",
+    "am3d/ai/test_policy.py": "c54d7a541c97779042633f64dc07d3376f23f514cd5fbf48c33e32008f2a2941",
+    "am3d/ai/test_worker.py": "43623bbbc26c10b753e21b79e9d6ae10249a8dd8b1cf111dc87159d327804db9",
+    "am3d/ai/worker.py": "184df9bf7555ee9496120e30ae4aab3bb1a9e3807326721e092b2313ced7fae7",
+    "am3d/core/paths.py": "c7287fc36c03a25d58e53640b0de71d1443511e9d05d7f8f581974cad4295f9d",
+    "am3d/core/test_paths.py": "ddd77f48f5027b472a2676580be68952dfaaf49bf54dc6ce6a0ad9dd6452227c",
+    "am3d/recipes/executor.py": "2454d5c759ed1ddee47b2814d8d74deb8e466aead2d6b47decd52f49f45b1a6a",
+    "am3d/recipes/test_executor.py": "123b35ceb659c0e3bee0cec0fc560208bb38248fbdde54fff8ba3de2025510cf",
+    "am3d/ui/__main__.py": "b8553263a9785cf5b50434d15b26309f2f49500ef64fa0fb3260cdc3f23451c3",
+    "docs/evidence/v1/phase-3/IMPLEMENTATION.md": "9b4538df3f577289676cdd520f853b27f76349b28e5c9fdccac2714d2bd135ad",
+    "docs/evidence/v1/phase-3/tests.txt": "9b5deac4e7c24e8969b08c6d8769825f68531350ebe1d7fd3dd6607767ce6f01"
+  },
+  "notes": [
+    "Hashes cover exact working-tree bytes for the listed Phase 3 files and scoped support changes after the malformed-protocol and Windows realpath-prefix corrections; they are not a whole-working-tree digest.",
+    "Source behavior was tested on Windows 10 IoT Enterprise LTSC x86-64, build 10.0.19044, CPython 3.12.14 in .venv.",
+    "No frozen executable, Windows 11, or Linux release acceptance is claimed."
+  ]
+}

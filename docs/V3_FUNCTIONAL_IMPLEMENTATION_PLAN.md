@@ -1,7 +1,10 @@
 # 3D MASTER:2005 — Functional Application and External LLM Pipeline Plan (historical)
 
 Date: 2026-09-08
-Status: historical implementation plan; see [the active roadmap](IMPLEMENTATION_ROADMAP.md) for current scope and acceptance state.
+Status: historical implementation plan; superseded for active scheduling by the
+[approved V1 master plan](V1_MASTER_IMPLEMENTATION_PLAN.md) on 2026-10-13.
+The V3 phase results below remain historical evidence for their named source
+and scope; do not resume the old plan's todo list as current work.
 Inspected checkout: `1078f34` (clean before this documentation change).
 Supersedes: `V2_BETA_IMPLEMENTATION_PLAN.md`; retain that file as historical evidence.
 

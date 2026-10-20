@@ -49,6 +49,18 @@ a = Analysis(
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
+        # Keep source-build and optional display/test helpers out of the
+        # packaged CLI as the development environment grows. The recipe path
+        # uses neither these modules nor the GUI's HTTP client CLI.
+        "pytest",
+        "_pytest",
+        "anyio.pytest_plugin",
+        "httpx._main",
+        "pygments",
+        "packaging",
+        "setuptools",
+        "_distutils_hack",
+        "distutils",
         # The recipe pipeline is pure software (numpy + Pillow) -- never
         # imports PySide6/Qt or the optional moderngl GPU renderer -- so
         # excluding them keeps this a small, self-contained console exe.

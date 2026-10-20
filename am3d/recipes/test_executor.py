@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
 import struct
 
 import pytest
@@ -822,6 +823,113 @@ def test_manifest_has_one_entry_per_written_artifact(tmp_path):
     assert res.manifest[0]["format"] == "spritesheet"
     assert res.manifest[0]["status"] == "written"
     assert res.manifest[0]["size_bytes"] > 0
+
+
+def test_ai_safe_artifact_names_keep_unicode_in_native_scene(tmp_path):
+    name = "箱 — prop / front"
+    session = Session()
+    executor = RecipeExecutor(session, output_root=str(tmp_path),
+                              safe_artifact_names=True)
+    result = executor.execute({
+        "name": "portable names",
+        "objects": [{"name": name, "primitive": "box"}],
+        "exports": [{"format": "spritesheet", "path": "sheet",
+                     "params": {"views": 2, "size": 24}}],
+    })
+
+    assert result.ok, result.error_records
+    written = [Path(path) for _, path in result.exports]
+    assert written
+    assert all(path.name.isascii() for path in written)
+    assert all(name not in path.name for path in written)
+    assert name in session.project.objects
+
+
+@pytest.mark.parametrize(("primitive", "params", "generator_params", "profile"), [
+    ("lathe", {"profile": [[1, 0], [1.5, 1], [1.2, 2], [0.8, 3]],
+               "axis": "z", "sections": 8},
+     {"axis": "z", "sections": 8},
+     [[1, 0, 0], [1.5, 1, 0], [1.2, 2, 0], [0.8, 3, 0]]),
+    ("extrude", {"profile": [[0, 0, 0], [1, 0, 0],
+                             [1, 0, 1], [0, 0, 1]],
+                 "height": 1.7, "twist_deg": 31.5, "rings": 5},
+     {"height": 1.7, "twist_deg": 31.5, "rings": 5},
+     [[0, 0, 0], [1, 0, 0], [1, 0, 1], [0, 0, 1]]),
+])
+def test_profile_recipes_keep_generator_degrees_and_append_collision_safe_source(
+        primitive, params, generator_params, profile):
+    from am3d.core.rigging import object_cp_positions
+    from am3d.recipes.primitives import build_primitive
+
+    guide_points = [[0, 0, 0], [0.2, 0.1, 0],
+                    [0.4, 0.2, 0], [0.6, 0.3, 0]]
+    source_name = f"__recipe_{primitive}_profile__"
+    expected_patch = build_primitive(primitive, params)["patches"][0]
+    explicit_weight_index = expected_patch[1].size // 3 + 2
+    recipe = {
+        "name": "editable-profile",
+        "objects": [{
+            "name": "body", "primitive": primitive, "params": params,
+            "splines": [
+                {"name": source_name, "points": guide_points},
+                {"name": "guide", "points": guide_points},
+            ],
+            "bones": [{"name": "root", "head": [0, 0, 0],
+                       "tail": [0, 1, 0],
+                       "cp_weights": {str(explicit_weight_index): 0.75}}],
+        }],
+    }
+    session = Session()
+    result = RecipeExecutor(session).execute(recipe)
+    assert result.ok, result.error_records
+
+    obj = session.project.objects["body"]
+    patch = obj.patches[0]
+    expected_source = f"{source_name}2"
+    assert list(obj.splines) == [source_name, "guide", expected_source]
+    assert np.array_equal(obj.splines[source_name].point_array(), guide_points)
+    assert np.array_equal(obj.splines["guide"].point_array(), guide_points)
+    assert np.array_equal(obj.splines[expected_source].point_array(), profile)
+    assert patch.generator == {"op": primitive, "spline": expected_source,
+                               "params": generator_params}
+    assert np.array_equal(patch.interior, expected_patch[1])
+    assert (patch.degree_u, patch.degree_v) == expected_patch[2:]
+    assert session.get_bones("body")[0].cp_weights == {
+        explicit_weight_index: 0.75}
+
+    positions, _writer = object_cp_positions(obj)
+    authored_end = patch.interior.size // 3 + 2 * len(guide_points)
+    assert authored_end < len(positions)
+    assert np.array_equal(positions[patch.interior.size // 3:
+                                     patch.interior.size // 3 + len(guide_points)],
+                          guide_points)
+
+
+@pytest.mark.parametrize(("primitive", "params"), [
+    ("sphere", {"radius": 0.7, "sections": 8, "rings": 5}),
+    ("box", {"width": 1.2, "height": 0.8, "depth": 1.5, "n": 3}),
+    ("cylinder", {"radius": 0.45, "height": 1.6,
+                  "sections": 8, "rings": 3}),
+    ("cone", {"radius": 0.45, "height": 1.6,
+              "sections": 8, "rings": 3}),
+    ("torus", {"major_sections": 8, "minor_sections": 5}),
+    ("plane", {"width": 1.5, "height": 0.8, "n": 3}),
+])
+def test_legacy_recipe_primitives_retain_builder_nets_and_effective_degrees(
+        primitive, params):
+    from am3d.recipes.primitives import build_primitive
+
+    session = Session()
+    result = RecipeExecutor(session).execute({
+        "name": "legacy-degree-parity",
+        "objects": [{"name": "body", "primitive": primitive,
+                     "params": params}],
+    })
+    assert result.ok, result.error_records
+    patch = session.project.objects["body"].patches[0]
+    _name, net, degree_u, degree_v = build_primitive(primitive, params)["patches"][0]
+    assert np.array_equal(patch.interior, net)
+    assert patch.effective_degrees() == (degree_u, degree_v)
 
 
 def test_staging_preserves_existing_files_on_failure(tmp_path):

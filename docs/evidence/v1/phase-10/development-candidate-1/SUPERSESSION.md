@@ -1,0 +1,5 @@
+# Successful local candidate superseded by bundled-document correction
+
+Source `7f90f1092eff741a399397f540a5cf3a38bb0902d249f7d3aaa0cfb7d4022a92`, ZIP `743eb4cbcf8b7e0e9920aa9ca9c26f7fa87fb266af40ec5254db730c3198bfe3` passed the executed local gates, with root full build exit0 and exact additional checks. Independent product review then reproduced stale full-regression-pending statements in three bundled docs. This archive is superseded for delivery. Its successful command/results remain valid only for this exact source/archive and do not qualify the next corrected identity.
+
+Evidence copied byte-for-byte into this directory before the next build: full start/source manifest/logs/root binding/acceptance reports and standard BUILD_INPUTS/BUILD_PROVENANCE. Original retained frozen projects/exports remain work/v1/locked-fixed-workflow-host and credential probe reports work/v1/locked-credential-store-host. ZIP and checksum are separately preserved in work/v1/development-candidate-1; root recomputed the preserved ZIP SHA and matched the identity above. Current phase-10 filenames will bind the next candidate, never overwrite these historical snapshots.

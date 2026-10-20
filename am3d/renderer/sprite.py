@@ -37,7 +37,8 @@ def _rotation_x(deg):
 
 def _rasterize_screen(screen_xy, depths, view_normals, tri_indices,
                       width, height, ss, color, silhouette, light,
-                      buffers=None):
+                      buffers=None, *, color_buffer=None, depth_buffer=None,
+                      triangle_colors=None):
     """Rasterize geometry that is **already projected to pixel coordinates**.
 
     ``_rasterize`` auto-fits the mesh's own bounding box to a square canvas,
@@ -54,8 +55,17 @@ def _rasterize_screen(screen_xy, depths, view_normals, tri_indices,
     """
     W = int(width) * ss
     H = int(height) * ss
-    img = np.zeros((H, W, 4), dtype=np.float32)
-    zbuf = np.full((H, W), np.inf, dtype=np.float32)
+    img = (np.zeros((H, W, 4), dtype=np.float32) if color_buffer is None
+           else color_buffer)
+    zbuf = (np.full((H, W), np.inf, dtype=np.float32) if depth_buffer is None
+            else depth_buffer)
+    if img.shape != (H, W, 4) or zbuf.shape != (H, W):
+        raise ValueError("shared raster buffers have incompatible dimensions")
+    per_triangle = None
+    if triangle_colors is not None:
+        per_triangle = np.asarray(triangle_colors, dtype=np.float32)
+        if per_triangle.shape not in {(len(tri_indices), 3), (len(tri_indices), 4)}:
+            raise ValueError("triangle colors must provide RGB or RGBA per triangle")
     if buffers is not None:
         nbuf = buffers.setdefault("normals", np.zeros((H, W, 3)))
         cbuf = buffers.setdefault("cel", np.ones((H, W)))
@@ -73,7 +83,7 @@ def _rasterize_screen(screen_xy, depths, view_normals, tri_indices,
         cel_factors = cel_shade(view_normals, light=light,
                                 bands=buffers.get("bands", 4))
 
-    for tri in tri_indices:
+    for triangle_index, tri in enumerate(tri_indices):
         i0, i1, i2 = int(tri[0]), int(tri[1]), int(tri[2])
         # Any vertex behind the eye makes the projected triangle meaningless;
         # dropping it is the same near-plane rejection the GPU path gets for
@@ -111,14 +121,16 @@ def _rasterize_screen(screen_xy, depths, view_normals, tri_indices,
         if not nearer.any():
             continue
 
+        tri_base = (np.asarray(per_triangle[triangle_index][:3], dtype=np.float32) * 255.0
+                    if per_triangle is not None else base)
         if silhouette:
-            shade = base
+            shade = tri_base
         else:
             n = view_normals[tri].mean(axis=0)
             nn = float(np.linalg.norm(n))
             n = n / nn if nn > 1e-9 else np.array([0.0, 0.0, 1.0])
             lam = abs(float(np.dot(n, light)))
-            shade = base * (0.30 + 0.70 * lam)
+            shade = tri_base * (0.30 + 0.70 * lam)
 
         sub_img = img[miny:maxy + 1, minx:maxx + 1]
         for c in range(3):

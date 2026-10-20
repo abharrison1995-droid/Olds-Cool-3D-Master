@@ -1,0 +1,166 @@
+{
+  "mode": "retry2-current-intact-venv-package-binding",
+  "python_version": "3.12.14",
+  "freeze_entry_count": 38,
+  "same_versions_as_preserved_retry1_reference": true,
+  "retry2_freeze_sha256": "57b2723d4e3d576f0a9173f3fa983cf6099385dd7dccdc57813efe48c050a443",
+  "packages": [
+    {
+      "name": "altgraph",
+      "version": "0.17.5"
+    },
+    {
+      "name": "anyio",
+      "version": "4.15.1"
+    },
+    {
+      "name": "attrs",
+      "version": "26.1.0"
+    },
+    {
+      "name": "certifi",
+      "version": "2026.7.22"
+    },
+    {
+      "name": "colorama",
+      "version": "0.4.6"
+    },
+    {
+      "name": "glcontext",
+      "version": "3.1.0"
+    },
+    {
+      "name": "h11",
+      "version": "0.16.0"
+    },
+    {
+      "name": "httpcore",
+      "version": "1.0.9"
+    },
+    {
+      "name": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "name": "idna",
+      "version": "3.20"
+    },
+    {
+      "name": "iniconfig",
+      "version": "2.3.1"
+    },
+    {
+      "name": "jaraco.classes",
+      "version": "3.4.0"
+    },
+    {
+      "name": "jaraco.context",
+      "version": "6.1.2"
+    },
+    {
+      "name": "jaraco.functools",
+      "version": "4.6.0"
+    },
+    {
+      "name": "jsonschema",
+      "version": "4.26.0"
+    },
+    {
+      "name": "jsonschema-specifications",
+      "version": "2025.9.1"
+    },
+    {
+      "name": "keyring",
+      "version": "25.7.0"
+    },
+    {
+      "name": "moderngl",
+      "version": "5.12.0"
+    },
+    {
+      "name": "more-itertools",
+      "version": "11.2.0"
+    },
+    {
+      "name": "msgpack",
+      "version": "1.2.1"
+    },
+    {
+      "name": "numpy",
+      "version": "2.4.6"
+    },
+    {
+      "name": "packaging",
+      "version": "26.3"
+    },
+    {
+      "name": "pefile",
+      "version": "2024.8.26"
+    },
+    {
+      "name": "pillow",
+      "version": "12.3.0"
+    },
+    {
+      "name": "pip",
+      "version": "26.2.1"
+    },
+    {
+      "name": "pluggy",
+      "version": "1.6.0"
+    },
+    {
+      "name": "Pygments",
+      "version": "2.21.0"
+    },
+    {
+      "name": "pyinstaller",
+      "version": "6.22.2"
+    },
+    {
+      "name": "pyinstaller-hooks-contrib",
+      "version": "2026.8"
+    },
+    {
+      "name": "PySide6",
+      "version": "6.11.2"
+    },
+    {
+      "name": "PySide6_Addons",
+      "version": "6.11.2"
+    },
+    {
+      "name": "PySide6_Essentials",
+      "version": "6.11.2"
+    },
+    {
+      "name": "pytest",
+      "version": "9.1.1"
+    },
+    {
+      "name": "pywin32-ctypes",
+      "version": "0.2.3"
+    },
+    {
+      "name": "referencing",
+      "version": "0.37.0"
+    },
+    {
+      "name": "rpds-py",
+      "version": "2026.9.1"
+    },
+    {
+      "name": "setuptools",
+      "version": "84.0.0"
+    },
+    {
+      "name": "shiboken6",
+      "version": "6.11.2"
+    },
+    {
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    }
+  ],
+  "limit": "Captured after functional gates; not a claim of a pre-test retry2 full-freeze capture. No package installation commands occurred between retry2 setup and this receipt; metadata is ordinary local evidence, not tamper-proof authenticity."
+}

@@ -1,0 +1,13 @@
+{
+  "pinned_entry_count": 38,
+  "mode": "supplemental-manual-lock-proposal-after-tail-failure",
+  "bootstrap_overall_exit_code": 1,
+  "identical_to_post_gate_preserved_environment": true,
+  "qualification": "proposal only; corrected-source full locked rebuild required",
+  "production_normalizer_source_sha256": "8a9ed9e28b5e3c123270fb88aed05aa17b48855ab7c2b23cd67c713b0bfb3ba7",
+  "bootstrap_source_digest": "2aab9e3b80626ea5020b67cc7bebf01e6488179ab64e2156c38bfa9a645309bc",
+  "normalization": "trim; ignore comments; exact pinned entries; PEP503 package names; sort; omit pip installer only; preserve setuptools/wheel when present",
+  "proposal_sha256": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
+  "bootstrap_archive_sha256": "90e2e4c6da0bb5fa45915732d7693e7b5a60c4727f80484c8ab337547335d5af",
+  "dependency_check": "passed"
+}

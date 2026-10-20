@@ -1,55 +1,49 @@
-# 3D MASTER:2005 — current status
+# 3D MASTER:2005 — current progress
 
-Updated: 2026-09-28.
+Updated: 2026-10-14 (Europe/London).
 
-This file is a short status index, not a second implementation plan. The
-active plan is [docs/IMPLEMENTATION_ROADMAP.md](docs/IMPLEMENTATION_ROADMAP.md).
-Older V1/V2/V3 plans and their evidence remain as historical records; their
-PASS labels do not replace acceptance of the current source and artifacts.
+## Active V1 direction and status
 
-## Product outcome
+The approved active plan is [docs/V1_MASTER_IMPLEMENTATION_PLAN.md](docs/V1_MASTER_IMPLEMENTATION_PLAN.md). Product direction was approved on 2026-10-13. Its independent plan review passed on 2026-10-13; Phase 0 documentation reconciliation and current-source baseline recording are complete (738 baseline tests and 14 source smoke steps passed on Windows 10 offscreen). Phase 1 local implementation passed independent review; Phase 2 local source and fixture review also passed. Live-provider acceptance remains open. The shipped V1 workflow has not passed acceptance.
 
-An external AI agent authors and runs a recipe to create an editable 3D asset;
-the desktop editor opens that project for inspection and further work. The
-recipe/CLI workflow is code-first. There is no embedded model-provider or
-prompt interface.
+The current V1 development source implements in-app AI prompting, provider settings, generation history, and natural-language refinement, with bounded local checks documented in the phase receipts. Those features have not shipped as an accepted V1 product. The historical Linux Mint 22.3 preview is a different `0.2.0b1` artifact whose recorded scope covers the desktop editor and external-agent recipe/CLI workflow; it does not qualify the current `1.0.0.dev1` source or its in-app AI workflow. The standalone recipe CLI and editor remain part of the current V1 direction, and V1 acceptance remains open.
 
-## Implemented foundation
+The V1 targets are Windows 11 x86-64 and Linux Mint 22.3 x86-64. Neither has passed V1 qualification. The current implementation workstation is Windows 10 IoT Enterprise LTSC, build 19044, x86-64, which is not the Windows 11 target. The source baseline passed 738 tests and 14 smoke steps in Qt offscreen mode on this host; exact local frozen development checks now pass. A frozen executable window was enumerated on the native Windows 10 desktop, but both Computer Use screenshot captures timed out before any interaction. Manual native workflow, recovery, scaling, keyboard and GPU acceptance remain pending.
 
-- Versioned JSON recipe schema, authoring guide, examples, validation-only
-  mode, structured CLI errors and output manifests.
-- Recipe generation for geometry, procedural appearance, rigs/actions,
-  editable `.am3d` projects, static OBJ/GLB exports, and sprite/toon/animation
-  sheets.
-- Desktop GUI for modeling, materials, rigging, animation, rendering,
-  persistence and review of generated projects.
-- A Blender-meets-early-2000s desktop restyle is present in the current
-  working tree, with previews under `docs/previews/`.
-- The Linux Mint 22.3 x86-64 current-source preview candidate has passed its
-  source suite and packaged checks. GUI smoke used Qt offscreen/software
-  paths; this is not native-desktop, GPU, MX, or broad Linux qualification.
+## V1 phase ledger
 
-## Deferred platform qualification
+Final documentation follow-up: the successful local7f90f109…/743eb4cb… candidate is superseded for delivery by a bounded correction to three bundled regression-status documents. Previous logs/archive/receipts are preserved in phase-10/development-candidate-1. Only bundled docs changed; source2be687b3… passed the fresh full locked build (1048/2/4 in596.54s), GUI14/CLI/offline AI/relocation/path scan and retained frozen credential/independent-reader checks. Exact replacement ZIP36970e05… passed independent focused packaging and product/platform verification.
 
-MX Linux 25.2 and Windows are follow-on qualification for a later
-cross-platform release, not blockers for the Mint preview candidate. No
-Windows artifact is included or verified, and the current source has not been
-requalified on MX. A genuinely separate LLM vendor has also not been tested;
-the earlier agent trial used fresh same-family substitute agents and records
-that limitation.
+| Phase | State |
+| --- | --- |
+| 0 — Approve contract and reconcile documentation | Complete — independent plan review, documentation reconciliation and Windows 10 offscreen source baseline; see docs/evidence/v1/phase-0/BASELINE.md |
+| 1 — AI contracts, provider, and credentials | Earlier local review passed54 focused checks. Integrated architecture review found percent-encoded credential endpoint/model/message/reflected-response bypasses; bounded guards independently verified (64 provider/credential, 11 settings checks). Live qualification pending |
+| 2 — Brief interpretation and recipe candidates | Local implementation reviewed — 19 prompt tests / 66 combined tests; premeasurement r2 fixture corrections verified; live baseline pending |
+| 3 — Policy and isolated worker | Local security and reopened Windows path-race reviews passed. Normalized both audited real paths to the host extended form; deterministic race regression and three real deep-path runs passed. Original transient traceback was unavailable; source mechanism and limits are documented in phase-3/PATH_RACE_REVIEW.md. Selected-target qualification remains pending; exact local frozen worker passed |
+| 4 — Artifact checks, preview, and provenance | Earlier integrity findings and reopened sheet/export-intent correction independently verified. Twelve sheet-contract and four existing export/resource checks passed; strict source acceptance also passed. See phase-4/SHEET_CONTRACT_REVIEW.md. Live/human and selected-target frozen/platform gates pending; exact local frozen checks passed |
+| 5 — Bounded repair and cancellation | Local independent state/accounting review passed (40 checks, 1 heavy fixture deselected; component refinements separately passed). Resource-terminal seam independently verified; root current real worker/check/publish passed (1 check, exact 88-file snapshot). Live acceptance pending |
+| 6 — In-app generation and editor handoff | Original deferred-close defect and four new branches independently verified fixed; profile/parity/surface 24 checks passed. First 58-suite run had one unknown eight-second close-cancel wait failure; exact case and full rerun passed, retained as final-regression qualification limit. Live/native and selected-target frozen gates pending; exact local frozen checks passed |
+| 7 — History and refinement | Local independent preservation review passed:5 history checks, the measured four-refinement node and a 286-character Unicode history-path probe. Verified parent/child history, recipe-based refinement, authoritative Session/action divergence and guarded restore; live/native and selected-target frozen gates pending; exact local frozen history/refinement passed |
+| 8 — Frozen benchmark and measured capability gaps | Local methodology finding independently verified fixed: observed receipts plus physical PNG/native verification reject record tampering; 13 checks and 2 actual receipt/offline-gate checks passed. Phase7 live style-family checks, two live runs and human scores pending; two reviewers available later. No authenticated provider-origin or same-account all-files protection claimed |
+| 9 — UX and documentation pass | Local independent UX/docs gate passed:23 checks and16 final capture checksums/eight source hashes verified; two documentation findings closed. Development version1.0.0.dev1, durable docs, sanitized diagnostics, scrollable settings/Home and active-page sizing implemented. Original overwritten draft capture bindings are explicitly unverifiable. Alt+A suggestion deferred; native scale/keyboard inspection pending |
+| 10 — Windows 11 and Mint 22.3 qualification | First frozen-input bootstrap FAILED at source regression:1 failed/27 passed, stale native-check test selection; test-only fix passed16-module checks and independent two-case verification. No package or lock produced by that attempt. Credential guard fixes independently verified; retry1 full isolated source regression passed1048 tests/2 privilege skips/4 existing warnings in672.57s against input840c4e12…; Both executables built, but retry1 stopped on strict-mode singleton Count handling before package/lock. Actual inventory/frozen diagnostics confirmed test-module payload, pre-Qt startup-hook and ambient ICU selection blockers; bounded packaging fixes independently reviewed (19 checks) and root43 tooling checks/4 privilege skips passed. Retry2 functional gates/source1048/2/4 passed, but final proposal bookkeeping failed; overall exit1 preserved. Supplemental capture from intact38-package environment was reviewed and promoted to source lock (uncommitted). Full locked rebuild exited0 against input2be687b3…:1048 tests/2 skips/4 warnings in596.54s; GUI14, CLI, fixed offline AI, relocation and path scan passed. Retained frozen credential-store CRUD/cleanup and independent OBJ/GLB reader passed; full tooling44/4 passed. Exact ZIP36970e05… is a local development candidate; independent reviewers reverified its archive, manifest, provenance and output copies. Native Windows10 launch created a window, but screenshot capture timed out twice before interaction. Read-only, committed-source/lock and Windows11/Mint qualification remain unpassed |
+| 11 — Release candidate acceptance | Fresh integrated architecture/data-security source review completed locally; credential findings fixed and independently verified in its bounded focused round. Exact final locked source/artifact/local gates recorded in phase-10/ROOT_LOCKED_ACCEPTANCE.md; independent final packaging and product/platform verification completed for local development scope. External and committed-source/lock gates unpassed; no RC accepted |
 
-See `docs/evidence/desktop-release/FINDING_LEDGER.md` for historical fixes
-and evidence, `docs/CAPABILITY_MATRIX.md` for surface-by-surface support, and
-`docs/IMPLEMENTATION_ROADMAP.md` for the remaining work and gates.
+## Preserved preview evidence
 
-Phase 0 of the roadmap is complete: two independent Luna reviewers examined
-the plan and supporting docs, their findings were resolved, and the review is
-recorded in `docs/evidence/implementation-roadmap/phase-0-review.md`.
+The accepted Linux Mint 22.3 x86-64 preview candidate is a historical, artifact-specific result: archive SHA-256 `4d41c0cf7cbf069edf907483cbf16ff4b0f8dcc54130aa791a16a049568d6433`, build-input digest `6e62c8cdf6ecfb578885f852391b5d8b50d118a6405b9f4817cb36aa0fd60283`. Its recorded scope includes 738 source tests, 14 packaged GUI smoke steps, CLI validation/export and structured-failure checks, relocation and payload checks. GUI checks used Qt offscreen mode and software rendering. This does not qualify V1, native desktop interaction, physical GPU rendering, MX, or general Linux support. Full evidence remains in `docs/evidence/implementation-roadmap/phase-3/` and `docs/evidence/implementation-roadmap/CANDIDATE_REVIEW.md`.
 
-Phase 1 is complete: a fresh same-family Luna agent corrected a structured recipe rejection, validated the final recipe, and created the project and exports. Independent evaluation confirmed leg motion; two Luna reviewers passed the gate. The agent trial used the source CLI; packaged CLI acceptance was completed in Phase 3.
+The older MX 25.2 acceptance is a different historical artifact: source commit `b96c922a3c9d6461f0e4888ce47dbc28b3449067`, archive SHA-256 `ad36d7ef798d3fd3bd7dc68bd15a8540a8c535655b2e8ec1e7fe6e86eefc4cdf`. It does not qualify the Mint preview candidate or current V1. Its evidence remains in `docs/evidence/desktop-release/phase-e/`.
 
-Phase 2 is complete for the Qt offscreen MainWindow path: generated-project edit, undo, redo, save, and reopen passed, and the full asset is visible in both workspace captures at 1280×820 and 1440×900. Two independent Luna reviewers passed after renderer fallback reporting was corrected. Native compositor and physical GPU checks remain pending on their target platforms.
+| Historical preview milestone | Preserved result |
+| --- | --- |
+| Preview Phase 0 — documentation/authority | Complete; two independent Luna reviews; `docs/evidence/implementation-roadmap/phase-0-review.md` |
+| Preview Phase 1 — external-agent recipe trial | Complete; a fresh same-family substitute agent corrected a structured recipe rejection and generated project/exports; independent evaluation confirmed leg motion; a separate model vendor was not tested |
+| Preview Phase 2 — editor handoff | Complete in Qt offscreen mode; edit, undo, redo, save/reopen and two workspace captures passed; native compositor and physical GPU remained outside that gate |
+| Preview Phase 3 — Mint candidate | Complete for the identified archive above; 738 tests, 14 GUI smoke steps and package/CLI checks; two independent Luna reviews passed |
+| Preview Phase 4 — MX qualification | Deferred; the older MX artifact does not qualify current source |
+| Preview Phase 5 — Windows CI preparation | Reviewed; `.github/workflows/windows.yml` was not executed in the recorded evidence; clean-machine, interactive, DPI and real-GPU gates remain open |
 
-Phase 3's final-scope current-source candidate passed on Mint 22.3, with 738 tests, 14 packaged GUI smoke steps, CLI validation/export and structured parse-failure checks, plus relocation and payload checks. The staged docs match the Mint preview scope, and two fresh independent Luna reviews passed. Mint/offscreen evidence does not certify MX or hardware GPU behavior; see `docs/evidence/implementation-roadmap/CANDIDATE_REVIEW.md`.
+Windows candidate artifacts may be produced for testing. A supported publication claim requires the actual Windows acceptance gates. See [supported platforms](docs/SUPPORTED_PLATFORMS.md), [Windows acceptance](docs/WINDOWS_ACCEPTANCE_PLAN.md), and the historical [preview roadmap](docs/IMPLEMENTATION_ROADMAP.md).
 
-Phase 4 MX qualification is deferred until the documented MX Linux 25.2 machine is available. Phase 5's `windows-latest` CI preparation is complete and passed two independent Luna reviews; `.github/workflows/windows.yml` has not run. Windows CI, clean-VM and real-GPU checks remain later platform gates.
+Final local acceptance and exact independent-review receipt hashes: docs/evidence/v1/phase-11/FINAL_ACCEPTANCE.md and FINAL_ACCEPTANCE_BINDING.json. Required cross-platform V1/RC gates remain open; no publication.

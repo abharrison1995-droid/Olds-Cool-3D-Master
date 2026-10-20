@@ -4,8 +4,8 @@ build-backend = "setuptools.build_meta"
 
 [project]
 name = "am3d"
-version = "0.2.0b1"
-description = "3D MASTER:2005 - A pure spline-based 3D character animation suite (Animation Master revival)"
+version = "1.0.0.dev1"
+description = "3D MASTER:2005 - Spline-patch 3D editor with internal tessellation and an in-app AI development workflow; release and target-platform gates pending."
 readme = "README.md"
 requires-python = ">=3.10"
 authors = [{name = "3D MASTER:2005 Team"}]
@@ -14,6 +14,8 @@ dependencies = [
     "msgpack>=1.0",
     "PySide6>=6.5",
     "Pillow>=10.0",
+    "httpx==0.28.1",
+    "keyring==25.7.0",
 ]
 
 [project.optional-dependencies]

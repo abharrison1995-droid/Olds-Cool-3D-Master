@@ -11,13 +11,14 @@
     Skip step 3. The resulting build is NOT release-qualified and says so in
     its provenance file.
 .PARAMETER CaptureLock
-    Write requirements-lock-windows.txt from the build venv's resolved set,
-    the Windows counterpart of requirements-lock-linux.txt. Run this once on
-    a machine that has completed a full build, then commit the file.
+    After all tests and packaged checks pass, write a proposed Windows lock
+    under ignored build output. Copy it to requirements-lock-windows.txt and
+    rerun without this switch so the final candidate uses that exact input.
 #>
 param(
     [switch]$SkipTests,
-    [switch]$CaptureLock
+    [switch]$CaptureLock,
+    [string]$HostPython = "C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe"
 )
 
 $ErrorActionPreference = "Stop"
@@ -25,13 +26,15 @@ $ErrorActionPreference = "Stop"
 # scripts/), so the repo root IS $PSScriptRoot -- walking up a level here
 # would build from the wrong directory (and clean up the wrong "dist"/
 # "release" folders) whenever invoked from outside the repo.
-$RepoRoot = $PSScriptRoot
+$RepoRoot = (Resolve-Path -LiteralPath $PSScriptRoot).Path
 Set-Location $RepoRoot
 
 $BuildDir = Join-Path $RepoRoot "build\windows"
 $VenvDir  = Join-Path $BuildDir "venv"
 $DistDir  = Join-Path $BuildDir "dist"
 $WorkDir  = Join-Path $BuildDir "work"
+$ReleaseRoot = Join-Path $RepoRoot "release"
+. (Join-Path $RepoRoot "scripts\phase10_safety.ps1")
 
 # Run a native command (pip/pytest/PyInstaller) without $ErrorActionPreference
 # = "Stop" turning its own stderr output into a fatal error. PowerShell 5.1
@@ -47,8 +50,115 @@ function Invoke-Native {
     try { & $Command } finally { $ErrorActionPreference = $prev }
 }
 
+# PyInstaller resolves non-system DLL imports from PATH while building. Keep
+# that search limited to the isolated build interpreter, its selected base
+# Python runtime, and this Windows installation so unrelated tools on the
+# developer's PATH cannot supply runtime DLLs to the frozen payload.
+# PHASE10_PYINSTALLER_SEARCH_PATH_HELPERS_BEGIN
+function Get-Phase10PyInstallerSearchPath {
+    param(
+        [Parameter(Mandatory)][string]$HostPythonPath,
+        [Parameter(Mandatory)][string]$VenvScriptsPath
+    )
+
+    $hostPythonFull = [System.IO.Path]::GetFullPath($HostPythonPath)
+    $venvScriptsFull = [System.IO.Path]::GetFullPath($VenvScriptsPath)
+    if (-not (Test-Path -LiteralPath $hostPythonFull -PathType Leaf)) {
+        throw "The selected host Python disappeared before PyInstaller dependency discovery."
+    }
+    if (-not (Test-Path -LiteralPath $venvScriptsFull -PathType Container)) {
+        throw "The isolated build interpreter directory is unavailable for PyInstaller dependency discovery."
+    }
+
+    $windowsRoot = [System.Environment]::GetFolderPath(
+        [System.Environment+SpecialFolder]::Windows)
+    if ([string]::IsNullOrWhiteSpace($windowsRoot)) {
+        throw "Could not resolve the Windows installation directory for PyInstaller dependency discovery."
+    }
+    $windowsRoot = [System.IO.Path]::GetFullPath($windowsRoot)
+    $systemDirectory = [System.IO.Path]::GetFullPath(
+        (Join-Path $windowsRoot "System32"))
+
+    $trustedDirectories = @(
+        $systemDirectory,
+        $windowsRoot,
+        $venvScriptsFull,
+        [System.IO.Path]::GetDirectoryName($hostPythonFull)
+    )
+    $uniqueDirectories = New-Object 'System.Collections.Generic.List[string]'
+    $seenDirectories = New-Object 'System.Collections.Generic.HashSet[string]' `
+        ([System.StringComparer]::OrdinalIgnoreCase)
+    foreach ($directory in $trustedDirectories) {
+        if ([string]::IsNullOrWhiteSpace($directory) -or
+            -not (Test-Path -LiteralPath $directory -PathType Container)) {
+            throw "A trusted PyInstaller dependency-search directory is unavailable."
+        }
+        $fullDirectory = [System.IO.Path]::GetFullPath($directory)
+        if ($seenDirectories.Add($fullDirectory)) {
+            [void]$uniqueDirectories.Add($fullDirectory)
+        }
+    }
+    return ($uniqueDirectories -join [System.IO.Path]::PathSeparator)
+}
+
+function Invoke-Phase10WithPyInstallerSearchPath {
+    param(
+        [Parameter(Mandatory)][string]$HostPythonPath,
+        [Parameter(Mandatory)][string]$VenvScriptsPath,
+        [Parameter(Mandatory)][ScriptBlock]$Action
+    )
+
+    $previousPath = $env:PATH
+    try {
+        $env:PATH = Get-Phase10PyInstallerSearchPath `
+            -HostPythonPath $HostPythonPath -VenvScriptsPath $VenvScriptsPath
+        & $Action
+    } finally {
+        $env:PATH = $previousPath
+    }
+}
+# PHASE10_PYINSTALLER_SEARCH_PATH_HELPERS_END
+
+# Keep normalization available both when a captured source lock exists and
+# during the initial -CaptureLock bootstrap where that lock is intentionally
+# absent. The locked comparison and proposal path use this same function.
+# PHASE10_LOCK_NORMALIZER_BEGIN
+function Normalize-Phase10LockEntries {
+    param([Parameter(Mandatory)][AllowEmptyCollection()][string[]]$Lines)
+
+    @($Lines | ForEach-Object {
+        $line = $_.Trim()
+        if ($line -and -not $line.StartsWith("#")) {
+            if ($line -notmatch '^([A-Za-z0-9_.-]+)==([^;\s]+)$') {
+                throw "Unsupported non-pinned Windows lock entry: $line"
+            }
+            $name = ($Matches[1] -replace '[-_.]+', '-').ToLowerInvariant()
+            $lockedVersion = $Matches[2]
+            # Pip is only the installer for this resolved set; keep build
+            # dependencies such as setuptools and wheel in the exact lock.
+            if ($name -ne "pip") {
+                "$name==$lockedVersion"
+            }
+        }
+    } | Sort-Object)
+}
+# PHASE10_LOCK_NORMALIZER_END
+
 Write-Host "=== 3D MASTER:2005 Windows Build ===" -ForegroundColor Cyan
 Write-Host ""
+Assert-Phase10PathWithinRoot -Target $BuildDir -AllowedRoot $RepoRoot | Out-Null
+Assert-Phase10PathWithinRoot -Target $ReleaseRoot -AllowedRoot $RepoRoot | Out-Null
+
+if ($CaptureLock -and $SkipTests) {
+    throw "-CaptureLock requires the full tests and frozen acceptance checks; it cannot be combined with -SkipTests."
+}
+$lockPath = Join-Path $RepoRoot "requirements-lock-windows.txt"
+if (-not (Test-Path -LiteralPath $lockPath) -and -not $CaptureLock) {
+    throw "The Windows lock is missing. Run a full bootstrap pass with -CaptureLock, then copy build\windows\proposed-requirements-lock-windows.txt to requirements-lock-windows.txt and rerun."
+}
+if ($CaptureLock -and (Test-Path -LiteralPath $lockPath)) {
+    throw "-CaptureLock only creates a proposal when no committed Windows lock exists; refusing to replace the existing lock."
+}
 
 # ---- 1. Isolated build environment ----
 # A dedicated venv under build\windows, never the developer's own environment
@@ -58,41 +168,31 @@ Write-Host ""
 # not depend on pytest or PyInstaller being installed globally (PKG-06).
 Write-Host "Step 1: Preparing an isolated build environment..." -ForegroundColor Yellow
 
-# `py -3` first: the Windows launcher is the only one of these that reliably
-# resolves to a real CPython rather than the App Execution Alias stub that
-# Windows puts on PATH as "python.exe", which exits 9009 and opens the Store.
-$hostPy = $null
-foreach ($cand in @(
-        @{ Exe = "py";      Pre = @("-3") },
-        @{ Exe = "python";  Pre = @() },
-        @{ Exe = "python3"; Pre = @() })) {
-    if (-not (Get-Command $cand.Exe -ErrorAction SilentlyContinue)) { continue }
-    $pre = $cand.Pre
-    $out = Invoke-Native {
-        & $cand.Exe @pre -c "import sys; print('%d.%d.%d' % sys.version_info[:3])"
-    }
-    if ($LASTEXITCODE -eq 0 -and $out) {
-        $hostPy = @{ Exe = $cand.Exe; Pre = $pre; Version = ("$out").Trim() }
-        break
-    }
-}
-if (-not $hostPy) {
-    Write-Error "No working Python found. Install CPython 3.11+ from python.org (the Microsoft Store alias is not enough)."
+$hostPythonFull = [System.IO.Path]::GetFullPath($HostPython)
+if (-not (Test-Path -LiteralPath $hostPythonFull -PathType Leaf)) {
+    Write-Error "The explicit -HostPython path is not a Python executable: $hostPythonFull"
     exit 1
 }
+$hostPythonVersionOutput = Invoke-Native {
+    & $hostPythonFull -c "import sys; print('%d.%d.%d' % sys.version_info[:3])"
+}
+if ($LASTEXITCODE -ne 0 -or -not $hostPythonVersionOutput) {
+    Write-Error "-HostPython did not start successfully: $hostPythonFull"
+    exit 1
+}
+$hostPythonVersion = ("$hostPythonVersionOutput").Trim()
 # ENV-01: numpy 2.4.6 declares Requires-Python >=3.11, so the pinned set
 # cannot be installed on 3.10 -- fail here with the reason rather than at a
 # resolver error thirty seconds later.
-if ([version]$hostPy.Version -lt [version]"3.11.0") {
-    Write-Error "Python 3.11+ is required (found $($hostPy.Version)); see docs/SUPPORTED_PLATFORMS.md, ENV-01."
+if ([version]$hostPythonVersion -lt [version]"3.11.0") {
+    Write-Error "Python 3.11+ is required (found $hostPythonVersion); see docs/SUPPORTED_PLATFORMS.md, ENV-01."
     exit 1
 }
-Write-Host "  Python (host): $($hostPy.Version) via $($hostPy.Exe)"
+Write-Host "  Python (host): $hostPythonVersion via explicit path"
 
-if (Test-Path $VenvDir) { Remove-Item -Recurse -Force $VenvDir }
+Remove-Phase10Directory -Target $VenvDir -AllowedRoot $BuildDir
 New-Item -ItemType Directory -Force -Path $BuildDir | Out-Null
-$hostPre = $hostPy.Pre
-Invoke-Native { & $hostPy.Exe @hostPre -m venv $VenvDir }
+Invoke-Native { & $hostPythonFull -m venv $VenvDir }
 $py = Join-Path $VenvDir "Scripts\python.exe"
 if ($LASTEXITCODE -ne 0 -or -not (Test-Path $py)) {
     Write-Error "Could not create the build venv at $VenvDir."
@@ -100,9 +200,9 @@ if ($LASTEXITCODE -ne 0 -or -not (Test-Path $py)) {
 }
 Write-Host "  Build venv: $VenvDir" -ForegroundColor Green
 
-# Install the full Windows lock once it has been captured on a native Windows
-# runner. On the first run, fall back to the directly pinned dev set and let
-# -CaptureLock write the platform's resolved dependency set. Steps 3 and 4
+# Install the full Windows lock once it is present in the source tree. On the
+# first bootstrap run, fall back to the directly pinned dev set and let
+# -CaptureLock propose the platform's resolved dependency set after checks. Steps 3 and 4
 # need pytest, jsonschema and PyInstaller; none of the dev packages reach the
 # release payload. This retains the runtime/dev separation while making later
 # Windows builds use captured transitive versions too.
@@ -112,7 +212,6 @@ if ($LASTEXITCODE -ne 0) {
     Write-Error "Could not upgrade pip in the isolated build environment."
     exit 1
 }
-$lockPath = Join-Path $RepoRoot "requirements-lock-windows.txt"
 if (Test-Path $lockPath) {
     $reqPath = $lockPath
     Write-Host "  Installing captured Windows lock: $lockPath" -ForegroundColor Cyan
@@ -131,14 +230,33 @@ if ($LASTEXITCODE -ne 0 -or @($frozen).Count -eq 0) {
     exit 1
 }
 Write-Host "  $(@($frozen).Count) resolved build packages installed from $([System.IO.Path]::GetFileName($reqPath))" -ForegroundColor Green
+if (Test-Path -LiteralPath $lockPath) {
+    $lockedEntries = @(Normalize-Phase10LockEntries -Lines @(Get-Content -LiteralPath $lockPath))
+    $resolvedEntries = @(Normalize-Phase10LockEntries -Lines @($frozen))
+    $lockDifference = Compare-Object -ReferenceObject @($lockedEntries) -DifferenceObject @($resolvedEntries)
+    if ($lockDifference) {
+        Write-Error "The installed Windows environment does not exactly match requirements-lock-windows.txt."
+        $lockDifference | Format-Table | Out-String | Write-Host
+        exit 1
+    }
+}
 
-if ($CaptureLock) {
-    # The Windows counterpart of requirements-lock-linux.txt. It is captured
-    # rather than hand-written because the transitive set differs by platform
-    # (pywin32-ctypes and pefile are PyInstaller's Windows-only dependencies,
-    # and there is no altgraph-free path to them).
-    ($frozen | Sort-Object) -join "`n" | Out-File -FilePath $lockPath -Encoding ascii
-    Write-Host "  Wrote $lockPath -- commit it." -ForegroundColor Green
+$sourceDigestBefore = (Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\build_input_digest.py") `
+        --root $RepoRoot --digest-only
+}) -join ""
+if ($LASTEXITCODE -ne 0 -or $sourceDigestBefore -notmatch '^[0-9a-f]{64}$') {
+    Write-Error "Could not capture the complete starting build-input digest."
+    exit 1
+}
+Write-Host "  Build input SHA-256: $sourceDigestBefore" -ForegroundColor Cyan
+Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\write_build_identity.py") `
+        --root $RepoRoot --platform windows --digest $sourceDigestBefore
+}
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Could not write the compact Windows bundle identity."
+    exit 1
 }
 
 # ---- 2. Run tests ----
@@ -153,7 +271,7 @@ if ($SkipTests) {
     $prevQtPlatformTests = $env:QT_QPA_PLATFORM
     $env:QT_QPA_PLATFORM = "offscreen"
     try {
-        Invoke-Native { & $py -m pytest am3d/ -q --tb=short }
+        Invoke-Native { & $py -m pytest am3d/ -q --maxfail=1 --tb=short }
     } finally {
         $env:QT_QPA_PLATFORM = $prevQtPlatformTests
     }
@@ -170,14 +288,20 @@ if ($SkipTests) {
 # leftovers from an unrelated one and the tree stays clean.
 Write-Host ""
 Write-Host "Step 4: Building executable with PyInstaller..." -ForegroundColor Yellow
+$previousIdentityPath = $env:AM3D_BUILD_IDENTITY_PATH
+$env:AM3D_BUILD_IDENTITY_PATH = Join-Path $BuildDir "build_identity.json"
 foreach ($stale in @($DistDir, $WorkDir)) {
-    if (Test-Path $stale) { Remove-Item -Recurse -Force $stale }
+    Remove-Phase10Directory -Target $stale -AllowedRoot $BuildDir
 }
 
-Invoke-Native {
-    & $py -m PyInstaller --clean --noconfirm `
-        --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d.spec")
-}
+$venvScriptsPath = Join-Path $VenvDir "Scripts"
+Invoke-Phase10WithPyInstallerSearchPath -HostPythonPath $hostPythonFull `
+    -VenvScriptsPath $venvScriptsPath -Action {
+        Invoke-Native {
+            & $py -m PyInstaller --clean --noconfirm `
+                --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d.spec")
+        }
+    }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyInstaller build failed!"
     exit 1
@@ -189,14 +313,18 @@ Write-Host "Build completed." -ForegroundColor Green
 # agent can drive recipes without installing Python or the GUI's Qt runtime.
 Write-Host ""
 Write-Host "Step 4b: Building packaged recipe CLI with PyInstaller..." -ForegroundColor Yellow
-Invoke-Native {
-    & $py -m PyInstaller --clean --noconfirm `
-        --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d_recipe.spec")
-}
+Invoke-Phase10WithPyInstallerSearchPath -HostPythonPath $hostPythonFull `
+    -VenvScriptsPath $venvScriptsPath -Action {
+        Invoke-Native {
+            & $py -m PyInstaller --clean --noconfirm `
+                --distpath $DistDir --workpath $WorkDir (Join-Path $RepoRoot "am3d_recipe.spec")
+        }
+    }
 if ($LASTEXITCODE -ne 0) {
     Write-Error "PyInstaller recipe CLI build failed!"
     exit 1
 }
+$env:AM3D_BUILD_IDENTITY_PATH = $previousIdentityPath
 Write-Host "Recipe CLI build completed." -ForegroundColor Green
 
 # ---- 3b. Bundled Qt platform plugins ----
@@ -225,10 +353,8 @@ foreach ($plugin in @("qwindows.dll", "qoffscreen.dll")) {
 # ---- 4. Stage release folder ----
 Write-Host ""
 Write-Host "Step 6: Staging release folder..." -ForegroundColor Yellow
-$releaseDir = Join-Path $RepoRoot "release\3D MASTER 2005 Beta"
-if (Test-Path $releaseDir) {
-    Remove-Item -Recurse -Force $releaseDir
-}
+$releaseDir = Join-Path $ReleaseRoot "3D MASTER 2005 Beta"
+Remove-Phase10Directory -Target $releaseDir -AllowedRoot $RepoRoot
 New-Item -ItemType Directory -Path $releaseDir -Force | Out-Null
 
 # Copy the built executable and _internal folder
@@ -263,22 +389,18 @@ foreach ($doc in @("QUICK_START.md", "CAPABILITY_MATRIX.md", "USER_GUIDE.md", "S
     Copy-Item -Force (Join-Path $RepoRoot (Join-Path "docs" $doc)) (Join-Path $releaseDir $doc)
 }
 
-# Create LICENSES placeholder
+# Copy the installed runtime wheels' upstream license texts and record their
+# package metadata. The helper fails if any explicitly bundled package is absent.
 $licenseDir = Join-Path $releaseDir "LICENSES"
 New-Item -ItemType Directory -Path $licenseDir -Force | Out-Null
-@"
-3D MASTER:2005 Beta
-Copyright (c) 2026
-
-This software uses:
-- PySide6 (LGPL-3.0)
-- NumPy (BSD-3-Clause)
-- msgpack (Apache-2.0)
-- Pillow (MIT-CMU)
-- ModernGL (MIT)
-
-See the respective packages for full license terms.
-"@ | Out-File -FilePath (Join-Path $licenseDir "NOTICE.txt") -Encoding utf8
+Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\write_runtime_licenses.py") `
+        --root $RepoRoot --output $releaseDir --platform windows
+}
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "Could not write truthful runtime dependency license notices."
+    exit 1
+}
 
 Write-Host "Release staged at: $releaseDir" -ForegroundColor Green
 
@@ -322,14 +444,35 @@ if (Test-Path $recipeExePath) {
         Write-Error "Packaged recipe CLI failed to build the bundled example recipe!"
         exit 1
     }
-    $produced = Get-ChildItem -Recurse -File $recipeOut |
-        Where-Object { $_.Name -ne "report.json" }
+    $produced = @(
+        Get-ChildItem -Recurse -File $recipeOut |
+            Where-Object { $_.Name -ne "report.json" }
+    )
     if ($produced.Count -eq 0) {
         Write-Error "The packaged recipe reported success but wrote nothing!"
         exit 1
     }
-    Remove-Item -Recurse -Force $recipeOut
-    Write-Host "  Recipe CLI validated and built the bundled example recipe ($($produced.Count) file(s))." -ForegroundColor Green
+
+    $invalidRecipePath = Join-Path $recipeOut "invalid_recipe.json"
+    [System.IO.File]::WriteAllText($invalidRecipePath, "{`"version`":1,", [System.Text.Encoding]::UTF8)
+    $invalidRecipeOutput = Invoke-Native {
+        & $recipeExePath --recipe $invalidRecipePath --validate-only
+    }
+    $invalidRecipeExitCode = $LASTEXITCODE
+    if ($invalidRecipeExitCode -ne 1) {
+        Write-Error "Packaged recipe CLI did not reject malformed JSON with exit 1."
+        exit 1
+    }
+    $invalidRecipeReport = ($invalidRecipeOutput -join "`n") | ConvertFrom-Json
+    if ($invalidRecipeReport.ok -ne $false -or
+        @($invalidRecipeReport.error_records).Count -eq 0 -or
+        $invalidRecipeReport.error_records[0].code -ne "recipe_read_error" -or
+        $invalidRecipeReport.error_records[0].stage -ne "parse") {
+        Write-Error "Packaged recipe CLI did not return a structured parse error."
+        exit 1
+    }
+    Remove-Phase10FreshTempDirectory -Target $recipeOut -RequiredPrefix "am3d_recipe_run_"
+    Write-Host "  Recipe CLI validated, built the bundled example recipe, and returned a structured malformed-input error ($($produced.Count) file(s))." -ForegroundColor Green
 } else {
     Write-Error "Recipe CLI executable not found at $recipeExePath"
     exit 1
@@ -410,25 +553,66 @@ if ($smokeExitCode -ne 0 -or $smokeManifest.ok -ne $true -or $incompleteSteps) {
     Get-Content $manifestPath | Write-Host
     exit 1
 }
-Write-Host "  Smoke test passed: $($smokeManifest.steps.Count) steps, all ok." -ForegroundColor Green
+Write-Host "  Smoke test passed: $(@($smokeManifest.steps).Count) steps, all ok." -ForegroundColor Green
+
+Write-Host ""
+Write-Host "Step 7a: Running the fixed offline AI acceptance flow..." -ForegroundColor Yellow
+$aiTestHost = Join-Path $smokeDir "ai-self-test-host"
+New-Item -ItemType Directory -Path $aiTestHost | Out-Null
+$aiTestReportPath = Join-Path $aiTestHost "phase10-ai-self-test\acceptance.json"
+$aiTestStdout = Join-Path $smokeDir "ai_self_test_stdout.txt"
+$aiTestStderr = Join-Path $smokeDir "ai_self_test_stderr.txt"
+$aiPsi = New-Object System.Diagnostics.ProcessStartInfo
+$aiPsi.FileName = $exePath
+$aiPsi.Arguments = "--ai-self-test --out `"$aiTestHost`""
+$aiPsi.UseShellExecute = $false
+$aiPsi.CreateNoWindow = $true
+$aiPsi.RedirectStandardOutput = $true
+$aiPsi.RedirectStandardError = $true
+$aiProc = [System.Diagnostics.Process]::Start($aiPsi)
+$aiStdoutTask = $aiProc.StandardOutput.ReadToEndAsync()
+$aiStderrTask = $aiProc.StandardError.ReadToEndAsync()
+$aiFinished = $aiProc.WaitForExit(120000)
+if (-not $aiFinished) {
+    Stop-Process -Id $aiProc.Id -Force -ErrorAction SilentlyContinue
+    Write-Error "Fixed AI acceptance timed out after 120s."
+    exit 1
+}
+$aiStdoutTask.Result | Out-File -FilePath $aiTestStdout -Encoding utf8
+$aiStderrTask.Result | Out-File -FilePath $aiTestStderr -Encoding utf8
+if ($aiProc.ExitCode -ne 0 -or -not (Test-Path -LiteralPath $aiTestReportPath)) {
+    Get-Content $aiTestStdout, $aiTestStderr | Write-Host
+    Write-Error "Fixed offline AI acceptance failed (exit $($aiProc.ExitCode))."
+    exit 1
+}
+$aiTestReport = Get-Content -LiteralPath $aiTestReportPath -Raw | ConvertFrom-Json
+if ($aiTestReport.ok -ne $true -or $aiTestReport.mode -ne "frozen" `
+        -or $aiTestReport.qualification -ne "offline-fixed-mock-transport" `
+        -or $aiTestReport.live_network_used -ne $false `
+        -or $aiTestReport.provider_requests -ne 4 `
+        -or $aiTestReport.credential_sentinel_written -ne $false `
+        -or $aiTestReport.worker_and_checks -ne "passed" `
+        -or $aiTestReport.refinement -ne "passed") {
+    Get-Content $aiTestReportPath | Write-Host
+    Write-Error "Fixed AI acceptance produced incomplete or unqualified evidence."
+    exit 1
+}
+Write-Host "  Fixed mock-transport AI acceptance passed; no live provider/network qualification is claimed." -ForegroundColor Green
 
 # The payload must contain only what a user receives. A build-machine path
 # inside it means a build artefact leaked into the release folder (this
 # caught the smoke manifest, which used to be written straight into it).
 Write-Host ""
 Write-Host "Step 7c: Checking the payload for build-machine references..." -ForegroundColor Yellow
-$leaked = Get-ChildItem -Path $releaseDir -Recurse -File |
-    Where-Object { $_.Length -lt 4MB } |
-    Where-Object {
-        (Select-String -Path $_.FullName -SimpleMatch -Pattern $RepoRoot `
-            -List -ErrorAction SilentlyContinue) -ne $null
-    } | Select-Object -First 5
-if ($leaked) {
-    Write-Error ("Release payload references the build location:`n" +
-        (($leaked | ForEach-Object { $_.FullName }) -join "`n"))
+Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\audit_build_payload.py") `
+        --payload $releaseDir --forbidden-root $RepoRoot
+}
+if ($LASTEXITCODE -ne 0) {
+    Write-Error "The complete release payload audit found a build path or could not inspect every payload file."
     exit 1
 }
-Write-Host "  No build-machine paths in the payload." -ForegroundColor Green
+Write-Host "  Complete payload scan passed (no size-based file omission)." -ForegroundColor Green
 
 # ---- 7. Release ZIP and checksum ----
 # Phase 6 bullet 5: ship a single reproducible archive plus its checksum,
@@ -440,7 +624,7 @@ $releaseParent = Split-Path $releaseDir -Parent
 $zipName = "3D-MASTER-2005-Beta-$version-win64.zip"
 $zipPath = Join-Path $releaseParent $zipName
 if (Test-Path $zipPath) {
-    Remove-Item -Force $zipPath
+    Remove-Phase10File -Target $zipPath -AllowedRoot $RepoRoot
 }
 # Zips the release folder itself as the archive's single top-level entry
 # (so extracting reproduces "3D MASTER 2005 Beta\..." rather than dumping
@@ -454,10 +638,8 @@ $checksumPath = "$zipPath.sha256"
 Write-Host "  Release ZIP: $zipPath" -ForegroundColor Green
 Write-Host "  SHA-256: $($zipHash.Hash)" -ForegroundColor Green
 
-# ---- 7b. Build provenance ----
-# The counterpart of release/BUILD_PROVENANCE-linux.txt: what was built, from
-# which commit, with which interpreter and which resolved package set. A
-# release artifact without this cannot be traced back to a tree.
+# ---- 7b. Build provenance inputs ----
+# Keep the final provenance write until after relocation and ACL checks.
 Write-Host ""
 Write-Host "Step 8b: Writing build provenance..." -ForegroundColor Yellow
 $gitCommit = Invoke-Native { & git -C $RepoRoot rev-parse HEAD }
@@ -479,7 +661,7 @@ $provenance = @(
     "git commit       : $(($gitCommit -join '').Trim())"
     "git status       : $gitState"
     "built on         : $($os.Caption) $($os.Version) $($env:PROCESSOR_ARCHITECTURE)"
-    "python (host)    : $($hostPy.Version)"
+    "python (host)    : $hostPythonVersion"
     "python (build)   : $pyBuildVersion"
     "pyinstaller      : $pyInstallerVersion"
     "tests            : $testState"
@@ -487,8 +669,6 @@ $provenance = @(
     "pinned build set (pip freeze):"
 ) + ($frozen | ForEach-Object { "  $_" })
 $provenancePath = Join-Path $releaseParent "BUILD_PROVENANCE-windows.txt"
-$provenance -join "`r`n" | Out-File -FilePath $provenancePath -Encoding utf8
-Write-Host "  $provenancePath" -ForegroundColor Green
 
 # ---- 8. Verify release contents from a relocated path ----
 # Extracts the ZIP to a throwaway location with a space and a non-ASCII
@@ -502,6 +682,7 @@ Write-Host "  $provenancePath" -ForegroundColor Green
 Write-Host ""
 Write-Host "Step 9: Verifying release contents from a relocated path..." -ForegroundColor Yellow
 $verifyRoot = Join-Path ([System.IO.Path]::GetTempPath()) "am3d verify éé $([System.Guid]::NewGuid().ToString('N').Substring(0,8))"
+$script:preserveVerifyRoot = $false
 try {
     New-Item -ItemType Directory -Path $verifyRoot -Force | Out-Null
     Expand-Archive -Path $zipPath -DestinationPath $verifyRoot -Force
@@ -569,12 +750,255 @@ try {
         exit 1
     }
     Write-Host "  Verified from: $verifyRoot" -ForegroundColor Green
-    Write-Host "  Relocated recipe CLI and GUI smoke test both passed." -ForegroundColor Green
+
+    # The relocated CLI is exercised with an external recipe for validation,
+    # actual artifact-producing execution, and a malformed file. This checks
+    # the structured machine error contract after extraction as well.
+    $relocatedRecipeOut = Join-Path $verifyRoot "relocated_recipe_output"
+    New-Item -ItemType Directory -Path $relocatedRecipeOut | Out-Null
+    $relocatedBuildOutput = Invoke-Native {
+        & $verifiedRecipeExe --recipe $verifyRecipeJson --out $relocatedRecipeOut
+    }
+    if ($LASTEXITCODE -ne 0) {
+        Write-Error "Relocated recipe CLI failed to build the external example."
+        exit 1
+    }
+    $relocatedBuildReport = ($relocatedBuildOutput -join "`n") | ConvertFrom-Json
+    $relocatedArtifacts = @(
+        Get-ChildItem -LiteralPath $relocatedRecipeOut -Recurse -File |
+            Where-Object { $_.Name -ne "report.json" }
+    )
+    if ($relocatedBuildReport.ok -ne $true -or $relocatedArtifacts.Count -eq 0) {
+        Write-Error "Relocated recipe CLI reported success without producing artifacts."
+        exit 1
+    }
+
+    $malformedRecipe = Join-Path $verifyRoot "malformed_recipe.json"
+    [System.IO.File]::WriteAllText($malformedRecipe, "{`"version`":1,", [System.Text.Encoding]::UTF8)
+    $malformedOutput = Invoke-Native {
+        & $verifiedRecipeExe --recipe $malformedRecipe --validate-only
+    }
+    $malformedExitCode = $LASTEXITCODE
+    if ($malformedExitCode -ne 1) {
+        Write-Error "Relocated recipe CLI did not reject malformed JSON with exit 1."
+        exit 1
+    }
+    $malformedReport = ($malformedOutput -join "`n") | ConvertFrom-Json
+    if ($malformedReport.ok -ne $false -or
+        @($malformedReport.error_records).Count -eq 0 -or
+        $malformedReport.error_records[0].code -ne "recipe_read_error" -or
+        $malformedReport.error_records[0].stage -ne "parse") {
+        Write-Error "Relocated recipe CLI did not return a structured parse error."
+        exit 1
+    }
+    Write-Host "  Relocated CLI validated, built $($relocatedArtifacts.Count) artifact(s), and returned a structured malformed-input error." -ForegroundColor Green
+
+    # Apply a real Windows access-control deny, attempt writes to an existing
+    # payload file and a new payload path, then restore the exact saved ACLs.
+    # If ACL control is unavailable, provenance records UNPASSED explicitly.
+    $script:readOnlyStatus = "UNPASSED: Windows ACL tools unavailable"
+    $script:readOnlyWorkflowStatus = "UNPASSED: payload write denial could not be proven"
+    $icacls = Get-Command icacls.exe -ErrorAction SilentlyContinue
+    if ($icacls) {
+        $aclBackupPath = Join-Path $verifyRoot "phase10-acls.txt"
+        $currentSid = [System.Security.Principal.WindowsIdentity]::GetCurrent().User.Value
+        $aclRestoreParent = [System.IO.Path]::GetDirectoryName($verifiedReleaseDir.FullName)
+        $aclMutationAttempted = $false
+        $aclRestoreError = $null
+        $writeWasAllowed = $false
+        try {
+            Invoke-Native { & $icacls.Source $verifiedReleaseDir /save $aclBackupPath /t /c }
+            if ($LASTEXITCODE -ne 0 -or -not (Test-Path -LiteralPath $aclBackupPath)) {
+                throw "Could not save relocated payload ACLs."
+            }
+            # Prove that the saved ACL can be restored through the parent
+            # directory before adding a deny entry. Numeric SIDs require '*'
+            # in icacls trustee syntax; restoration uses the parent because
+            # /save records paths relative to the payload child directory.
+            Invoke-Native { & $icacls.Source $aclRestoreParent /restore $aclBackupPath /c }
+            if ($LASTEXITCODE -ne 0) {
+                $script:readOnlyStatus = "UNPASSED: Windows ACL restore capability unavailable"
+                $script:readOnlyWorkflowStatus = "UNPASSED: restore capability not proven; payload ACL was not changed"
+            } else {
+                # Set this before invoking icacls: a failing command can still
+                # have applied some of the recursive deny entries.
+                $aclMutationAttempted = $true
+                Invoke-Native { & $icacls.Source $verifiedReleaseDir /deny "*$($currentSid):(OI)(CI)(W)" /t /c }
+                if ($LASTEXITCODE -ne 0) { throw "Could not apply the relocated payload write denial." }
+                $blockedWrites = 0
+                try {
+                    Add-Content -LiteralPath (Join-Path $verifiedReleaseDir "README.txt") -Value "phase10-write-probe"
+                    $writeWasAllowed = $true
+                } catch { $blockedWrites++ }
+                try {
+                    [System.IO.File]::WriteAllText((Join-Path $verifiedReleaseDir "phase10-write-probe.txt"), "probe")
+                    $writeWasAllowed = $true
+                } catch { $blockedWrites++ }
+                if (-not $writeWasAllowed -and $blockedWrites -eq 2) {
+                    $script:readOnlyStatus = "passed"
+                }
+                if ($script:readOnlyStatus -eq "passed") {
+                    # Keep evidence writable outside the denied payload, then
+                    # exercise the fixed frozen AI path while its files reject
+                    # writes.
+                    $readOnlyAiHost = Join-Path $verifyRoot "readonly_ai_self_test_host"
+                    if (Test-Path -LiteralPath $readOnlyAiHost) {
+                        throw "Read-only AI acceptance output path already exists."
+                    }
+                    Assert-Phase10PathWithinRoot -Target $readOnlyAiHost `
+                        -AllowedRoot $verifyRoot | Out-Null
+                    $readOnlyAiHostFull = [System.IO.Path]::GetFullPath($readOnlyAiHost)
+                    $readOnlyPayloadFull = [System.IO.Path]::GetFullPath($verifiedReleaseDir.FullName).TrimEnd('\') + '\'
+                    if ($readOnlyAiHostFull.StartsWith(
+                            $readOnlyPayloadFull,
+                            [System.StringComparison]::OrdinalIgnoreCase)) {
+                        throw "Read-only AI acceptance output must stay outside the payload."
+                    }
+                    New-Item -ItemType Directory -Path $readOnlyAiHost | Out-Null
+                    $readOnlyAiReportPath = Join-Path $readOnlyAiHost `
+                        "phase10-ai-self-test\acceptance.json"
+                    $readOnlyAiStdout = Join-Path $readOnlyAiHost "readonly_ai_self_test_stdout.txt"
+                    $readOnlyAiStderr = Join-Path $readOnlyAiHost "readonly_ai_self_test_stderr.txt"
+                    $prevQtPlatformReadOnly = $env:QT_QPA_PLATFORM
+                    $env:QT_QPA_PLATFORM = "offscreen"
+                    try {
+                        $readOnlyAiPsi = New-Object System.Diagnostics.ProcessStartInfo
+                        $readOnlyAiPsi.FileName = $verifiedExe
+                        $readOnlyAiPsi.Arguments = "--ai-self-test --out `"$readOnlyAiHost`""
+                        $readOnlyAiPsi.UseShellExecute = $false
+                        $readOnlyAiPsi.CreateNoWindow = $true
+                        $readOnlyAiPsi.RedirectStandardOutput = $true
+                        $readOnlyAiPsi.RedirectStandardError = $true
+                        $readOnlyAiProc = [System.Diagnostics.Process]::Start($readOnlyAiPsi)
+                        $readOnlyAiStdoutTask = $readOnlyAiProc.StandardOutput.ReadToEndAsync()
+                        $readOnlyAiStderrTask = $readOnlyAiProc.StandardError.ReadToEndAsync()
+                        $readOnlyAiFinished = $readOnlyAiProc.WaitForExit(120000)
+                        if (-not $readOnlyAiFinished) {
+                            Stop-Process -Id $readOnlyAiProc.Id -Force -ErrorAction SilentlyContinue
+                            $readOnlyAiWorkflowPassed = $false
+                        } else {
+                            $readOnlyAiStdoutTask.Result | Out-File -FilePath $readOnlyAiStdout -Encoding utf8
+                            $readOnlyAiStderrTask.Result | Out-File -FilePath $readOnlyAiStderr -Encoding utf8
+                            $readOnlyAiWorkflowPassed = $false
+                            if ($readOnlyAiProc.ExitCode -eq 0 -and
+                                (Test-Path -LiteralPath $readOnlyAiReportPath)) {
+                                $readOnlyAiReport = Get-Content -LiteralPath $readOnlyAiReportPath -Raw |
+                                    ConvertFrom-Json
+                                $readOnlyAiWorkflowPassed = (
+                                    $readOnlyAiReport.ok -eq $true -and
+                                    $readOnlyAiReport.mode -eq "frozen" -and
+                                    $readOnlyAiReport.qualification -eq "offline-fixed-mock-transport" -and
+                                    $readOnlyAiReport.live_network_used -eq $false -and
+                                    $readOnlyAiReport.provider_requests -eq 4 -and
+                                    $readOnlyAiReport.credential_sentinel_written -eq $false -and
+                                    $readOnlyAiReport.worker_and_checks -eq "passed" -and
+                                    $readOnlyAiReport.refinement -eq "passed")
+                            }
+                        }
+                        if ($readOnlyAiWorkflowPassed) {
+                            $script:readOnlyWorkflowStatus = "passed"
+                        } else {
+                            $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow failed under write-denied payload"
+                        }
+                    } catch {
+                        $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow could not be verified"
+                    } finally {
+                        $env:QT_QPA_PLATFORM = $prevQtPlatformReadOnly
+                    }
+                }
+            }
+        } catch {
+            if ($script:readOnlyStatus -eq "passed") {
+                $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow could not be verified"
+            } else {
+                $script:readOnlyStatus = "UNPASSED: Windows ACL probe unavailable"
+            }
+        } finally {
+            if ($aclMutationAttempted) {
+                Invoke-Native { & $icacls.Source $aclRestoreParent /restore $aclBackupPath /c }
+                if ($LASTEXITCODE -ne 0) {
+                    $aclRestoreError = "Could not restore the relocated payload ACLs."
+                }
+            }
+        }
+        if ($aclRestoreError) {
+            $script:preserveVerifyRoot = $true
+            Write-Host "  Relocated payload read-only check: $($script:readOnlyStatus)" -ForegroundColor $(if ($script:readOnlyStatus -eq "passed") { "Green" } else { "Yellow" })
+            Write-Host "  Read-only frozen AI workflow: $($script:readOnlyWorkflowStatus)" -ForegroundColor $(if ($script:readOnlyWorkflowStatus -eq "passed") { "Green" } else { "Yellow" })
+            throw $aclRestoreError
+        }
+        if ($writeWasAllowed) {
+            Write-Host "  Relocated payload read-only check: $($script:readOnlyStatus)" -ForegroundColor $(if ($script:readOnlyStatus -eq "passed") { "Green" } else { "Yellow" })
+            Write-Host "  Read-only frozen AI workflow: $($script:readOnlyWorkflowStatus)" -ForegroundColor $(if ($script:readOnlyWorkflowStatus -eq "passed") { "Green" } else { "Yellow" })
+            throw "Relocated payload accepted a write while its ACL denied writes."
+        }
+    }
+    Write-Host "  Relocated payload read-only check: $($script:readOnlyStatus)" -ForegroundColor $(if ($script:readOnlyStatus -eq "passed") { "Green" } else { "Yellow" })
+    Write-Host "  Read-only frozen AI workflow: $($script:readOnlyWorkflowStatus)" -ForegroundColor $(if ($script:readOnlyWorkflowStatus -eq "passed") { "Green" } else { "Yellow" })
+    if ($script:readOnlyStatus -eq "passed" -and
+        $script:readOnlyWorkflowStatus -ne "passed") {
+        throw "Fixed offline AI workflow failed while the relocated payload was write-denied."
+    }
 } finally {
-    if (Test-Path $verifyRoot) {
-        Remove-Item -Recurse -Force $verifyRoot -ErrorAction SilentlyContinue
+    if ($script:preserveVerifyRoot) {
+        Write-Host "Preserving relocated payload for ACL recovery at: $verifyRoot" -ForegroundColor Red
+    } else {
+        Remove-Phase10FreshTempDirectory -Target $verifyRoot -RequiredPrefix "am3d verify "
     }
 }
+
+# Provenance is written only after relocation and the ACL probe have finished.
+# The detailed input manifest remains beside (not inside) the user payload.
+$sourceDigestAfter = ((Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\build_input_digest.py") `
+        --root $RepoRoot --digest-only
+}) -join "").Trim()
+if ($LASTEXITCODE -ne 0 -or $sourceDigestAfter -ne $sourceDigestBefore) {
+    Write-Error "Build inputs changed during the candidate build."
+    exit 1
+}
+$inputManifestPath = Join-Path $releaseParent "BUILD_INPUTS-windows.json"
+Invoke-Native {
+    & $py (Join-Path $RepoRoot "scripts\build_input_digest.py") `
+        --root $RepoRoot --write-manifest $inputManifestPath --digest-only
+}
+if ($LASTEXITCODE -ne 0) { Write-Error "Could not write the complete build input manifest."; exit 1 }
+Write-Host "  Final build input SHA-256: $sourceDigestAfter" -ForegroundColor Cyan
+
+if ($CaptureLock) {
+    # Propose the resolved set only after every source/frozen/relocation gate
+    # has passed. Keep it in ignored build output; the caller must promote it
+    # to the source lock and perform another locked build.
+    $proposedLockPath = Join-Path $BuildDir "proposed-requirements-lock-windows.txt"
+    $captureLines = @(Normalize-Phase10LockEntries -Lines @($frozen))
+    if ($captureLines.Count -eq 0) {
+        Write-Error "Could not form the complete resolved Windows lock proposal."
+        exit 1
+    }
+    $utf8NoBom = New-Object System.Text.UTF8Encoding($false)
+    [System.IO.File]::WriteAllLines($proposedLockPath, [string[]]$captureLines, $utf8NoBom)
+    $proposalHash = (Get-FileHash -Algorithm SHA256 -LiteralPath $proposedLockPath).Hash.ToLowerInvariant()
+    $provenance += "proposed lock sha256: $proposalHash"
+    Write-Host "  Proposed Windows lock: $proposedLockPath" -ForegroundColor Green
+    Write-Host "  Proposed lock SHA-256: $proposalHash" -ForegroundColor Green
+    Write-Host "  Copy this proposal to requirements-lock-windows.txt, then rerun without -CaptureLock." -ForegroundColor Yellow
+}
+
+$provenance += @(
+    "host python      : $hostPythonVersion"
+    "build inputs sha256: $sourceDigestAfter"
+    "input manifest   : release/BUILD_INPUTS-windows.json"
+    "frozen AI acceptance: offline fixed MockTransport passed; no live network qualification"
+    "relocated CLI    : validation/build/malformed structured error passed"
+    "relocated read-only write-denial: $($script:readOnlyStatus)"
+    "read-only frozen AI workflow: $($script:readOnlyWorkflowStatus)"
+    "Windows 11 qualification: not claimed (builder OS: $($os.Caption) $($os.Version))"
+    "candidate status : development candidate evidence; no release, store, or publication qualification"
+    $(if ($CaptureLock) { "lock capture     : bootstrap proposal only; a second build with the captured source lock is required" } else { "lock capture     : captured source lock installed and exact set verified" })
+    $(if ($CaptureLock) { "bootstrap digest : excludes the not-yet-present source Windows lock; not a final candidate identity" } else { "captured lock sha256: $((Get-FileHash -Algorithm SHA256 -LiteralPath $lockPath).Hash.ToLowerInvariant())" })
+)
+$provenance -join "`r`n" | Out-File -FilePath $provenancePath -Encoding utf8
+Write-Host "  $provenancePath" -ForegroundColor Green
 
 Write-Host ""
 Write-Host "=== Build complete! ===" -ForegroundColor Cyan

@@ -22,3 +22,7 @@ Pillow==12.3.0
 # is absent, so it is not required to run the app -- but it IS included in the
 # selected release configuration, so it is pinned here rather than left loose.
 moderngl==5.12.0
+
+# V1 provider transport and secure OS credential abstraction.
+httpx==0.28.1
+keyring==25.7.0

@@ -11,6 +11,25 @@ state indefinitely, which is why this was not caught by a shallow
 "process didn't exit after N seconds" check.
 """
 
+import sys
+
+
+# The AI recipe worker is a fixed, hidden child entry point. Keep this check
+# above every UI import: frozen GUI builds may be console=False and must never
+# initialize Qt for an internal data-only worker launch.
+if len(sys.argv) >= 2 and sys.argv[1] == "--internal-ai-worker":
+    from am3d.ai.worker import internal_worker_main
+
+    raise SystemExit(internal_worker_main(sys.argv[2:]))
+
+# The build's fixed AI acceptance harness is also data-only and must start
+# before importing the Qt application. It accepts only a host output folder;
+# the implementation owns its provider mock, prompts, recipes and checks.
+if len(sys.argv) >= 2 and sys.argv[1] == "--ai-self-test":
+    from am3d.ai.frozen_acceptance import main as frozen_acceptance_main
+
+    raise SystemExit(frozen_acceptance_main(sys.argv[2:]))
+
 from am3d.ui.app import main
 
 if __name__ == "__main__":

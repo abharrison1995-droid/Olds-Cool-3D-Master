@@ -1,0 +1,57 @@
+{
+  "status": "tooling_prepared_source_candidate_gates_pending",
+  "source_input_digest_snapshot": "11de5ce76865d89b89e5571abf4cf738498dd83dcf166c44f4a60814617c720d",
+  "snapshot_note": "This is a preparation-time stable-input digest. Root will recompute it after source freeze; it is not a build, lock-capture, frozen-package, or release identity.",
+  "checks": [
+    {
+      "command": ".venv/Scripts/python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short",
+      "result": "10 passed, 4 skipped in 42.80s",
+      "skip_reasons": [
+        "The fixed source acceptance keeps the exact spritesheet fixture and records the known checker/export contract failure as pending; see spritesheet-contract-pending.json.",
+        "Three symlink guard tests were skipped because this host could not create the requested file/directory symlinks."
+      ]
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m pytest scripts/test_phase10_tooling.py::test_source_acceptance_runs_fixed_mock_flow_before_qt -q --tb=short",
+      "result": "1 skipped in 41.84s",
+      "interpretation": "The test reached the fixed checker and skipped only after matching the known spritesheet receipt; Qt-import blocking and fixed dispatch checks did not fail."
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m py_compile scripts/build_input_digest.py scripts/write_build_identity.py scripts/audit_build_payload.py scripts/write_runtime_licenses.py scripts/test_phase10_tooling.py am3d/ai/frozen_acceptance.py am3d/ui/__main__.py am3d/ui/__init__.py",
+      "result": "passed"
+    },
+    {
+      "command": "bash -n build_linux.sh",
+      "result": "passed"
+    },
+    {
+      "command": "PowerShell AST parse for build_windows.ps1 and scripts/phase10_safety.ps1; also exercised by test_phase10_powershell_parses_and_guards_outside_path",
+      "result": "passed"
+    },
+    {
+      "command": "Isolated runtime-license helper probe recorded during preparation",
+      "result": "passed: 18 runtime-package notices and 37 license texts were written to a disposable probe tree, then the probe tree was removed"
+    }
+  ],
+  "owned_file_sha256": {
+    "scripts/build_input_digest.py": "add49df957b8e367ee306d4a1dd518f48220df0d5a92de516e8b2750374b4f9c",
+    "scripts/write_build_identity.py": "c667ee9d2367c3cabd6e0a7ce24a2fdc8651d611c8f700bd6f5d2f32f4664090",
+    "scripts/audit_build_payload.py": "8dfc7ceb8b7d63c5e4670d4d48b8310a16564c84746d762a4c5a57102fb24a69",
+    "scripts/write_runtime_licenses.py": "044592efbe51f83e6beff834d3069b8a142b14807f43a2f5620af1396b67fae6",
+    "scripts/phase10_safety.ps1": "96ffcd2aeb3a12a6303e6a2a7e59b537f82b980c8da665b2f4f41b5393ac2264",
+    "scripts/test_phase10_tooling.py": "ee14eaa615334b4b9fb94c4fe93c982dd8746a57ccbbdc33e90d4324951d85bb",
+    "am3d/ai/frozen_acceptance.py": "2d93a2b2ac5e3106f0d6222817dee882e26458d1552b6f95a35810d61921f457",
+    "am3d/ui/__init__.py": "f8870938899a2a89df8a73689481774243c9952e56c2a52c499b89a19d734b34",
+    "am3d/ui/__main__.py": "770ebefbdf164b916bf655548bac162e20c7debdf204905c5bce38dde4edb7e5",
+    "am3d.spec": "e89fe51c06557df2367ca02f3ecdb79e6aa7df61d7fab455394d82addfcb4814",
+    "am3d_recipe.spec": "e17a0e33771f8b245cf3f32a78df0c08749568121bcd28673cb1a8caa18feb14",
+    "build_windows.ps1": "00dc5856ce4ed49a19c3fa73542401150aad0aadf7fa99b175fc80249e7aa385",
+    "build_linux.sh": "13f77a18a19abbc9173ec5f663ddb981207a370cc12669a2497e62e0fb98ff7d",
+    ".github/workflows/windows.yml": "d03523e2f37f9355aa14184c185d37c938932711662a8dd48cf78c98c7dc4f8a"
+  },
+  "not_run_or_claimed": [
+    "No full build or archive was run.",
+    "No platform lock was captured or modified.",
+    "No frozen acceptance, Windows 11, native Mint, clean-machine, physical-GPU, live-provider, TLS/network, release, or publication qualification is claimed."
+  ]
+}

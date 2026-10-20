@@ -1,0 +1,102 @@
+{
+  "schema_version": 1,
+  "fixture_set": "v1-discovery",
+  "frozen": true,
+  "release_denominator": false,
+  "entries": [
+    {
+      "id": "D01",
+      "category": "composition_and_resource_limits",
+      "prompt": "Create a spiral staircase with exactly twenty distinct steps winding through a full turn around a central axis. Keep steps evenly spaced and disclose limitations of the supported recipe vocabulary.",
+      "expected_handling": "Try only a bounded supported recipe candidate. Report geometry or resource limitations explicitly; do not use model code or invent an array operation.",
+      "required_attributes": [
+        "20 distinct steps",
+        "spiral arrangement",
+        "full-turn progression",
+        "bounded execution"
+      ]
+    },
+    {
+      "id": "D02",
+      "category": "thin_geometry",
+      "prompt": "Create a bicycle with two wheels, frame, handlebars, seat, and many thin visible spokes in both wheels.",
+      "expected_handling": "Use supported assembled geometry if feasible; report if thin spokes cannot meet visibility or resource limits and disclose any approximation.",
+      "required_attributes": [
+        "two wheels",
+        "frame",
+        "handlebars",
+        "seat",
+        "spoke approximation disclosed"
+      ]
+    },
+    {
+      "id": "D03",
+      "category": "unsupported_material_behavior",
+      "prompt": "Create a worn bus shelter whose scratched side and rear glass panels are truly transparent, with a green frame and bench.",
+      "expected_handling": "State that physically transparent glass and detailed scratches are outside tested recipe capability. Ask whether opaque tinted panels are acceptable before treating the result as complete.",
+      "required_attributes": [
+        "green frame",
+        "bench",
+        "true-transparency limitation",
+        "wear limitation",
+        "user choice required for opaque approximation"
+      ]
+    },
+    {
+      "id": "D04",
+      "category": "unsupported_character_detail",
+      "prompt": "Create a human face with expressive mouth geometry and rigged lip motion that forms several distinct phonemes.",
+      "expected_handling": "Explain that arbitrary facial topology and expressive lip-sync are outside the bounded v1 rig workflow; ask which supported simplified approximation the user wants.",
+      "required_attributes": [
+        "face request retained",
+        "lip-sync limitation",
+        "actionable alternatives or choice request"
+      ]
+    },
+    {
+      "id": "D05",
+      "category": "rig_coordinate_limit",
+      "prompt": "Create a rigged character whose torso, arms, and legs are translated independently away from their bind-pose positions while preserving correct skinning.",
+      "expected_handling": "Explain the recipe-v1 rig coordinate-frame limitation for transformed skinned geometry; preserve all requested parts and ask whether placement in the shared rig frame is acceptable.",
+      "required_attributes": [
+        "limb placement requirements retained",
+        "skinning-coordinate limitation surfaced",
+        "user choice requested"
+      ]
+    },
+    {
+      "id": "D06",
+      "category": "resource_limit",
+      "prompt": "Create a machine covered with exactly 5,000 individually modeled bolts, each separately editable and named.",
+      "expected_handling": "Apply configured component, output, and execution bounds. If the exact count cannot fit policy, report the limit and ask for a smaller count or supported representation; do not silently omit bolts.",
+      "required_attributes": [
+        "exact count preserved",
+        "resource limitation surfaced when bound is exceeded",
+        "no silent count reduction"
+      ]
+    },
+    {
+      "id": "D07",
+      "category": "transform_and_texture",
+      "prompt": "Create a chair mirrored with a negative-scale transform while preserving its textured appearance, UVs, and outward-facing normals.",
+      "expected_handling": "Treat the negative-determinant transform and texture preservation as requirements. Surface unsupported or unverified behavior; do not silently discard the mirror or texture request.",
+      "required_attributes": [
+        "mirror requirement retained",
+        "textured appearance retained",
+        "normal/export uncertainty disclosed"
+      ]
+    },
+    {
+      "id": "D08",
+      "category": "unsupported_export",
+      "prompt": "Create a rigged walking character and export an animated GLB that contains its skeleton, skin weights, and animation clip.",
+      "expected_handling": "Explain that recipe-v1 GLB exports are static snapshots and animated GLB is outside scope. Offer native project plus animation sheet as a proposal and require user choice before claiming completion.",
+      "required_attributes": [
+        "rigged walking character retained",
+        "animated GLB limitation",
+        "supported alternatives presented",
+        "user choice required"
+      ]
+    }
+  ]
+}

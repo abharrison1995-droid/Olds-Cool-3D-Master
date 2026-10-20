@@ -1,0 +1,3 @@
+Command: .venv\Scripts\python.exe -m pytest am3d/ai/test_contracts.py am3d/ai/test_credentials.py am3d/ai/test_providers.py -q
+......................................................                   [100%]
+54 passed in 2.87s

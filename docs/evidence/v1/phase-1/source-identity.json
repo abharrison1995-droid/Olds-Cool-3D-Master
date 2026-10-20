@@ -1,0 +1,51 @@
+{
+  "captured_utc": "2026-10-13T19:49:26.896448+00:00",
+  "base_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "scope": "Exact listed source bytes; uncommitted working tree, not a release artifact",
+  "files": {
+    "am3d/ai/__init__.py": {
+      "bytes": 1889,
+      "sha256": "35685b1b6063359dd15fdfee2e6d5e348d5b259dbd611583d51c7a738ab917d7"
+    },
+    "am3d/ai/contracts.py": {
+      "bytes": 13351,
+      "sha256": "a161b0995d1937a526165c4bc96b03736f584aebb9546e844e7c1b23916d600a"
+    },
+    "am3d/ai/credentials.py": {
+      "bytes": 4905,
+      "sha256": "bcaee82e8db9f0bbcf6d01455477572c50cd890195e41badf5e5f9300d5d2141"
+    },
+    "am3d/ai/providers.py": {
+      "bytes": 25013,
+      "sha256": "bd883900f4b33b054e289f95723b330ed658bfbd21cc3dff598c978340243439"
+    },
+    "am3d/ai/test_contracts.py": {
+      "bytes": 2645,
+      "sha256": "fdc9a9261283deb13f7fae383e13b069db6bc6752d7dfd6a62642837d618a95c"
+    },
+    "am3d/ai/test_credentials.py": {
+      "bytes": 4070,
+      "sha256": "331f62ad879e4dafa33af46bd1e1592ec4a85e001876978f5d3f0499f56f7fae"
+    },
+    "am3d/ai/test_providers.py": {
+      "bytes": 14699,
+      "sha256": "663e322dffae665aa8a489562d905dab0a8fcd7aa1b59d24afef090010649ac0"
+    },
+    "pyproject.toml": {
+      "bytes": 867,
+      "sha256": "b3b1581f1cf34cf00f9572d5edf185aa76fae8a3696f075685e19260732000b0"
+    },
+    "requirements-dev.txt": {
+      "bytes": 700,
+      "sha256": "d2ab7cfaf2fadf6b24a3885a24b650c0c0d6b0feda93c10bd3a35f70efaf170f"
+    },
+    "requirements-lock-linux.txt": {
+      "bytes": 884,
+      "sha256": "e54845b55de19f734b8177ca8f5c27c3c6a927ef7abd5106c3363ea1c1de84c3"
+    },
+    "requirements.txt": {
+      "bytes": 1275,
+      "sha256": "3c824deee0c74e483bccc442a52757e215ddcbbc96eec01a25d2bbb22f47092e"
+    }
+  }
+}

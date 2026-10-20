@@ -1,11 +1,24 @@
 # 3D MASTER:2005 — V1 master implementation plan
 
-Status: **proposed; independent repository review required before implementation**.
-Planning date: 2026-10-04. This pass changes documentation only.
+Status: **approved and active**. Product direction was approved on 2026-10-13.
+Independent plan review and Phase 0 documentation/baseline recording passed
+on 2026-10-13; see `docs/evidence/v1/phase-0/BASELINE.md`.
+Original planning date: 2026-10-04.
 
 ## 1. Source binding and authority
 
 - Repository: https://github.com/abharrison1995-droid/Olds-Cool-3D-Master
+- Active V1 implementation baseline at the start of Phase 0 documentation
+  work: checkout HEAD `3f6f7f03d32b4d1a3af06af4fdc0724bf0436945`.
+- Current execution workstation: Windows 10 IoT Enterprise LTSC, build
+  19044, x86-64. This is not the selected Windows 11 V1 target.
+- No V1 source tests, build, or platform qualification were performed by the
+  Phase 0 documentation pass. The current-source environment/test baseline is
+  being established separately; do not treat historical Linux results below
+  as current Windows results.
+
+### Historical planning baseline (2026-10-04)
+
 - Local checkout: `/home/alex/Desktop/Olds-Cool-3D-Master`.
 - Branch: `master`.
 - Inspected engine/editor HEAD: `02d9443fc55b96fa469fbef98e55caea7b78eed7`.
@@ -14,20 +27,25 @@ Planning date: 2026-10-04. This pass changes documentation only.
 - Origin: `git@github.com:abharrison1995-droid/Olds-Cool-3D-Master.git`.
 - The planning commit containing this document changes no implementation; obtain its identity with `git log -1 --format=%H -- docs/V1_MASTER_IMPLEMENTATION_PLAN.md`. Do not confuse it with the inspected implementation HEAD.
 
-Once approved, this document supersedes V1 scheduling in `docs/IMPLEMENTATION_ROADMAP.md`, `docs/DESKTOP_RELEASE_PLAN.md`, and the historical V2/V3 plans. Their execution records remain evidence of their named source/artifact, not current acceptance. Until approval, the existing roadmap remains the published milestone record. Do not delete or rewrite historical evidence. No implementation phase is already PASS merely because the external-agent preview passed.
+As the approved active plan, this document supersedes V1 scheduling in
+`docs/IMPLEMENTATION_ROADMAP.md`, `docs/DESKTOP_RELEASE_PLAN.md`, and the
+historical V2/V3 plans. Their execution records remain evidence of their
+named source/artifact, not current acceptance. Do not delete or rewrite
+historical evidence. No implementation phase is already PASS merely because
+the external-agent preview passed.
 
 The change in product direction is deliberate: the desktop will offer first-class natural-language generation, provider settings, bounded orchestration and refinement. External recipe authors and the standalone CLI remain supported. “No embedded model” can still mean no model weights bundled; “no provider/prompt interface” will no longer describe V1.
 
 ## 2. Repository archaeology and readiness
 
-The foundation is substantial and should be extended. There is no in-app natural-language pipeline, provider adapter, credential store, generation history, or prompt benchmark today. This is an external-agent/editor preview, not the requested V1. There is no justification for an engine rewrite, web frontend, arbitrary generated Python, or a second scene model.
+The foundation is substantial and should be extended. At inspected checkout HEAD `3f6f7f03d32b4d1a3af06af4fdc0724bf0436945`, there was no shipped in-app natural-language workflow, provider adapter, credential store, generation history, or prompt benchmark. That baseline is an external-agent/editor preview, not the requested V1. There is no justification for an engine rewrite, web frontend, arbitrary generated Python, or a second scene model.
 
 ### Evidence map: implementation wins over labels
 
 | Area | Authoritative files and observed behavior | Consequence for V1 |
 | --- | --- | --- |
 | Project/session | `am3d/core/project.py`, `core/script.py`: spline/patch dataclasses, objects/materials/skeletons; Session owns actions, assignments, poses and evaluated state | New orchestration uses isolated Session and native Project; do not create another scene graph |
-| Persistence | `core/serializer.py`: msgpack format 2, array/depth/count/file limits, explicit field encoding, atomic writes; Session save/load restores action/pose state | Generic generation metadata is absent; adding attributes alone will not persist it. Add a bounded explicit optional field and compatibility tests |
+| Persistence | `core/serializer.py`: msgpack format 2, array/depth/count/file limits, explicit field encoding, atomic writes; Session save/load restores action/pose state | Generic generation metadata is absent; adding attributes alone will not persist it. Add a bounded explicit optional field, prove new-reader preservation, and document that older readers ignore it but drop it on save |
 | Evaluation | `core/scene.py:evaluate_scene`, `gpu/__init__.py:resolve_scene`: shared world-space geometry, visibility, skinning, action sampling, materials | Reuse for preview, structural checks, animation checks and export consistency |
 | Geometry | `spline/kernel.py`: B-spline/rational evaluation, patch grids, lathe/extrude nets; `core/generators.py`: profile generation/regeneration | Keep patches authoritative. Curves alone are not renderable assets |
 | Primitive recipes | `recipes/primitives.py`: box, sphere, cylinder, cone, torus, plane, explicit lathe/extrude profiles; transform supports translation or 4×4 matrix | Props and assembled hard-surface approximations are feasible without new primitives |
@@ -39,7 +57,7 @@ The foundation is substantial and should be extended. There is no in-app natural
 | Execution | `recipes/executor.py:execute`, `_resolve_output_path`, `_run_exports`: new candidate Session; commit only on success; staged exports and manifest; portable path checks when output_root supplied | Preserve transactional session behavior. Publication copies files individually and can fail partially; add outer private-run publication |
 | CLI | `recipes/cli.py`, `__main__.py`: stdin/file/BOM support, validate-only, JSON report; `--verbose` mixes stdout | Keep existing machine contract. Do not scrape verbose output for desktop progress |
 | Desktop | `ui/app.py:MainWindow`, `home.py`, `workspaces.py`, `area_layout.py`, `viewport3d.py`; `viewport.py` is compatibility shim | Add compact AI work area to the existing Qt workbench, not another application |
-| Editing | `ui/operators.py`, `tools_spline.py`, `tools_bone.py`, `properties.py`, `dopesheet.py`, `timeline.py`: QUndoStack commands, CP/net editing, transforms, rig/keyframe/material edits | Adopt completed project through document lifecycle; existing undo starts with subsequent manual edits |
+| Editing | `ui/operators.py`, `tools_spline.py`, `tools_bone.py`, `properties.py`, `dopesheet.py`, `timeline.py`: QUndoStack commands, spline/profile CP editing, transforms, rig/keyframe/material edits; direct patch-net arrays are available through scripting, with no generic net GUI editor | Adopt completed project through document lifecycle; retain source profiles for recipe lathe/extrude so existing CP commands actually reshape those surfaces; existing undo starts with subsequent manual edits |
 | Lifecycle | `ui/document_controller.py`: single current Session, dirty/save-discard-cancel, clean undo revision, document-specific autosave/recovery; `settings.py`: QSettings | Never swap Session from background worker or write keys to QSettings. Protect current unsaved work |
 | Packaging | `build_linux.sh`, `build_windows.ps1`, `am3d.spec`, `am3d_recipe.spec`, platform locks and Windows workflow | Extend frozen payload/provenance/acceptance; recipe executable deliberately excludes Qt/GPU |
 
@@ -49,20 +67,20 @@ Tests inspected include schema/executor/primitives/animation, core serializer/sc
 
 1. **recipe-v1 is sufficient to start; not sufficient as a security policy.** It already covers transforms, explicit profiles, named materials, skeleton references and custom actions. No recipe-v2 is justified now. Bound and validate params before allocation, then measure real benchmark failures.
 2. **Not all exposed Python helpers are product features.** `core/rigging.py:ik_two_bone` and `core/animation.py:ActionBlender` exist, despite matrix exclusions. There is no integrated recipe/desktop IK/constraint workflow. Leave integrated IK/blending out of V1.
-3. **Material graph documentation is inconsistent.** `MaterialRecipe.graph`, JSON schema, executor material assignment and `_bake_atlases` accept/evaluate graphs, while the matrix says recipe graphs are unavailable. Verify supported chains and correct documentation; do not implement duplicate graph machinery.
-4. **Generated primitives differ from GUI profile construction.** Executor `_build_objects` writes returned nets into Patch but does not retain builder splines/generator provenance or explicitly copy returned degrees; GUI Lathe/Extrude commands preserve generator/degree data. Effective degree clamping exists, so this is a source-reasoned parity/editability risk, not a reproduced corruption claim. Verify a recipe lathe/extrude can be edited through net controls; profile-preserving improvement is IMPORTANT unless benchmark/manual-edit gates expose a blocker.
+3. **Material graph documentation is inconsistent.** `MaterialRecipe.graph`, JSON schema, executor material assignment and `_bake_atlases` accept/evaluate graphs, while the matrix says recipe graphs are unavailable. Source/tests prove limited chains, including `bricks -> noise_overlay` through recipe atlas baking (`recipes/test_executor.py::test_graph_material_bakes_through_recipe`). Correct the matrix while keeping limitations clear; do not implement duplicate graph machinery.
+4. **Generated primitives differed from GUI profile construction at the baseline.** Executor `_build_objects` wrote returned nets into Patch without retaining source profiles/generator provenance or explicitly copying returned degrees; GUI Lathe/Extrude commands preserved generator/degree data. Phase 6 reproduced the edit gap and corrected it using existing source-profile CP commands and generator metadata; see PROFILE_EDIT_GAP.md. Genuine rendered geometry edit, exact undo/redo and native round trip are covered. The original assumption that a generic patch-net GUI editor already existed was incorrect; direct net arrays remain a scripting capability. Baked primitives remain editable through object transforms and materials.
 5. **Rig placement is constrained.** The external-agent guide explicitly warns against nonidentity transforms on shared-rig geometry. A rig/action existing is insufficient; test actual intended parts at multiple times. Character capability must stay modest.
 6. **Schemas are stricter at some levels than others.** Primitive/material/export params remain open dictionaries; unsupported patterns can pass validate-only and fail during baking. Trial 2 repaired `scales` to `checker`. Typed preflight is warranted; another general validator/executor is not.
 7. **Success is not visual adequacy.** A curve-only or rig-only project can be structurally valid. Mandatory surface/nonblank/brief checks must precede promotion to a completed generation.
-8. **No general generation provenance field exists.** Action metadata is not project provenance. Format 2 is explicitly encoded; choose optional namespaced data, not a loosely attached attribute or unrelated Action metadata.
+8. **No general generation provenance field exists.** Action metadata is not project provenance. Format 2 is explicitly encoded; add bounded optional namespaced data, test that new readers preserve it, and document/test the downgrade behavior: old readers ignore an unknown field but discard it if they save the project. The sidecar remains the full evidence authority.
 9. **Platforms are not qualified.** Current docs record a Mint 22.3 offscreen/software preview. Historical MX acceptance applies to artifact `b96c922`. Windows workflow preparation is not an executed workflow or accepted executable; no committed Windows lock exists. Current-source native desktop/GPU acceptance remains open.
-10. **Documentation drift already exists.** The external-agent guide still says the current archive awaits Phase 3, while the roadmap records Phase 3 complete; RELEASE_NOTES has historical MX verification language. Reconcile identities and scope, never combine evidence from different builds.
+10. **Documentation drift existed at the original planning baseline.** The external-agent guide said the current archive awaited Phase 3, while the roadmap recorded Phase 3 complete; RELEASE_NOTES led with historical MX verification language. Phase 0 reconciles artifact identities and scope without combining evidence from different builds.
 
-### Planning verification (not release qualification)
+### Historical planning verification (not release qualification)
 
-Initial ambient `python -m pytest am3d/ -q` failed collection because PySide6 is absent (four collection errors). A narrower ambient run gave 418 passed / 16 failed, all reported failures importing PySide6-dependent UI commands. This is an environment mismatch, not a basis for engine fixes. Existing `build/linux/venv/bin/python` is Python 3.13.5 with PySide6 6.11.2 and NumPy 2.4.6; use its results recorded below. No dependencies were upgraded or installed.
+The following results belong to the separate October 4 planning checkout at implementation HEAD `02d9443fc55b96fa469fbef98e55caea7b78eed7`; they are not results from the current Windows checkout. Initial ambient `python -m pytest am3d/ -q` failed collection because PySide6 was absent (four collection errors). A narrower ambient run gave 418 passed / 16 failed, all reported failures importing PySide6-dependent UI commands. This was an environment mismatch, not a basis for engine fixes. The historical `build/linux/venv/bin/python` was Python 3.13.5 with PySide6 6.11.2 and NumPy 2.4.6. No dependencies were upgraded or installed during that planning run.
 
-Source CLI execution of `docs/recipes/examples/knight_full.json` into `/tmp/am3d-v1-planning-knight` returned exit 0, `ok:true`, native/OBJ/MTL/GLB/sheet artifacts and no warnings/errors. Full suite and offscreen smoke results are appended in section 14. No new frozen build, Windows run, desktop interaction, live provider call or physical GPU acceptance was performed. Prior trial/review reports were read as historical evidence, including corrected clockwork-beetle trial 2 and the final Mint candidate review.
+The same historical checkout ran `docs/recipes/examples/knight_full.json` into `/tmp/am3d-v1-planning-knight`, returning exit 0, `ok:true`, native/OBJ/MTL/GLB/sheet artifacts and no warnings/errors. Full suite and offscreen smoke results are in section 14. That planning run performed no new frozen build, Windows run, desktop interaction, live provider call or physical GPU acceptance. Prior trial/review reports were read as historical evidence, including corrected clockwork-beetle trial 2 and the final Mint candidate review.
 
 ## 3. V1 product contract and scope classes
 
@@ -103,7 +121,7 @@ Suggested small new package `am3d/ai/`: `contracts.py`, `providers.py`, `credent
 - `GenerationRecord`: terminal/in-progress states and content-addressed recipe/brief/artifact metadata. Version independently from recipe and native format.
 - worker input: validated recipe, private output directory, approved resource map and policy limits. Worker output: ExecutionResult plus check report and preview manifest. No API key, prompt network access or active document.
 
-Headless contracts/providers/orchestrator/checks must not import Qt. Qt controller owns signals and lifecycle only. Provider IO uses cancellable background IO; geometry is a separately terminable process because a Qt thread cannot safely stop a blocked NumPy/rasterizer call. Prefer a hidden fixed internal worker mode in the existing GUI executable/source entry point, avoiding dependence on an installed Python interpreter. Preserve standalone recipe CLI for external users. Internal worker protocol is separate from public CLI JSON, uses bounded messages and fixed trusted entry points, and needs frozen Windows spawning tests. Worker rendering can reuse software `render_job`/scene path; never depend on a desktop GL context in a child process.
+Headless contracts/providers/orchestrator/checks must not import Qt. Qt controller owns signals and lifecycle only. Provider IO uses cancellable background IO; geometry is a separately terminable process because a Qt thread cannot safely stop a blocked NumPy/rasterizer call. Prefer a hidden fixed internal worker mode in the existing GUI executable/source entry point, avoiding dependence on an installed Python interpreter. Preserve standalone recipe CLI for external users. Internal worker protocol is separate from public CLI JSON, uses bounded messages and fixed trusted entry points, and needs frozen Windows spawning tests. This process boundary provides lifecycle and resource isolation for untrusted **data-only recipes**; it is not an OS sandbox and does not contain compromised host code. Safety depends on fixed audited code, the recipe/policy checks, and tests for every derived path and writer output. Worker rendering can reuse software `render_job`/scene path; never depend on a desktop GL context in a child process.
 
 ## 5. Provider, secrets, privacy and operational policy
 
@@ -117,8 +135,8 @@ Send user brief, normalized intent, capability/schema context, prior recipe for 
 
 Default bounds (freeze after baseline measurement; raising any bound requires evidence/review):
 
-- One initial brief interpretation call and one initial recipe call; **2 validation repairs**, **1 execution/result-check repair** shared across runtime and deterministic-result failures. At most 5 recipe candidates and 6 semantic provider calls. A candidate repair reruns all validation/checks.
-- Each semantic provider call may retry once for transient network/429/5xx with capped backoff and Retry-After bounded by remaining deadline. No retry for authentication, refusal, unsupported model or deterministic policy denial; at most 12 HTTP attempts. All retries consume the same run deadline.
+- One initial brief interpretation call and one initial recipe call; **2 validation repairs**, **1 execution/result-check repair** shared across runtime and deterministic-result failures. This permits at most **4 recipe candidates** (initial candidate plus three repairs) and **5 semantic provider calls** (one interpretation plus one call per candidate). A candidate repair reruns all validation and checks.
+- Each semantic provider call may retry once for transient network/429/5xx with capped backoff and Retry-After bounded by remaining deadline. No retry for authentication, refusal, unsupported model or deterministic policy denial; at most **10 HTTP attempts** (5 semantic calls × 2 attempts). All retries consume the same run deadline.
 - 90 seconds per HTTP attempt; 180 seconds per worker execution/check attempt; 600 seconds total wall-clock run. UI shows elapsed time and actual stage, not fabricated percentages.
 - Cancellation interrupts network request or closes its transport, then terminates worker after up to 2 seconds cooperative grace. No completion/adoption after cancellation; target UI cancellation acknowledgement within 3 seconds. Test Windows process-tree cleanup. User-triggered Retry creates a new run ID, never resets counters invisibly.
 - Default response cap 1 MiB and recipe cap 512 KiB; reject truncated, duplicate-key, nonfinite JSON. Provider token limit is configuration/model-dependent and recorded. Record unavailable token/cost fields as null, never zero. Cost estimate only from identified dated rate configuration; V1 can display “unavailable”.
@@ -127,7 +145,7 @@ User states distinguish credentials/network/refusal/schema/policy/runtime/check/
 
 ## 6. Security and resource preflight
 
-Extend existing recipe validation with typed primitive/material/action/export params and AI-policy checks; reuse `core/paths.py`, serializer limits and executor output_root. Do not weaken legacy trusted CLI behavior merely to fit cloud generation. AI mode always supplies a fresh private output root and constructs approved exports/paths itself. Model may select approved formats, never arbitrary filesystem destinations. Convert object/component names to opaque safe filenames; preserve readable names inside recipe/native project.
+Extend existing recipe validation with typed primitive/material/action/export params and AI-policy checks; reuse `core/paths.py`, serializer limits and executor output_root. Recipes are untrusted data, interpreted only by fixed host code; they cannot supply executable Python. The worker process is for cancellation, lifecycle and resource isolation, not an OS security sandbox or containment boundary for compromised code. Do not weaken legacy trusted CLI behavior merely to fit cloud generation. AI mode always supplies a fresh private output root and constructs approved exports/paths itself. Model may select approved formats, never arbitrary filesystem destinations. Convert object/component names to opaque safe filenames; preserve readable names inside recipe/native project. The path-safety guarantee rests on auditing and testing every path derived by exporters and writers.
 
 Starting AI limits: 128 objects, 1024 patches, 64 bones per skeleton/256 total copied bones, 16 actions, 256 channels, 4096 keys, 4096 authored profile/CP points, 128 primitive sections/rings/grid subdivisions, 32 graph nodes per material, 32 materials, tessellation <=32×32 per patch and <=250,000 evaluated triangles. Track estimated control nets/texture memory before allocation as well as actual counts. Preview 512×512; export sheets <=16 cells at <=256 pixels each, total image <=16 million pixels, atlases <=256 cell size with <=64 million pixels total. Limit output bytes to 256 MiB and worker memory target to 1 GiB, with process termination for excess where host monitoring supports it. No unbounded work when OS memory enforcement is unavailable: estimator/count limits and deadline remain mandatory on both platforms.
 
@@ -141,7 +159,7 @@ Use per-user app data `generations/<run-id>/` with a private attempt subtree, re
 
 Record generation ID, UTC timestamp, parent ID, user/normalized briefs, provider/endpoint label/model, recipe version, exact original/accepted recipes, canonical SHA-256, application version, implementation/build identity, capability/prompt-template/policy versions, random seeds, request IDs (nonsecret), attempts/errors/warnings, check results, duration, usage/cost availability, and artifact sizes/hashes. No separate invented engine semver: engine identity is application version plus source/build identity until genuinely independently versioned. Record renderer route/tessellation/preview camera and export pose/time. Same recipe/environment/seeds should recreate equivalent geometry; new model calls are not reproducible promises. Timestamp/run-ID fields are excluded from deterministic comparisons.
 
-Native project: optional bounded `generation` envelope with record version, run/parent IDs, accepted brief and exact recipe/hash, app/build/capability identity, warnings and resource-relative artifact references. Prefer additive optional format-2 field only after proving existing loader ignores it and new loader accepts old files; otherwise introduce format 3 with explicit old-reader behavior. New reader must roundtrip legacy format 1/2 fixtures. Never store credentials, endpoint credential query strings, raw HTTP responses or attempt transcripts there. Full attempt evidence stays sidecar; application history is a rebuildable index of records, not another authority. Plain `.am3d` copying preserves brief/recipe, while missing sidecar gives “run history unavailable” and manual editor still works. Save As/manual editing preserves provenance but marks project divergence; provenance never implies the recipe exactly describes later manual edits.
+Native project: optional bounded `generation` envelope with record version, run/parent IDs, accepted brief and exact recipe/hash, app/build/capability identity, warnings and resource-relative artifact references, stored as an additive optional format-2 field. Existing older readers ignore unknown fields when loading, but an older reader drops this metadata if it saves the project; document and test that downgrade limitation. New readers must load legacy format 1/2 fixtures and preserve the optional field across save/reopen. Never store credentials, endpoint credential query strings, raw HTTP responses or attempt transcripts there. The sidecar remains the full evidence authority; application history is a rebuildable index of records, not another authority. A copied `.am3d` retains the bounded in-project provenance, while missing sidecar means full run history is unavailable and manual editing still works. Save As/manual editing preserves provenance but marks project divergence; provenance never implies the recipe exactly describes later manual edits.
 
 Default retention: never automatically delete successful native projects/refinement parents in V1. Failed-attempt evidence may be explicitly deleted through history; show disk use and allow deleting selected runs with parent-reference warnings. Recovery on startup marks interrupted runs Interrupted, retains prior successes, and allows an explicit new retry.
 
@@ -233,20 +251,22 @@ Every extension requires failed frozen/discovery use case, minimal reproduction,
 
 ## 11. Small implementation phases
 
-Every phase below is planning, not work performed. Each produces one reviewable behavior; split further if diff crosses unrelated responsibilities. Tests named under new modules are proposed tests, not existing files. All phases preserve offline/editor/external CLI regression tests. Evidence lives in `docs/evidence/v1/phase-N/` and includes exact commit, dirty diff/input digest if any, commands, complete results, fixtures/run IDs, reviewer dispositions. No secrets/raw personal prompts in committed evidence.
+Each phase records its current state below; requirements alone are not evidence of work performed. Each produces one reviewable behavior; split further if diff crosses unrelated responsibilities. Tests named under new modules are proposed tests, not existing files. All phases preserve offline/editor/external CLI regression tests. Evidence lives in `docs/evidence/v1/phase-N/` and includes exact commit, dirty diff/input digest if any, commands, complete results, fixtures/run IDs, reviewer dispositions. No secrets/raw personal prompts in committed evidence.
 
 ### Phase 0 — Approve contract and reconcile document authority
 
+- Status: **complete**. Product direction is approved, the independent plan review and documentation reconciliation passed, and the Windows 10 offscreen baseline passed 738 tests and 14 smoke steps; see `docs/evidence/v1/phase-0/BASELINE.md`.
 - Objective: one agreed V1 product contract and truthful source baseline.
-- Impact/work: this plan; after approval update README, PRODUCT, PROGRESS, roadmap headers and acceptance links per section 12; record initial full-suite/smoke/source identity and platform ledger.
+- Impact/work: this plan; update README, PRODUCT, PROGRESS, roadmap headers and acceptance links per section 12; record initial full-suite/smoke/source identity and platform ledger.
 - Non-goals: implement AI, retrospectively certify historical builds.
-- Tests: links/document consistency; repeat baseline only if source changed.
-- Acceptance/evidence: independent plan review accepted; capability claims trace to source; snapshot commands/results stored.
-- Review gate: architecture/product owner verifies scope and legacy reuse; no coding until accepted.
-- Dependencies: none; this planning pass supplies proposed baseline.
+- Tests: links/document consistency; run and record the current-source baseline when its environment is ready.
+- Acceptance/evidence: independent plan review accepted; capability claims trace to source; current baseline commands/results stored. The 2026-10-13 review requested `gpt-6-luna` at `xhigh`; the tool accepted that request, but runtime effort is not independently introspectable.
+- Review gate: **passed** for plan scope and legacy reuse. V1 implementation is authorized; the current-source baseline is recorded and Phase 0 is complete.
+- Dependencies: none.
 
 ### Phase 1 — Define AI contracts and qualify one provider/credential transport
 
+- Status: **local implementation reviewed** — earlier54 focused checks passed. The integrated architecture review's encoded-credential fixes were independently verified by64 provider/credential and11 settings checks. Local frozen Windows10 sentinel credential CRUD/cleanup also passed for its exact development archive; selected-target frozen/live qualification remains open. See phase-1/REVIEW.md, phase-11/ARCHITECTURE_REVIEW.md and the current phase-10 candidate receipts for their separate identities.
 - Objective: bounded structured request works with fake and one real provider safely.
 - Impact/work: new `ai/contracts.py`, `providers.py`, `credentials.py`, minimal HTTP/keyring dependencies and deliberate lock changes; provider settings data only. Freeze one supported endpoint/model and transport contract; redact errors and declare privacy/budgets.
 - Non-goals: geometry, multiple vendors, new settings screen, tariffs service.
@@ -257,6 +277,7 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 2 — Interpret briefs and produce recipe-v1 candidates
 
+- Status: **local implementation reviewed** — 19 prompt tests / 66 combined tests passed; independent source and fixture review passed after disclosed premeasurement r2 corrections. Live prop/shelter/rig baseline remains pending; see `docs/evidence/v1/phase-2/REVIEW.md`.
 - Objective: brief produces normalized intent and canonical recipe without execution.
 - Impact/work: `ai/prompts.py`, contracts, schema/guide context loading; `benchmarks/v1/` full 30 briefs/rubric + discovery set. Capability context derived from tested engine vocabulary; generate JSON rather than code; host supplies export destinations. Freeze request versions.
 - Non-goals: repairs, geometry changes, semantic hierarchy.
@@ -267,26 +288,29 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 3 — Enforce policy and isolated deterministic worker
 
-- Objective: untrusted recipe executes within confinement and deadline without touching editor.
+- Status: Local security review and reopened Windows path-race review passed. A deterministic CPython path-prefix race regression and three real deep-path runs verified the normalization fix; the original transient traceback was not captured. See Phase 3 PATH_RACE_REVIEW.md. Checked-result integration and target/frozen qualification remain separate gates.
+- Objective: untrusted data-only recipes execute under explicit application resource/path policy and deadlines without touching the active editor session.
 - Impact/work: `ai/policy.py`, `worker.py`, fixed internal entry in `ui/app.py` or trusted launcher; typed preflight in existing recipe validator; narrowly audited derived paths/writer names; event hooks if needed in executor. Keep Executor API/session transaction.
 - Non-goals: GUI prompt or repair autonomy; general sandbox/interpreter.
 - Tests: proposed `ai/test_policy.py`, `test_worker.py`: huge nets/textures/graphs/frames, NaN, texture reads, derived path traversal/symlinks/junctions/collisions, memory estimate, child death/cancel, untouched active Session; existing recipe path and transactional tests.
-- Acceptance/evidence: malicious fixtures fail before allocation; valid sample builds privately; terminated worker leaves no successful publication or stray child.
+- Acceptance/evidence: malicious fixtures fail before allocation; every derived output path is covered by tests; valid sample builds privately; terminated worker leaves no successful publication or stray child. This is not OS-sandbox or compromised-code-containment evidence.
 - Review gate: independent security/resource and frozen-spawn design review. A thread-only cancel design fails gate.
-- Dependencies: 0 contracts; can develop after 1, uses candidates from 2 for integration.
+- Dependencies: worker/policy scaffolding can start after Phase 1 contracts; integration with produced recipe candidates follows Phase 2.
 
 ### Phase 4 — Check artifacts, preview and publish provenance
 
+- Status: Earlier independent integrity findings and the numeric resource terminal seam were verified. The reopened orbit-sheet naming and accepted-brief export-intent corrections passed independent verification: twelve sheet-contract and four existing export/resource checks, plus strict source acceptance. See phase-4/SHEET_CONTRACT_REVIEW.md; preserve Phase 10 spritesheet-contract-pending.json as the original failure receipt. Live/human/frozen/platform acceptance remains pending.
 - Objective: completed candidate has verified native file, whole-scene preview and recoverable run record.
 - Impact/work: `ai/checks.py`, `records.py`, bounded optional generation field in Project/serializer; use scene/render_job/export validators; staged run promotion/history index and interrupted-run handling.
 - Non-goals: visual LLM critique, chat UI, full history browser.
-- Tests: proposed `ai/test_checks.py`, `test_records.py`; core serializer compatibility/limits/roundtrip; empty curves/rig-only, finite bounds, dark/thin preview, moving bone with static skin, loop endpoints, invalid/missing exports, disk-full/copy failure, secret sentinel, relocated native file/missing sidecar.
+- Tests: proposed `ai/test_checks.py`, `test_records.py`; core serializer compatibility/limits/roundtrip including old-reader load-and-save metadata loss and new-reader preservation; empty curves/rig-only, finite bounds, dark/thin preview, moving bone with static skin, loop endpoints, invalid/missing exports, disk-full/copy failure, secret sentinel, relocated native file/missing sidecar.
 - Acceptance/evidence: sample native save/reopen and independently parsed exports; deliberately bad asset never reaches Complete; interrupted run preserves earlier success.
 - Review gate: data-integrity/serialization and result-check reviewers; review format-version decision before merge.
 - Dependencies: 3.
 
 ### Phase 5 — Orchestrate bounded repair and cancellation
 
+- Status: Local independent state-machine review passed after centralized accounting fixes (40 checks, heavy native refinement deselected; four component refinements passed separately). The checker-resource terminal seam passed six independent focused checks. Root current real worker/check/publish passed against unchanged captured inputs; see Phase 5 ROOT_INTEGRATION.md. Live small-set acceptance remains pending.
 - Objective: headless prompt→checked project recovers from actionable model mistakes.
 - Impact/work: `ai/orchestrator.py`, event/state contracts, errors to provider repair input; share run deadline/counters across schema/runtime/check repair and transport retry. No prompts with raw local paths.
 - Non-goals: infinite retries, automatic model changes, expensive visual critique.
@@ -297,6 +321,7 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 6 — Create with AI and guarded editor handoff
 
+- Status: Deferred-close outcome loss and four new branches independently verified fixed; 24 profile/parity/surface checks passed. First 58-suite run had one unknown eight-second close-cancel wait timeout; the exact case and full rerun passed, retained as a final-regression qualification limit. Genuine profile edits are supported without a generic patch-net editor. Live/native/frozen acceptance remains pending.
 - Objective: launch→brief→candidate→manual editing without terminal/JSON.
 - Impact/work: `ui/home.py`, `app.py`, `workspaces.py`, `settings.py`, new `ui/ai_workspace.py`/`ai_controller.py`; controller-owned worker/network lifecycle; reuse document open/reset/dirty gate.
 - Non-goals: history comparison/refinement or pixel polish.
@@ -307,6 +332,7 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 7 — History and versioned natural-language refinement
 
+- Status: Local independent preservation review passed: five history checks, the measured four-refinement node and a 286-character Unicode history-path probe. See phase-7/INDEPENDENT_REVIEW.md. Final local integrated regression/frozen history/refinement passed; live/native and selected-target frozen gates remain pending; the earlier unknown Phase6 close-cancel timeout remains recorded.
 - Objective: refine stored generation and recover parent without losing manual work.
 - Impact/work: records/orchestrator parent handling, AI workspace history/refine/change summary; provenance divergence checks; document_controller integration only through existing guards.
 - Non-goals: merge manual CP edits, arbitrary existing-project refinement, semantic patch engine, branch graph UI.
@@ -317,6 +343,7 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 8 — Run benchmark and resolve measured capability gaps
 
+- Status: Local methodology finding independently verified fixed: observed receipts and physical PNG/native checks reject record tampering (13 focused checks and two actual receipt/offline-gate checks passed). Phase 7 live style-family checks, two live frozen runs and independent human scores remain pending; two reviewers can be supplied later. Receipt consistency does not authenticate remote provider origin or protect against the same account rewriting all code and evidence.
 - Objective: known supported breadth and quantified failure limits.
 - Impact/work: trusted benchmark runner, fixtures/rubric/evidence, minimal recipe/guide/executor/engine changes only justified by section 10 process.
 - Non-goals: speculative arrays/hierarchy/new renderer, changing prompts to hide failures.
@@ -326,6 +353,8 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 - Dependencies: 7; discovery baseline began in 2, so gaps are not first found at release.
 
 ### Phase 9 — Cohesive UX and documentation pass
+
+- Status: Local independent UX/docs gate passed; final captured source bindings and later Settings privacy-only delta are distinguished in phase-11/SOURCE_DELTA_REUSE.md. Native scale/keyboard inspection remains open.
 
 - Objective: AI feels native to the retro workstation and limitations are understandable.
 - Impact/work: AI work area/layout/settings and small theme adaptations; documents listed in section 12; keyboard/focus/scrolling, report copy, static export and privacy/refinement explanations.
@@ -337,6 +366,8 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 
 ### Phase 10 — Package and qualify Windows 11 / Mint 22.3
 
+- Status: Exact locked local Windows10 development build and retained frozen/reader/credential gates passed; full regression1048/2/4, tooling44/4. Source2be687b3… and ZIP36970e05… bound in phase-10/ROOT_LOCKED_ACCEPTANCE.md. Independent final local artifact verification completed; read-only, committed-lock and both target qualification ladders remain unpassed.
+
 - Objective: clean supported hosts launch complete V1 without Python and securely generate assets.
 - Impact/work: both build scripts/specs, locks, Windows workflow, frozen acceptance harnesses, platform docs; include schemas/templates/internal worker/HTTP CA and secure credential backend dependencies; keep CLI usable headlessly.
 - Non-goals: macOS/MX/general Linux claim, mandatory installer/AppImage, cloud service.
@@ -346,6 +377,8 @@ Every phase below is planning, not work performed. Each produces one reviewable 
 - Dependencies: 9; early Windows worker packaging spike in 3 can reduce late risk.
 
 ### Phase 11 — Release candidate acceptance and authoritative release docs
+
+- Status: Local source architecture/data-security review completed after verified credential fixes. Final local artifact/product verification completed. Development candidate only; external and committed-source/lock gates open, no RC/cross-platform V1 accepted.
 
 - Objective: one exact source/artifact candidate meets core promise without known blockers.
 - Impact/work: version in pyproject/__init__, final release/platform/quick-start/status documents, evidence/review ledger; rebuild final artifacts after any code or bundled-doc change.
@@ -394,17 +427,19 @@ Release is blocked until all of these hold for one identified candidate:
 - Distribution: clean Windows 11 x86-64 and Linux Mint 22.3 x86-64 systems launch frozen GUI and CLI without Python; internal worker and provider credentials/network workflow also work. Software rendering remains usable; native GPU checks recorded separately.
 - Docs and shipped payload agree with exact source/platform/capabilities; no old external-only V1 contract remains in active entry points.
 
-Qualification ladder, recorded separately for each platform: **(1)** source tests in locked environment; **(2)** executed CI/build; **(3)** exact frozen CLI/GUI offscreen acceptance and relocation; **(4)** clean VM with no Python/developer tools, interactive desktop and secure credential/network workflow; **(5)** native physical desktop with scaling/keyboard/manual edit/recovery; **(6)** physical GPU rendering, diagnostics and software fallback. Mint preview historically reaches selected lower rungs; Windows currently has definitions, not evidence of rung 2. VM software rendering cannot satisfy physical GPU. Record OS build/desktop/driver/renderer, machine, dates and command artifacts. Avoid asserting every GPU/vendor is supported from one machine.
+Qualification ladder, recorded separately for each platform: **(1)** source tests in locked environment; **(2)** executed CI/build; **(3)** exact frozen CLI/GUI offscreen acceptance and relocation; **(4)** clean VM with no Python/developer tools, interactive desktop and secure credential/network workflow; **(5)** native physical desktop with scaling/keyboard/manual edit/recovery; **(6)** physical GPU rendering, diagnostics and software fallback. The accepted Mint preview historically reaches selected lower rungs, with its exact archive/build-input identities recorded in the preview evidence; that is not V1 qualification. The current workstation is Windows 10 IoT Enterprise LTSC build 19044 x86-64, not the selected Windows 11 target. No V1 qualification evidence has been recorded for either selected target. VM software rendering cannot satisfy physical GPU. Record OS build/desktop/driver/renderer, machine, dates and command artifacts. Avoid asserting every GPU/vendor is supported from one machine.
 
-Windows 11 and Mint 22.3 are proposed minimum V1 release targets, based on user's desired direction and existing Mint evidence/build paths; Windows minimum is a new product selection, not a discovered support claim. MX 25.2 historical evidence stays visible but current requalification is V1.x unless product owner explicitly requires it. If a target host is unavailable, gate stays unpassed: ship a clearly named platform preview only through an explicit scope decision, never call it the agreed cross-platform V1.
+Windows 11 and Mint 22.3 are the approved minimum V1 release targets, based on the user's selected direction and existing Mint preview/build paths. Neither is currently qualified for V1. MX 25.2 historical evidence stays visible but current requalification is V1.x unless the product owner explicitly changes scope. If a target host is unavailable, its gate stays unpassed: a platform test candidate may be produced, but it cannot be published as a supported V1 target until the actual gates pass.
 
-Genuine outstanding blockers are the absent first-class prompt/provider/orchestrator/history/refinement/checking workflow, unqualified AI execution/credential policy, unmeasured frozen benchmark, and missing current native Windows/Mint qualification. Documentation reconciliation is part of those gates. No evidence currently justifies making advanced modelling, rendering research or DCC interchange blockers.
+At the original planning baseline, the first-class prompt/provider/orchestrator/history/refinement/checking workflow was absent. Current source implements that workflow with local phase evidence; it has not passed final integrated, frozen, live-provider or target-platform acceptance. The unmeasured live benchmark and missing current native Windows/Mint qualification remain release blockers. Current phase ledgers and evidence, rather than this historical absence finding, govern implementation progress. Documentation reconciliation is part of those gates. No evidence currently justifies making advanced modelling, rendering research or DCC interchange blockers.
 
-## 14. Planning command record and handoff
+## 14. Historical planning record and active handoff
 
-Inspection used Git identity/status/remotes, `rg --files`, file/function searches and targeted reads of all product/release/recipe/editor/engine paths cited above. No source modifications, dependency changes, rebuild, network provider call or Git push during planning. Generated test artifacts are under `/tmp/am3d-v1-planning-*`; the existing GUI smoke also exercised the normal per-user autosave path and cleared its own snapshot. Existing tests may exercise their isolated settings/test fixtures. No repository source was changed.
+The following command results and path references are the October 4 planning record from the historical Linux checkout at HEAD `02d9443fc55b96fa469fbef98e55caea7b78eed7`; retain them as evidence for that source only. The current V1 Phase 0 baseline starts from checkout HEAD `3f6f7f03d32b4d1a3af06af4fdc0724bf0436945` on Windows 10 IoT Enterprise LTSC build 19044 x86-64. This documentation pass made no runtime-code changes and ran no tests or builds. The current environment was installed and its baseline passed 738 tests and 14 smoke steps; see Phase 0 evidence. This paragraph describes the earlier documentation-only pass.
 
-Verification completed on the inspected implementation:
+The 2026-10-13 independent plan review passed. The review requested `gpt-6-luna` at `xhigh`; the tool accepted the request, but runtime reasoning effort is not independently introspectable. Product direction is approved, and implementation is authorized. Phase 0 is complete; its current-source baseline is recorded separately from the historical results below.
+
+Historical verification completed on the inspected implementation:
 
 | Command | Result |
 | --- | --- |
@@ -416,8 +451,8 @@ Verification completed on the inspected implementation:
 | `build/linux/venv/bin/python -m am3d.recipes --recipe docs/recipes/examples/knight_full.json --out /tmp/am3d-v1-planning-knight` | Exit 0; native, OBJ/MTL, GLB and sprite artifacts; no errors/warnings |
 | Fresh Session native reopen and `export.validate.validate_obj/validate_glb` on the generated knight | Two objects, 450 triangles; both validators return empty error lists |
 
-Visually inspected the committed layout preview `docs/previews/blender-early-2000s-layout.png` against current DESIGN/workspace/theme/source conventions: square controls, graphite viewport, steel panes, amber selection, outliner/properties and timeline. This is a committed visual reference, not a fresh native desktop acceptance screenshot. Impeccable context launcher returned permission denied; product/design context was read directly; no UI edited.
+The committed layout preview `docs/previews/blender-early-2000s-layout.png` was inspected during the historical planning pass against the DESIGN/workspace/theme/source conventions. It remains a visual reference, not a fresh native desktop acceptance screenshot. The Impeccable context launcher returned permission denied; product/design context was read directly and no UI was edited.
 
- A planning-only commit is authorized by this run if Git remains otherwise clean. Stage only this document. If unrelated user work appears, do not commit it and leave this plan uncommitted with explanation. Do not push without explicit user instruction.
+The October 4 planning-only commit/push handoff is historical and superseded. The active work is approved V1 implementation from the current checkout baseline; no commit or push is part of this Phase 0 documentation task.
 
-Next action: push the planning-only commit when authorized, then independently review this plan against the exact commit before implementation. A remote reviewer cannot read an unpushed local commit; provide its file/diff or push first. Never claim it has been pushed when it has not.
+Final local acceptance and exact independent-review receipt hashes: docs/evidence/v1/phase-11/FINAL_ACCEPTANCE.md and FINAL_ACCEPTANCE_BINDING.json. Required cross-platform V1/RC gates remain open; no publication.

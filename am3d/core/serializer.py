@@ -8,8 +8,11 @@ is compact and readily consumable by an external agentic pipeline.
 from __future__ import annotations
 
 import io
+import hashlib
+import json
 import math
 import os
+import re
 from .paths import is_absolute_any_platform
 import tempfile
 
@@ -35,6 +38,154 @@ _MAX_ARRAY_ELEMENTS = 10_000_000
 _ALLOWED_DTYPES = {"float16", "float32", "float64", "int8", "int16",
                    "int32", "int64", "uint8", "uint16", "uint32", "uint64",
                    "bool"}
+_MAX_GENERATION_BYTES = 1024 * 1024
+_GENERATION_KEYS = {
+    "version", "run_id", "parent_generation_id", "accepted_brief",
+    "recipe", "recipe_sha256", "application", "warnings",
+    "artifact_refs", "project_digest", "diverged",
+}
+_SENSITIVE_GENERATION_KEYS = {
+    "apikey", "authorization", "credential", "credentials", "password",
+    "secret", "token", "rawhttp", "rawresponse", "transcript",
+    "requestbody", "responsebody",
+}
+
+
+def _json_safe_generation_value(value, *, depth=0):
+    """Return a plain JSON value or reject non-finite/secret-bearing data."""
+    if depth > 12:
+        raise ProjectFormatError("Generation envelope is too deeply nested")
+    if value is None or isinstance(value, (str, bool, int)):
+        if isinstance(value, str):
+            try:
+                length = len(value.encode("utf-8", errors="strict"))
+            except UnicodeEncodeError as exc:
+                raise ProjectFormatError("Generation envelope contains invalid Unicode") from exc
+            if length > 131072:
+                raise ProjectFormatError("Generation envelope string exceeds its limit")
+        return value
+    if isinstance(value, float):
+        if not math.isfinite(value):
+            raise ProjectFormatError("Generation envelope contains a non-finite number")
+        return value
+    if isinstance(value, (list, tuple)):
+        if len(value) > 4096:
+            raise ProjectFormatError("Generation envelope array exceeds its limit")
+        return [_json_safe_generation_value(item, depth=depth + 1)
+                for item in value]
+    if isinstance(value, dict):
+        if len(value) > 4096:
+            raise ProjectFormatError("Generation envelope object exceeds its limit")
+        result = {}
+        for key, item in value.items():
+            if not isinstance(key, str) or len(key) > 128:
+                raise ProjectFormatError("Generation envelope keys must be short strings")
+            normalized = re.sub(r"[^a-z0-9]", "", key.casefold())
+            if normalized in _SENSITIVE_GENERATION_KEYS:
+                raise ProjectFormatError("Generation envelope contains a forbidden sensitive field")
+            result[key] = _json_safe_generation_value(item, depth=depth + 1)
+        return result
+    raise ProjectFormatError("Generation envelope must contain JSON values only")
+
+
+def validate_generation_envelope(envelope: dict) -> dict:
+    """Validate and copy the optional format-2 provenance envelope."""
+    if not isinstance(envelope, dict):
+        raise ProjectFormatError("Project generation envelope must be an object")
+    if any(not isinstance(key, str) for key in envelope):
+        raise ProjectFormatError("Project generation envelope keys must be strings")
+    extra = set(envelope) - _GENERATION_KEYS
+    if extra:
+        raise ProjectFormatError(
+            f"Project generation envelope has unsupported field {sorted(extra)[0]!r}")
+    required = {"version", "run_id", "accepted_brief", "recipe", "recipe_sha256"}
+    missing = required - set(envelope)
+    if missing:
+        raise ProjectFormatError(
+            f"Project generation envelope is missing {sorted(missing)[0]!r}")
+    value = _json_safe_generation_value(envelope)
+    if type(value["version"]) is not int or value["version"] != 1:
+        raise ProjectFormatError("Project generation envelope version must be 1")
+    import uuid
+    for key in ("run_id", "parent_generation_id"):
+        item = value.get(key)
+        if key == "parent_generation_id" and item is None:
+            continue
+        try:
+            parsed = uuid.UUID(item)
+        except (ValueError, TypeError, AttributeError) as exc:
+            raise ProjectFormatError(f"Project generation {key} must be a UUID") from exc
+        if str(parsed) != item:
+            raise ProjectFormatError(f"Project generation {key} must be canonical lowercase UUID text")
+    if not isinstance(value["accepted_brief"], (str, dict)):
+        raise ProjectFormatError("Project generation accepted_brief must be text or an object")
+    if not isinstance(value["recipe"], dict):
+        raise ProjectFormatError("Project generation recipe must be an object")
+    digest = value["recipe_sha256"]
+    if not isinstance(digest, str) or not re.fullmatch(r"[0-9a-f]{64}", digest):
+        raise ProjectFormatError("Project generation recipe_sha256 must be lowercase SHA-256")
+    try:
+        canonical_recipe = json.dumps(value["recipe"], sort_keys=True,
+                                      separators=(",", ":"), ensure_ascii=False,
+                                      allow_nan=False).encode("utf-8", errors="strict")
+    except (TypeError, ValueError, UnicodeEncodeError) as exc:
+        raise ProjectFormatError("Project generation recipe is not valid bounded JSON") from exc
+    if hashlib.sha256(canonical_recipe).hexdigest() != digest:
+        raise ProjectFormatError("Project generation recipe hash does not match its recipe")
+    application = value.get("application", {})
+    if not isinstance(application, dict) or set(application) - {
+            "version", "build_id", "capability_version"}:
+        raise ProjectFormatError("Project generation application identity is invalid")
+    for key, item in application.items():
+        if not isinstance(item, str) or len(item) > 256:
+            raise ProjectFormatError(f"Project generation application {key} must be short text")
+    warnings = value.get("warnings", [])
+    if not isinstance(warnings, list) or len(warnings) > 32 or any(
+            not isinstance(item, str) or len(item) > 1024 for item in warnings):
+        raise ProjectFormatError("Project generation warnings exceed their limits")
+    refs = value.get("artifact_refs", [])
+    if not isinstance(refs, list) or len(refs) > 64:
+        raise ProjectFormatError("Project generation artifact_refs exceed their limit")
+    for index, ref in enumerate(refs):
+        if not isinstance(ref, dict) or set(ref) != {"path", "sha256"}:
+            raise ProjectFormatError(f"Project generation artifact_refs[{index}] is invalid")
+        path = ref["path"]
+        if not isinstance(path, str):
+            raise ProjectFormatError(f"Project generation artifact_refs[{index}] path must be relative")
+        from .paths import classify_portable_relative_path
+        if "\\" in path or classify_portable_relative_path(path) is not None:
+            raise ProjectFormatError(f"Project generation artifact_refs[{index}] path must be portable and relative")
+        if not isinstance(ref["sha256"], str) or not re.fullmatch(r"[0-9a-f]{64}", ref["sha256"]):
+            raise ProjectFormatError(f"Project generation artifact_refs[{index}] hash is invalid")
+    for key in ("project_digest",):
+        item = value.get(key)
+        if item is not None and (not isinstance(item, str)
+                                 or not re.fullmatch(r"[0-9a-f]{64}", item)):
+            raise ProjectFormatError(f"Project generation {key} must be lowercase SHA-256")
+    if "diverged" in value and type(value["diverged"]) is not bool:
+        raise ProjectFormatError("Project generation diverged must be boolean")
+    encoded = json.dumps(value, sort_keys=True, separators=(",", ":"),
+                         ensure_ascii=False, allow_nan=False).encode("utf-8")
+    if len(encoded) > _MAX_GENERATION_BYTES:
+        raise ProjectFormatError("Project generation envelope exceeds 1 MiB")
+    return value
+
+
+def _sort_mapping_tree(value):
+    if isinstance(value, dict):
+        return {key: _sort_mapping_tree(value[key]) for key in sorted(value)}
+    if isinstance(value, list):
+        return [_sort_mapping_tree(item) for item in value]
+    return value
+
+
+def _project_content_digest(body: dict) -> str:
+    """Hash authored project state, excluding provenance and transient view state."""
+    data = dict(body)
+    for key in ("generation", "mode", "frame", "render_settings"):
+        data.pop(key, None)
+    payload = msgpack.packb(_sort_mapping_tree(data), use_bin_type=True)
+    return hashlib.sha256(payload).hexdigest()
 
 
 def _check_container_depth(val, depth=0):
@@ -479,6 +630,17 @@ def dump_project(project: Project, actions: dict | None = None) -> bytes:
         "pose_offsets": encoded_offsets,
     }
     body["format_version"] = 2
+    generation = getattr(project, "generation", None)
+    if generation is not None:
+        generation = validate_generation_envelope(generation)
+        current_digest = _project_content_digest(body)
+        baseline = generation.get("project_digest")
+        if baseline is None:
+            generation["project_digest"] = current_digest
+            generation["diverged"] = False
+        elif baseline != current_digest:
+            generation["diverged"] = True
+        body["generation"] = generation
     return msgpack.packb(body, use_bin_type=True)
 
 
@@ -493,7 +655,10 @@ def load_project_bytes(payload: bytes) -> Project:
             f"Unsupported project format version {fmt!r} "
             f"(this build supports up to {FORMAT_VERSION})")
     validate_project_data(data)
+    if "generation" in data:
+        data["generation"] = validate_generation_envelope(data["generation"])
     p = Project(name=data["name"])
+    p.generation = data.get("generation")
     p.mode = data.get("mode", "object")
     p.frame = float(data.get("frame", 0.0))
     p.fps = float(data.get("fps", 30.0))
@@ -636,8 +801,20 @@ def load_project_bytes(payload: bytes) -> Project:
     return p
 
 
+def project_content_digest(project: Project, actions: dict | None = None) -> str:
+    """Return the stable authored-state digest used by generation divergence."""
+    data = _unpack_msgpack(dump_project(project, actions=actions))
+    return _project_content_digest(data)
+
+
 def save_project(project: Project, path: str, actions: dict | None = None):
-    _atomic_write(path, dump_project(project, actions=actions))
+    payload = dump_project(project, actions=actions)
+    # Keep the baseline in the live document too. A later manual edit must
+    # compare against the original generated state even when no disk reload
+    # occurred in between.
+    data = _unpack_msgpack(payload)
+    project.generation = data.get("generation")
+    _atomic_write(path, payload)
 
 
 def load_project(path: str) -> Project:

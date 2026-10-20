@@ -1,0 +1,314 @@
+{
+  "platform": "Windows 10 IoT Enterprise LTSC build 19044 x64",
+  "python": "3.12.14",
+  "qt": "6.11.2",
+  "qt_platform": "offscreen",
+  "capture_command": "$env:QT_QPA_PLATFORM='offscreen'; .venv\\Scripts\\python.exe work\\v1\\phase9_capture_temp.py",
+  "font_for_offscreen_capture": "Installed Windows Tahoma registered from C:\\Windows\\Fonts\\tahoma.ttf; offscreen Qt initially exposed no font families.",
+  "requested_logical_proxies": [
+    {
+      "label": "100pct-logical-proxy",
+      "requested": [
+        1280,
+        820
+      ]
+    },
+    {
+      "label": "150pct-logical-proxy",
+      "requested": [
+        853,
+        546
+      ]
+    },
+    {
+      "label": "200pct-logical-proxy",
+      "requested": [
+        640,
+        410
+      ]
+    }
+  ],
+  "physical_dpi_qualification": false,
+  "provider_or_network_calls": 0,
+  "credential_values_read": 0,
+  "fixture_note": "Result/history/refinement/error screens are actual Qt widgets populated with synthetic safe offline UI fixtures. The sailboat preview is drawn only for layout evidence and is not an AI-generated result.",
+  "capture_note": "MainWindow actual client/frame sizes are recorded. The existing editor stack enforces a wider minimum than the requested compact widths; standalone AIWorkspace and modal surfaces were separately captured at compact logical sizes.",
+  "screenshots": [
+    {
+      "surface": "MainWindow Create with AI idle",
+      "logical_proxy": "100pct-logical-proxy",
+      "requested_window": [
+        1280,
+        820
+      ],
+      "actual_client": [
+        1280,
+        820
+      ],
+      "actual_frame": [
+        1284,
+        824
+      ],
+      "scroll_viewport": [
+        1266,
+        753
+      ],
+      "scroll_range": [
+        0,
+        913
+      ],
+      "screenshot": "screens/main-idle-1280x820.png"
+    },
+    {
+      "surface": "AI Settings with empty model and key fields",
+      "logical_proxy": "100pct-logical-proxy",
+      "parent_requested_window": [
+        1280,
+        820
+      ],
+      "parent_actual_client": [
+        1280,
+        820
+      ],
+      "requested_dialog": [
+        560,
+        360
+      ],
+      "actual_dialog_client": [
+        560,
+        360
+      ],
+      "actual_dialog_frame": [
+        564,
+        364
+      ],
+      "scroll_viewport": [
+        540,
+        304
+      ],
+      "scroll_range": [
+        0,
+        0
+      ],
+      "footer_visible": true,
+      "screenshot": "screens/settings-1280x820.png"
+    },
+    {
+      "surface": "MainWindow Create with AI idle",
+      "logical_proxy": "150pct-logical-proxy",
+      "requested_window": [
+        853,
+        546
+      ],
+      "actual_client": [
+        853,
+        546
+      ],
+      "actual_frame": [
+        857,
+        550
+      ],
+      "scroll_viewport": [
+        839,
+        479
+      ],
+      "scroll_range": [
+        0,
+        1229
+      ],
+      "screenshot": "screens/main-idle-853x546.png"
+    },
+    {
+      "surface": "AI Settings with empty model and key fields",
+      "logical_proxy": "150pct-logical-proxy",
+      "parent_requested_window": [
+        853,
+        546
+      ],
+      "parent_actual_client": [
+        853,
+        546
+      ],
+      "requested_dialog": [
+        560,
+        360
+      ],
+      "actual_dialog_client": [
+        560,
+        360
+      ],
+      "actual_dialog_frame": [
+        564,
+        364
+      ],
+      "scroll_viewport": [
+        540,
+        304
+      ],
+      "scroll_range": [
+        0,
+        0
+      ],
+      "footer_visible": true,
+      "screenshot": "screens/settings-853x546.png"
+    },
+    {
+      "surface": "MainWindow Create with AI idle",
+      "logical_proxy": "200pct-logical-proxy",
+      "requested_window": [
+        640,
+        410
+      ],
+      "actual_client": [
+        640,
+        410
+      ],
+      "actual_frame": [
+        644,
+        414
+      ],
+      "scroll_viewport": [
+        626,
+        343
+      ],
+      "scroll_range": [
+        0,
+        1393
+      ],
+      "screenshot": "screens/main-idle-640x410.png"
+    },
+    {
+      "surface": "AI Settings with empty model and key fields",
+      "logical_proxy": "200pct-logical-proxy",
+      "parent_requested_window": [
+        640,
+        410
+      ],
+      "parent_actual_client": [
+        640,
+        410
+      ],
+      "requested_dialog": [
+        560,
+        360
+      ],
+      "actual_dialog_client": [
+        560,
+        360
+      ],
+      "actual_dialog_frame": [
+        564,
+        364
+      ],
+      "scroll_viewport": [
+        540,
+        304
+      ],
+      "scroll_range": [
+        0,
+        0
+      ],
+      "footer_visible": true,
+      "screenshot": "screens/settings-640x410.png"
+    },
+    {
+      "surface": "Standalone AIWorkspace compact scroll layout",
+      "logical_proxy": "200pct-logical-proxy",
+      "requested_window": [
+        640,
+        410
+      ],
+      "actual_client": [
+        640,
+        410
+      ],
+      "scroll_viewport": [
+        626,
+        343
+      ],
+      "scroll_range": [
+        0,
+        1393
+      ],
+      "screenshot": "screens/ai-workspace-standalone-640x410.png"
+    },
+    {
+      "surface": "Checked-result UI with synthetic offline fixture",
+      "logical_proxy": "100pct-logical-proxy",
+      "requested_window": [
+        1280,
+        820
+      ],
+      "actual_client": [
+        1280,
+        820
+      ],
+      "screenshot": "screens/main-result-synthetic-fixture.png"
+    },
+    {
+      "surface": "Verified history UI with synthetic offline fixture",
+      "logical_proxy": "100pct-logical-proxy",
+      "requested_window": [
+        1280,
+        820
+      ],
+      "actual_client": [
+        1280,
+        820
+      ],
+      "screenshot": "screens/main-history-synthetic-fixture.png"
+    },
+    {
+      "surface": "Refinement request for selected verified synthetic parent",
+      "logical_proxy": "100pct-logical-proxy",
+      "requested_window": [
+        1280,
+        820
+      ],
+      "actual_client": [
+        1280,
+        820
+      ],
+      "screenshot": "screens/main-refinement-synthetic-fixture.png"
+    },
+    {
+      "surface": "Fixed timeout error UI with synthetic offline fixture",
+      "logical_proxy": "100pct-logical-proxy",
+      "requested_window": [
+        1280,
+        820
+      ],
+      "actual_client": [
+        1280,
+        820
+      ],
+      "screenshot": "screens/main-error-synthetic-fixture.png"
+    },
+    {
+      "surface": "Quick Start scroll guide at compact logical proxy",
+      "logical_proxy": "200pct-logical-proxy",
+      "parent_requested_window": [
+        640,
+        410
+      ],
+      "parent_actual_client": [
+        640,
+        410
+      ],
+      "requested_dialog": [
+        620,
+        380
+      ],
+      "actual_dialog_client": [
+        620,
+        380
+      ],
+      "actual_dialog_frame": [
+        624,
+        384
+      ],
+      "footer_visible": true,
+      "screenshot": "screens/quick-start-640x410.png"
+    }
+  ]
+}

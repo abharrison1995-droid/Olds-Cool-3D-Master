@@ -1,0 +1,9 @@
+baseline HEAD 3f6f7f03d32b4d1a3af06af4fdc0724bf0436945
+pre-edit checks.py SHA-256 (recorded in existing phase-4 SOURCE_HASHES.txt) 15951983dedf353149eccb112727024621c2875219fa919e59d38bfcf2579374
+post-edit checks.py SHA-256 2c610c348e71d1311854ee9e3618db2e62164067c87fec2a84ca011708f27421
+existing test_checks.py SHA-256 (unchanged; existing phase-4 SOURCE_HASHES.txt) 7246329b5dd72373b9d3895b18f56bf2fdfb74886fb6e6318f68f7df7638e17c
+new test_sheet_contract.py SHA-256 0216adba98804d9bf1fbf5ee29d2969667c48152ac237fbfe4beefe48c0976b7
+preserved phase-10 failure receipt SHA-256 b80dd21bbbdd85679e81d5a1425c3996890dc17a77b5298503f6f16fa8bcb1cc
+SHEET_CONTRACT_FIX.md SHA-256 23a4c0d28eacc166f0dd5e402a8a584f6441af4cdc44ed8611b06577b4de721e
+sheet-contract-fix-tests.txt SHA-256 7a483baec4c0e3477d7fd071b686cc5959a964a9144824c738440b32eac411c3
+sheet-contract-fix-existing-tests.txt SHA-256 d6f078f2caa163ec64b646c045fbda62e0f60d549c5fc6b295664e0161945398

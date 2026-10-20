@@ -1,0 +1,22 @@
+{
+  "target_platform_qualification": false,
+  "live_provider_qualification": false,
+  "archive_sha256": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
+  "mode": "exact-locked-frozen-retained-QA",
+  "gui_exe_sha256": "81799caca49de2d558512c846ea1641c41db1078ea9b134429fcd0a8d9ae2e42",
+  "runs": [
+    {
+      "check": "fixed-workflow",
+      "host_directory": "work/v1/locked-final-fixed-workflow-host",
+      "finished": true,
+      "exit_code": 0
+    },
+    {
+      "check": "credential-store",
+      "host_directory": "work/v1/locked-final-credential-store-host",
+      "finished": true,
+      "exit_code": 0
+    }
+  ],
+  "source_sha256": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d"
+}

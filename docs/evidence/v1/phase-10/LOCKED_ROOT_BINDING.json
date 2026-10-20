@@ -1,0 +1,37 @@
+{
+  "source_sha256": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
+  "baseline_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "source_status": "authorized uncommitted development changes",
+  "build_exit_code": 0,
+  "retained_qa_exit_code": 0,
+  "tooling_exit_code": 0,
+  "source_tests": {
+    "passed": 1048,
+    "skipped": 2,
+    "warnings": 4,
+    "seconds": 596.54
+  },
+  "tooling_tests": {
+    "passed": 44,
+    "skipped": 4,
+    "seconds": 44.66,
+    "reuse": "scripts/tests unchanged; document-only delta recorded in phase-11/BUNDLED_DOC_INPUT_DELTA.json"
+  },
+  "files": {
+    "release/3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
+    "release/3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip.sha256": "e386a3d13615e308b0de4199c806e28c904527a0b29a3a2db0e9c3ec29bc5a8e",
+    "release/BUILD_INPUTS-windows.json": "278f2dd244c925f122cf9f49132a21ad91698de895d9ffbae59a0cf1341beefb",
+    "release/BUILD_PROVENANCE-windows.txt": "014bf5e5ef2d3ddd4081442c28779e510647b12c314bd44d700465f331806ac0",
+    "requirements-lock-windows.txt": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
+    "docs/evidence/v1/phase-10/locked-build.log": "ea3818ffdcaa3f8c40f8a8258c869b4f966ba48195d057ad3b211d107b10fd99",
+    "docs/evidence/v1/phase-10/locked-tooling-tests.log": "abb9672f8c0870a46279f612152f3ab755d546b5b9b6560915d33b625836239f",
+    "docs/evidence/v1/phase-10/LOCKED_SOURCE_INPUTS.json": "278f2dd244c925f122cf9f49132a21ad91698de895d9ffbae59a0cf1341beefb",
+    "docs/evidence/v1/phase-10/LOCKED_FROZEN_QA_BINDING.json": "7c466fbf24b108fa0b9bf8e9e8aa670fd8e1587048776f85804f7cc33f833701",
+    "docs/evidence/v1/phase-10/LOCKED_FROZEN_ACCEPTANCE.json": "a62f5bf2d6a9ee327b322767e94d541a1245e58d763f59d128d2eb68da99fb37",
+    "docs/evidence/v1/phase-10/LOCKED_CREDENTIAL_STORE.json": "be58b0b0b375fa119665812f8849533175146fec0c160020a029e9c1dd430756",
+    "docs/evidence/v1/phase-10/LOCKED_PAYLOAD_INVENTORY.json": "446884b1975cb9318d952d8ce4ed2ff839a35f3746e108bf4395b947ad62c4c3",
+    "docs/evidence/v1/phase-10/LOCKED_EXTERNAL_READER.json": "73c8d178b85f6dacfa69417691ee84b48b347448c1afd955f6dc2c9a626fe485"
+  },
+  "target_qualification": false,
+  "release_accepted": false
+}

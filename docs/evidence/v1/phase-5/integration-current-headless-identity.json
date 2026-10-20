@@ -1,0 +1,359 @@
+{
+  "captured_utc": "2026-10-13T21:01:14.260225+00:00",
+  "base_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "scope": "Exact listed source bytes; uncommitted working tree, not a release artifact",
+  "files": {
+    "am3d/ai/__init__.py": {
+      "bytes": 1889,
+      "sha256": "35685b1b6063359dd15fdfee2e6d5e348d5b259dbd611583d51c7a738ab917d7"
+    },
+    "am3d/ai/checks.py": {
+      "bytes": 81446,
+      "sha256": "15951983dedf353149eccb112727024621c2875219fa919e59d38bfcf2579374"
+    },
+    "am3d/ai/contracts.py": {
+      "bytes": 13351,
+      "sha256": "a161b0995d1937a526165c4bc96b03736f584aebb9546e844e7c1b23916d600a"
+    },
+    "am3d/ai/credentials.py": {
+      "bytes": 4905,
+      "sha256": "bcaee82e8db9f0bbcf6d01455477572c50cd890195e41badf5e5f9300d5d2141"
+    },
+    "am3d/ai/orchestrator.py": {
+      "bytes": 53010,
+      "sha256": "162c043dc2fc710ae5f7eab75088336e82415e692f0d46ef487d53699c5623d0"
+    },
+    "am3d/ai/policy.py": {
+      "bytes": 45116,
+      "sha256": "9d80cf3174b491191e577811b97e5a2389d90796319065cce4978e08c0ae962e"
+    },
+    "am3d/ai/prompts.py": {
+      "bytes": 30180,
+      "sha256": "44353f454e18ca107b9f88815d8d89e79996a84e11b88839706b03ce03f2fcf7"
+    },
+    "am3d/ai/providers.py": {
+      "bytes": 25013,
+      "sha256": "bd883900f4b33b054e289f95723b330ed658bfbd21cc3dff598c978340243439"
+    },
+    "am3d/ai/records.py": {
+      "bytes": 38171,
+      "sha256": "d11eb513b64a8c5a92f5271dc184be919ddab50390787336b2f5d085472ed2ae"
+    },
+    "am3d/ai/test_checks.py": {
+      "bytes": 26398,
+      "sha256": "7246329b5dd72373b9d3895b18f56bf2fdfb74886fb6e6318f68f7df7638e17c"
+    },
+    "am3d/ai/test_contracts.py": {
+      "bytes": 2645,
+      "sha256": "fdc9a9261283deb13f7fae383e13b069db6bc6752d7dfd6a62642837d618a95c"
+    },
+    "am3d/ai/test_credentials.py": {
+      "bytes": 4070,
+      "sha256": "331f62ad879e4dafa33af46bd1e1592ec4a85e001876978f5d3f0499f56f7fae"
+    },
+    "am3d/ai/test_orchestrator.py": {
+      "bytes": 26606,
+      "sha256": "55708e6c2a013976ee81813b5329c3a3d956b9c12d9d5196a87f3bd10efc5483"
+    },
+    "am3d/ai/test_policy.py": {
+      "bytes": 7731,
+      "sha256": "c54d7a541c97779042633f64dc07d3376f23f514cd5fbf48c33e32008f2a2941"
+    },
+    "am3d/ai/test_prompts.py": {
+      "bytes": 16532,
+      "sha256": "63c61f535ead5b32d48e0a9053b0a36d4e6a2f8150d7fdfc62bbdd72a04045de"
+    },
+    "am3d/ai/test_providers.py": {
+      "bytes": 14699,
+      "sha256": "663e322dffae665aa8a489562d905dab0a8fcd7aa1b59d24afef090010649ac0"
+    },
+    "am3d/ai/test_records.py": {
+      "bytes": 14733,
+      "sha256": "3c95110ab21d76821911892392f99790a0335128b8cd68ab403fbeccf4d620e7"
+    },
+    "am3d/ai/test_refinement.py": {
+      "bytes": 11942,
+      "sha256": "01ea4ade8b5b613de4d183e3710282d9a0c13165f77d94827e7d933580138ac5"
+    },
+    "am3d/ai/test_worker.py": {
+      "bytes": 24326,
+      "sha256": "43623bbbc26c10b753e21b79e9d6ae10249a8dd8b1cf111dc87159d327804db9"
+    },
+    "am3d/ai/worker.py": {
+      "bytes": 46183,
+      "sha256": "184df9bf7555ee9496120e30ae4aab3bb1a9e3807326721e092b2313ced7fae7"
+    },
+    "am3d/core/__init__.py": {
+      "bytes": 779,
+      "sha256": "67ab59d65805779e2e11c4379160f09906cb273c45140fb391fdc06aa1794cae"
+    },
+    "am3d/core/animation.py": {
+      "bytes": 8138,
+      "sha256": "fb19d52acbf542a937df829e3b562a2c274175ee8c190232ccc0b2fe144d7751"
+    },
+    "am3d/core/generators.py": {
+      "bytes": 3620,
+      "sha256": "9f8881cfadb849391e9a5d65580e62ce285472bc133ffaec87ccc1cf2da09dba"
+    },
+    "am3d/core/material_graph.py": {
+      "bytes": 7697,
+      "sha256": "96bfde8567b24ac2541635342fcf0c7910adce7a425364b8af5af306654796b1"
+    },
+    "am3d/core/mathutil.py": {
+      "bytes": 4353,
+      "sha256": "51a1f28ffc46888e3c788c2d46107522aafabf6d31f192021b382df430e6748f"
+    },
+    "am3d/core/naming.py": {
+      "bytes": 935,
+      "sha256": "94029314ac12f79b27c726a446ac5e1fa6600516c1066dcd2d243bd968cfbfb5"
+    },
+    "am3d/core/paths.py": {
+      "bytes": 6630,
+      "sha256": "c7287fc36c03a25d58e53640b0de71d1443511e9d05d7f8f581974cad4295f9d"
+    },
+    "am3d/core/project.py": {
+      "bytes": 8540,
+      "sha256": "025d5c5a43303605b0ac6aa979fef8031c79e2838c2a461a47875a3e9d792d8e"
+    },
+    "am3d/core/retarget.py": {
+      "bytes": 7545,
+      "sha256": "7dae1f150034b79bfc0524fe1f00a37d173b25d3cf5f89e451fc197e030a7312"
+    },
+    "am3d/core/rigging.py": {
+      "bytes": 14824,
+      "sha256": "f894f60a9ea1a62833c9bcddded8d961c65c600a68b2ced1004932c705c77d14"
+    },
+    "am3d/core/scene.py": {
+      "bytes": 13583,
+      "sha256": "2236f8c782db797ab03abec48ad95f9f7346b932f02b3faf2bd24015f3fa0901"
+    },
+    "am3d/core/script.py": {
+      "bytes": 29376,
+      "sha256": "68415ca8f7b5121568d8104be9f1f750ff9efe29a6a3fb0473697b09cdc7e3aa"
+    },
+    "am3d/core/serializer.py": {
+      "bytes": 39051,
+      "sha256": "c456f200b5681d807ec6d5fb81ebe7ff6b5d04910f90821642c0ad46ba143ab3"
+    },
+    "am3d/core/test_action_editing.py": {
+      "bytes": 11728,
+      "sha256": "32484566c87f57c1dd16be9572ce72bbc824fdaf61847aeb5c953c4c4c170c85"
+    },
+    "am3d/core/test_animation.py": {
+      "bytes": 8794,
+      "sha256": "7f851e4db43885b0c12e7d6f245002664ff6dabd29ffba4a24f4ef098d2a43c1"
+    },
+    "am3d/core/test_generation_provenance.py": {
+      "bytes": 5211,
+      "sha256": "721485ff89ccb05865898139aa6be271be997f97b9570948c4883b0ab7dc72f1"
+    },
+    "am3d/core/test_material_graph.py": {
+      "bytes": 3122,
+      "sha256": "0e89259368da58b607221b4976c22a7410741a6eab115a373c85d285a998277b"
+    },
+    "am3d/core/test_paths.py": {
+      "bytes": 3884,
+      "sha256": "ddd77f48f5027b472a2676580be68952dfaaf49bf54dc6ce6a0ad9dd6452227c"
+    },
+    "am3d/core/test_render_roundtrip.py": {
+      "bytes": 6237,
+      "sha256": "788a21fc98614ec6b588b592412541ef580e81b5cb82bcffd87df49d22f34a23"
+    },
+    "am3d/core/test_retarget.py": {
+      "bytes": 4066,
+      "sha256": "7f8f084a4a1ef53dded111dbb41c70b4ae56e7ad3514fd15d99ba0fa00b6fdb0"
+    },
+    "am3d/core/test_rigging.py": {
+      "bytes": 5201,
+      "sha256": "3da8dfb8eae18b4572452c4753b0bcbf266a9ee34b5ee3bf455ef04e49215ad2"
+    },
+    "am3d/core/test_scene.py": {
+      "bytes": 19876,
+      "sha256": "82e0856c866989d95d1fc0e38e97f7bc9f7d2290afe76b433b363cdce57d229c"
+    },
+    "am3d/core/test_script.py": {
+      "bytes": 3720,
+      "sha256": "4e681a17360db1ae9e7e7d2b4ab65631496dcf192bcd6cf2ee77169b32b07e21"
+    },
+    "am3d/core/test_serializer.py": {
+      "bytes": 36114,
+      "sha256": "4a3e6d872c529ade78eb4617bdb59b078f91950a4ccfd24894f3c8affb8cfe8a"
+    },
+    "am3d/export/__init__.py": {
+      "bytes": 426,
+      "sha256": "11810a48ed819c72ce20870f7f5c4438456e07efbe4e9e99e87ffe26e5c4cb45"
+    },
+    "am3d/export/gltf.py": {
+      "bytes": 9714,
+      "sha256": "e78e2c23964085df7ca9502aa151a20a28d67147ff9bdb6a2a8df0ee4de18693"
+    },
+    "am3d/export/obj.py": {
+      "bytes": 10416,
+      "sha256": "583e6ada4eb3e4def5c84a172aea79f0271b9d1818b8023b6078d0375d11d508"
+    },
+    "am3d/export/test_export.py": {
+      "bytes": 10961,
+      "sha256": "2ed16122049546d61ad95d0703c895eefd6c40a247b3964fcdbec39999e72e06"
+    },
+    "am3d/export/test_patch_materials.py": {
+      "bytes": 7723,
+      "sha256": "96639708526bc69a33a1de8dec7f078bcc16c9d1e2794d948d5827865f7a30b6"
+    },
+    "am3d/export/test_textured_export.py": {
+      "bytes": 10845,
+      "sha256": "ef3b131f3e18946534b63a10b04f6e892f8fbe331edfe31f7bd28e4973e36194"
+    },
+    "am3d/export/test_validate.py": {
+      "bytes": 14135,
+      "sha256": "dfffcb90f0064e3ebd60451527f8f5b28721015a93f10a9ea430ca4fcc156be2"
+    },
+    "am3d/export/textures.py": {
+      "bytes": 3041,
+      "sha256": "53ee7ac796da6d243d6727bbb446460150c5fe8b5062203c9281441f38ec97b1"
+    },
+    "am3d/export/validate.py": {
+      "bytes": 26096,
+      "sha256": "61734368d05412092d30ae6b53eaf9795929a1c02aeda4640b76249fadb09e98"
+    },
+    "am3d/gpu/__init__.py": {
+      "bytes": 12980,
+      "sha256": "d134bc1709f09ba0c7161823bebd7ec922a8def031d8adc231cda8e76af9cd18"
+    },
+    "am3d/gpu/context.py": {
+      "bytes": 3087,
+      "sha256": "5fec226473b8f8b1592d53abcd5754c557b122b0618241d1748cb18e152e776d"
+    },
+    "am3d/gpu/gbuffer.py": {
+      "bytes": 3732,
+      "sha256": "97d57e7ba15926d0664e900067f1b9b42250aca8c6c20c2ee2d15ab517d13672"
+    },
+    "am3d/gpu/lighting.py": {
+      "bytes": 2593,
+      "sha256": "ab46803f8d52dfe19323d87f334e7b8b4136f51c8a1013f34bcb4f951f077cb6"
+    },
+    "am3d/gpu/postprocess.py": {
+      "bytes": 3377,
+      "sha256": "e4cac3f2881d205ca5ead27da0ebb373737381aa502f86a02b1bb9b39f512e6f"
+    },
+    "am3d/gpu/shaders.py": {
+      "bytes": 8015,
+      "sha256": "b5ec5dd1872a0d507e821c21acada0ce48d56acd2425f24d46bf28782b69bdc3"
+    },
+    "am3d/gpu/test_gpu.py": {
+      "bytes": 11187,
+      "sha256": "cec9eb5a191b2f394666786623572b5c4e7d506d23826982453e7e90c7fedfcd"
+    },
+    "am3d/gpu/test_scene_render.py": {
+      "bytes": 14089,
+      "sha256": "24ba5bcfe6fd8047d3cc6027afbb35cdf45a39ba123073d64bd90d51e575995a"
+    },
+    "am3d/recipes/__init__.py": {
+      "bytes": 1320,
+      "sha256": "f7ffde265b8becb1662f4afd44c4787a7bdc995a823e40fe2195a79569fc6a2a"
+    },
+    "am3d/recipes/__main__.py": {
+      "bytes": 514,
+      "sha256": "f39f15da90bcabef97e49f245a19ee78a980ac794d2ffb7fb1209dbf568b9b4c"
+    },
+    "am3d/recipes/animation.py": {
+      "bytes": 7109,
+      "sha256": "21583ebdedc682b1786536b6825b363f37d0ce9b32e9ff09950d965e10e0ee66"
+    },
+    "am3d/recipes/cli.py": {
+      "bytes": 6247,
+      "sha256": "f50c1f59769d1ac91c8a67329c68c6db7a2392f58b692668acf2eb001439be18"
+    },
+    "am3d/recipes/executor.py": {
+      "bytes": 43662,
+      "sha256": "2454d5c759ed1ddee47b2814d8d74deb8e466aead2d6b47decd52f49f45b1a6a"
+    },
+    "am3d/recipes/primitives.py": {
+      "bytes": 10123,
+      "sha256": "583c1eb64c9b5c1443cb94976cb1ec5571bcae003bfe1c16f17b67b256931832"
+    },
+    "am3d/recipes/schema.py": {
+      "bytes": 33708,
+      "sha256": "8a9835343d738b2c09e0ea688aa93d9f56ccdeb8ea8188840fa75f3ef32ddef8"
+    },
+    "am3d/recipes/test_animation.py": {
+      "bytes": 3365,
+      "sha256": "7779fa5505c9f826a951be231f24cfa75e3e0847b2a7a37089592f271dbd8b00"
+    },
+    "am3d/recipes/test_executor.py": {
+      "bytes": 59611,
+      "sha256": "123b35ceb659c0e3bee0cec0fc560208bb38248fbdde54fff8ba3de2025510cf"
+    },
+    "am3d/recipes/test_primitives.py": {
+      "bytes": 4672,
+      "sha256": "8e78101a1a2881a492759cd3c34f4e4a4465fa01775c5579a4efa7caf817256c"
+    },
+    "am3d/recipes/test_schema.py": {
+      "bytes": 7609,
+      "sha256": "f5ce92d766eb7fa6beff04af2269a24a5ba1a04f428c7d41288533f6778aa966"
+    },
+    "am3d/renderer/__init__.py": {
+      "bytes": 1053,
+      "sha256": "41c41a425d170ee49713fdcf3af0bff625bc8224d0440167c1dbaf1f18a64f88"
+    },
+    "am3d/renderer/compare.py": {
+      "bytes": 3275,
+      "sha256": "a83bbe21b7aaab53adadc73af54702fd6775a8a206bb953feb09ec5076177061"
+    },
+    "am3d/renderer/materials.py": {
+      "bytes": 10432,
+      "sha256": "eff9e16e7c0d251aebe2ed339691ef06071a291843c2a337229868ed2502f9fa"
+    },
+    "am3d/renderer/sprite.py": {
+      "bytes": 15753,
+      "sha256": "1fce18f6dc8f30b472342719b99e9368bad3ea6191884206c71bfa4af1877704"
+    },
+    "am3d/renderer/sprite_test.py": {
+      "bytes": 3505,
+      "sha256": "af222247efe85f50be1371d8a076443955bb3287987224677fe0b807496b108c"
+    },
+    "am3d/renderer/tessellate.py": {
+      "bytes": 8933,
+      "sha256": "5bec76d9b73bbb2061658bc4e6c3f753ff00f8c716768632de7c46b09ec312cc"
+    },
+    "am3d/renderer/test_color_scene_preview.py": {
+      "bytes": 3300,
+      "sha256": "57f87ec306621de81daa8229c8d21ecd647b650a3a346a90e34543758e551699"
+    },
+    "am3d/renderer/test_materials.py": {
+      "bytes": 5126,
+      "sha256": "9c161d40bcf265e5f651d71e957f892e0435eac5ad03357dfed92b05c57c7fa9"
+    },
+    "am3d/renderer/test_tessellate.py": {
+      "bytes": 4351,
+      "sha256": "8f08da71416e8f9933b4de31d1d6265b6510dba08958770a08f1dc320510e3be"
+    },
+    "am3d/renderer/test_toon.py": {
+      "bytes": 6773,
+      "sha256": "1b8c9cf7b4095063d87b262ef9f41d6b65350aeb4d8e4fea28b7688e248c7d87"
+    },
+    "am3d/renderer/toon.py": {
+      "bytes": 12757,
+      "sha256": "3f877597441ba714c30d52c84ae3e5d1221ecfe19517527bd5d7505bb98eb34a"
+    },
+    "am3d/renderer/uv_mapping.py": {
+      "bytes": 2096,
+      "sha256": "d9f012fbb311bdf3cd80ce8bd77353233d4dd497af7a48628efab4791a4b2012"
+    },
+    "am3d/spline/__init__.py": {
+      "bytes": 1079,
+      "sha256": "926ec857142e50f8e410b6d467f864308830026e3855017cf5b3b9f28fae3ea0"
+    },
+    "am3d/spline/kernel.py": {
+      "bytes": 13048,
+      "sha256": "0b402f9bf5cf68b8b8daf75f462d81128e6011a0d013b9316fc6a9296513074b"
+    },
+    "am3d/spline/test_kernel.py": {
+      "bytes": 9545,
+      "sha256": "41fc01e6d8ba61ec39e01f588befbc88f3111f20f52943c0944a2e23b8550937"
+    },
+    "am3d/ui/__main__.py": {
+      "bytes": 1188,
+      "sha256": "b8553263a9785cf5b50434d15b26309f2f49500ef64fa0fb3260cdc3f23451c3"
+    }
+  }
+}

@@ -1,0 +1,52 @@
+V1 Phase 3 policy and isolated worker verification
+Date: 2026-10-13
+Baseline HEAD: 3f6f7f03d32b4d1a3af06af4fdc0724bf0436945
+Environment: Windows 10 IoT Enterprise LTSC x86-64, build 10.0.19044; CPython 3.12.14; project .venv
+
+Command:
+.venv\Scripts\python.exe -m py_compile am3d\ai\policy.py am3d\ai\worker.py am3d\ai\test_policy.py am3d\ai\test_worker.py am3d\recipes\executor.py am3d\recipes\test_executor.py am3d\core\paths.py am3d\core\test_paths.py am3d\ui\__main__.py
+Result: passed (exit code 0).
+
+Command:
+.venv\Scripts\python.exe -m pytest am3d\ai\test_policy.py am3d\ai\test_worker.py am3d\core\test_paths.py am3d\recipes\test_executor.py -q -rs
+Result: 179 passed, 2 skipped in 128.65s (0:02:08).
+Skip 1: am3d\ai\test_worker.py:169, directory symlink creation requires Windows privilege unavailable to this account (WinError 1314).
+Skip 2: am3d\ai\test_worker.py:278, file symlink creation requires Windows privilege unavailable to this account (WinError 1314).
+The Windows directory junction test `test_output_root_junction_is_rejected_without_following_it` ran and passed; the outside sentinel remained unchanged. The deep host output-root test (>260 characters in its staged artifact path) also ran and passed. Windows process-descendant cancellation and private session non-mutation passed.
+
+Long-path orchestration integration, run by the orchestrator implementation agent against the restored pytest tmp_path fixture:
+Command: .venv\Scripts\python.exe -m pytest am3d\ai\test_orchestrator.py::test_valid_recipe_runs_through_real_worker_checks_and_immutable_publish -q
+Five sequential runs all passed (each `1 passed`): 19.91s, 18.53s, 13.05s, 22.54s, 20.50s. Each exercised GenerationRecordStore -> run_worker -> the fixed checker -> immutable publication under pytest's long temporary path.
+
+The worker test helper's ordinary successful-run deadline is 180 seconds, matching the planned worker cap. Dedicated short-deadline and cancellation tests continue to pass as part of the aggregate run.
+
+Post-review protocol regression (after the independent reviewer reproduced an early-protocol exception-handler failure):
+Command:
+.venv\Scripts\python.exe -m pytest am3d\ai\test_worker.py::test_internal_child_returns_bounded_early_protocol_error_without_output_root am3d\ai\test_worker.py::test_valid_worker_is_private_native_reopens_and_derived_paths_are_opaque am3d\ai\test_worker.py::test_cancelled_worker_is_terminated_promptly_and_never_successful am3d\ai\test_worker.py::test_windows_cancel_terminates_descendant_processes -q
+Result: 5 passed in 8.22s.
+The two direct `internal_worker_main` inputs were (1) valid JSON exceeding the 1 MiB fixed-protocol cap and (2) truncated JSON containing a host-shaped but untrusted output-root string. Both returned exit code 2 and a bounded JSON `policy_error` (`response_too_large` / `worker_protocol`), with `attempt_id: null`; neither result echoed the output-root string nor created that directory. Normal worker execution, prompt cancellation and Windows process-descendant cleanup passed in the same targeted run. The full 179-pass aggregate above predates this diagnostic-only correction; it was not rerun by request. The targeted suite covers the changed path and lifecycle behavior.
+
+Normal-worker reproducibility harness, using the same `_recipe()` Unicode textured prop and no checker options:
+Short-root batch: five separate `run_worker` attempts, with a 180-second deadline each, all returned `execution_ok`; each had `error_records: []`, six relative manifest entries, and `output_bytes: 325760`.
+Deep-root batch 1: six long directory segments made the staged artifact path exceed 260 characters. Attempt 1 returned `worker_error` with error code `worker_protocol`; a test-only parent `_verify_tree` wrapper recorded one live `ValueError`. The output root still contained the complete six expected files with their normal sizes. Attempts 2–5 returned `execution_ok` with the same six-entry manifest and 325,760 total bytes. The first wrapper captured only the exception class, not its source line or message.
+Deep-root batch 2: same recipe and >260-character output-root shape, five attempts; all five returned `execution_ok` with no parent audit exception.
+The normal-worker test now fails immediately on the first error. Its assertion includes the complete safe worker result, a relative root-tree summary capped at 128 entries, parent audit exception class/location and sanitized reason when observed, and child protocol parse status. It does not retry to success.
+
+Follow-up on the intermittent Windows audit failure:
+The root and all resolved descendants in `_verify_tree` now pass through `extended_io_path(os.path.realpath(...))` before `commonpath`. This is comparison-only host-path normalization; it does not change portable recipe path validation, link checks, output allowlists, or strict post-exit auditing.
+The installed CPython 3.12 `ntpath.realpath` implementation can retain a `\\?\\` prefix when a file disappears between final-path probes. For a contained file, that can pair an ordinary root path with an extended child path, for which `ntpath.commonpath` raises `ValueError`. The original intermittent occurrence's traceback detail was not captured, so this mechanism is recorded as a source-confirmed match to the observed exception class, not as a captured stack trace.
+
+Deterministic Windows regression:
+Command: `.venv\Scripts\python.exe -m pytest am3d\ai\test_worker.py::test_tree_audit_normalizes_transient_extended_realpath_prefix -q`
+The test mocks `realpath` to produce an ordinary root and a `\\?\\` child. It first asserts that raw `commonpath` raises `ValueError`, then asserts that the production audit succeeds after normalizing both sides. Existing vanished-deliverable coverage still verifies that the final audit raises `FileNotFoundError`; link/junction rejection coverage is unchanged.
+
+Bounded deep-root reproduction after the fix:
+Three fresh `run_worker` attempts used the same Unicode textured-prop recipe (checker material, OBJ and sprite-sheet exports) and a host-selected output root whose staged artifact path exceeded 260 characters. Results: 3/3 `execution_ok`; each had six manifest entries; no parent `_verify_tree` exceptions were captured. The harness failed immediately on any error and did not retry an attempt to success.
+
+Focused command after path normalization:
+`.venv\Scripts\python.exe -m pytest am3d\ai\test_worker.py::test_tree_audit_normalizes_transient_extended_realpath_prefix am3d\ai\test_worker.py::test_live_tree_audit_tolerates_vanished_private_staging_entries am3d\ai\test_worker.py::test_valid_worker_is_private_native_reopens_and_derived_paths_are_opaque am3d\ai\test_worker.py::test_cancelled_worker_is_terminated_promptly_and_never_successful am3d\ai\test_worker.py::test_windows_cancel_terminates_descendant_processes -q -rs`
+Result: **6 passed in 9.89s**. This includes strict final vanished-file behavior, the deterministic extended-prefix regression, normal worker exports and session/outside-sentinel preservation, cancellation acknowledgement, and descendant process cleanup.
+
+Command after adding the direct failure diagnostics:
+.venv\Scripts\python.exe -m pytest am3d\ai\test_worker.py::test_internal_child_returns_bounded_early_protocol_error_without_output_root am3d\ai\test_worker.py::test_valid_worker_is_private_native_reopens_and_derived_paths_are_opaque am3d\ai\test_worker.py::test_cancelled_worker_is_terminated_promptly_and_never_successful am3d\ai\test_worker.py::test_windows_cancel_terminates_descendant_processes -q
+Result: 5 passed in 10.59s. `py_compile` for `worker.py` and `test_worker.py` passed.

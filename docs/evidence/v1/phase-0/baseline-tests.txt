@@ -1,0 +1,24 @@
+........................................................................ [  9%]
+........................................................................ [ 19%]
+........................................................................ [ 29%]
+........................................................................ [ 39%]
+........................................................................ [ 48%]
+........................................................................ [ 58%]
+........................................................................ [ 68%]
+........................................................................ [ 78%]
+........................................................................ [ 87%]
+........................................................................ [ 97%]
+..................                                                       [100%]
+============================== warnings summary ===============================
+am3d/ui/test_dopesheet.py::test_ruler_click_seeks
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:97: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    ev = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x, 5),
+
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:152: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    return QMouseEvent(kind, QPointF(x_, y_), Qt.LeftButton,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+738 passed, 4 warnings in 610.41s (0:10:10)

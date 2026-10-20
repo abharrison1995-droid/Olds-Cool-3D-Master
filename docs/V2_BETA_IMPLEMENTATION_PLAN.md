@@ -2,8 +2,10 @@
 
 > Superseded on 2026-09-08 by the V3 plan and now retained as historical review
 > evidence. Completion labels and test counts below are historical claims, not
-> current release acceptance. See [the active implementation roadmap](IMPLEMENTATION_ROADMAP.md)
-> for current scope and status.
+> current release acceptance. The V1 master plan approved on 2026-10-13 now
+> supersedes this plan and V3 for active scheduling. See
+> [the active V1 plan](V1_MASTER_IMPLEMENTATION_PLAN.md); retain this document
+> and its evidence without replaying its old todo list.
 
 Status: remediation and completion roadmap after post-implementation review
 Target: evidence-backed Windows V1 beta candidate

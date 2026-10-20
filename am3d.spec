@@ -1,6 +1,7 @@
 # -*- mode: python ; coding: utf-8 -*-
 """PyInstaller spec for 3D MASTER:2005 beta."""
 
+import os
 import sys
 from pathlib import Path
 
@@ -14,6 +15,27 @@ block_cipher = None
 # produce a build silently missing the theme, the bundled Examples and the
 # recipe docs, because those relative datas resolved to nothing.
 ROOT = Path(SPECPATH).resolve()
+BUILD_PLATFORM = ("windows" if sys.platform == "win32" else
+                  "linux" if sys.platform.startswith("linux") else None)
+if BUILD_PLATFORM is None:
+    raise SystemExit("am3d.spec: V1 frozen GUI builds are supported only on Windows and Linux")
+
+IDENTITY_PATH = Path(os.environ.get(
+    "AM3D_BUILD_IDENTITY_PATH",
+    str(ROOT / "build" / BUILD_PLATFORM / "build_identity.json"),
+)).resolve()
+EXPECTED_IDENTITY_PATH = (ROOT / "build" / BUILD_PLATFORM /
+                          "build_identity.json").resolve()
+if IDENTITY_PATH != EXPECTED_IDENTITY_PATH or not IDENTITY_PATH.is_file():
+    raise SystemExit("am3d.spec: generated build identity is missing from the platform build directory")
+
+try:
+    import certifi
+except ImportError as exc:
+    raise SystemExit("am3d.spec: certifi is required for bundled HTTPS trust") from exc
+CA_BUNDLE = Path(certifi.where()).resolve()
+if not CA_BUNDLE.is_file():
+    raise SystemExit("am3d.spec: certifi CA bundle is missing")
 
 
 def _data(rel, dest):
@@ -21,6 +43,26 @@ def _data(rel, dest):
     if not src.exists():
         raise SystemExit(f"am3d.spec: required data file missing: {src}")
     return (str(src), dest)
+
+
+def _keyring_imports():
+    if sys.platform == "win32":
+        return [
+            "keyring.backends.Windows",
+            "win32ctypes",
+            "win32ctypes.pywin32",
+            "win32ctypes.pywin32.win32api",
+            "win32ctypes.pywin32.win32cred",
+        ]
+    return [
+        "keyring.backends.SecretService",
+        "secretstorage",
+        "secretstorage.util",
+        "jeepney",
+        "jeepney.io.async_",
+        "cryptography",
+        "cryptography.hazmat.bindings._rust",
+    ]
 
 
 # Icon path (optional)
@@ -46,6 +88,9 @@ a = Analysis(
         # ... recipe schema/agent guide" requirement.
         _data("docs/recipes/recipe-v1.schema.json", "docs/recipes"),
         _data("docs/recipes/EXTERNAL_AGENT_GUIDE.md", "docs/recipes"),
+        _data("docs/QUICK_START.md", "docs"),
+        (str(IDENTITY_PATH), "am3d"),
+        (str(CA_BUNDLE), "certifi"),
     ],
     hiddenimports=[
         "PySide6.QtCore",
@@ -56,11 +101,33 @@ a = Analysis(
         "moderngl",
         "PIL",
         "PIL.Image",
+        "httpx",
+        "httpcore",
+        "h11",
+        "anyio",
+        "certifi",
+        "idna",
+        "keyring",
+        *_keyring_imports(),
     ],
     hookspath=[],
     hooksconfig={},
     runtime_hooks=[],
     excludes=[
+        # These are reachable only through build/test/command-line helpers in
+        # the locked development environment, not through the desktop product:
+        # AnyIO's TestRunner imports pytest outcomes lazily, HTTPX's optional
+        # console command imports Pygments, and packaging/setuptools are
+        # pulled by those paths or PyInstaller's build-time distutils shim.
+        "pytest",
+        "_pytest",
+        "anyio.pytest_plugin",
+        "httpx._main",
+        "pygments",
+        "packaging",
+        "setuptools",
+        "_distutils_hack",
+        "distutils",
         "matplotlib",
         "cv2",
         "tensorflow",
@@ -72,6 +139,23 @@ a = Analysis(
     win_private_assemblies=False,
     cipher=block_cipher,
     noarchive=False,
+)
+
+# PyInstaller's stock PySide6 runtime hook initializes Qt before the frozen
+# entry point runs. The fixed worker and offline self-test must dispatch before
+# Qt is imported, so keep the stock hook's normal GUI behavior in our guarded
+# hook and substitute only that exact generated runtime-hook entry.
+_pyside6_hook_path = ROOT / "scripts" / "pyi_rth_am3d_pyside6.py"
+_pyside6_hook_indexes = [
+    index for index, entry in enumerate(a.scripts)
+    if entry[0] == "pyi_rth_pyside6"
+]
+if len(_pyside6_hook_indexes) != 1 or not _pyside6_hook_path.is_file():
+    raise SystemExit("am3d.spec: expected exactly one PySide6 runtime hook to guard")
+_pyside6_hook_index = _pyside6_hook_indexes[0]
+_pyside6_hook_entry = a.scripts[_pyside6_hook_index]
+a.scripts[_pyside6_hook_index] = (
+    _pyside6_hook_entry[0], str(_pyside6_hook_path), _pyside6_hook_entry[2]
 )
 
 pyz = PYZ(a.pure, a.zipped_data, cipher=block_cipher)

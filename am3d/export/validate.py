@@ -17,6 +17,8 @@ from __future__ import annotations
 
 import json
 import os
+from pathlib import Path
+import stat
 import struct
 
 import numpy as np
@@ -213,6 +215,8 @@ def read_obj(path: str) -> dict:
     v, vt, vn = [], [], []
     faces = []
     mtllib = None
+    mtllibs = []
+    resource_issues = []
     current_object = None
     current_mat = None
 
@@ -224,7 +228,11 @@ def read_obj(path: str) -> dict:
             parts = line.split()
             tag = parts[0]
             if tag == "mtllib":
-                mtllib = parts[1]
+                if len(parts) != 2:
+                    resource_issues.append("unsupported mtllib declaration")
+                else:
+                    mtllib = parts[1]
+                    mtllibs.append(parts[1])
             elif tag == "o":
                 current_object = parts[1] if len(parts) > 1 else None
             elif tag == "usemtl":
@@ -246,12 +254,15 @@ def read_obj(path: str) -> dict:
                 faces.append({"line": lineno, "object": current_object,
                               "material": current_mat, "refs": refs})
 
-    return {"v": v, "vt": vt, "vn": vn, "faces": faces, "mtllib": mtllib}
+    return {"v": v, "vt": vt, "vn": vn, "faces": faces, "mtllib": mtllib,
+            "mtllibs": mtllibs, "resource_issues": resource_issues}
 
 
-def read_mtl(path: str) -> dict:
+def read_mtl(path: str, *, include_resources: bool = False) -> dict:
     """Parse a .mtl sidecar with a from-scratch line-based reader."""
     materials: dict = {}
+    resources = []
+    resource_issues = []
     current = None
     with open(path, "r", encoding="utf-8") as fh:
         for raw_line in fh:
@@ -267,10 +278,258 @@ def read_mtl(path: str) -> dict:
                 materials[current][tag] = tuple(float(x) for x in parts[1:4])
             elif current is not None and tag == "d":
                 materials[current]["d"] = float(parts[1])
+            elif tag.casefold() in {"map_ka", "map_kd", "map_ks", "map_ke",
+                                    "map_d", "map_bump", "bump", "norm",
+                                    "disp", "decal", "refl"}:
+                # The V1 strict reader accepts the writer's portable single
+                # filename form. It rejects option-rich/quoted syntax instead
+                # of guessing which token names a file.
+                if len(parts) != 2 or parts[1].startswith("-"):
+                    resource_issues.append("unsupported MTL texture reference")
+                else:
+                    resources.append(parts[1])
+                    if include_resources and current is not None:
+                        materials[current].setdefault("_resources", []).append(parts[1])
+    if include_resources:
+        return {"materials": materials, "resources": resources,
+                "resource_issues": resource_issues}
     return materials
 
 
-def validate_obj(path: str) -> list[str]:
+def _is_link_or_junction(path: Path) -> bool:
+    try:
+        info = path.lstat()
+    except OSError:
+        return False
+    attrs = getattr(info, "st_file_attributes", 0)
+    return stat.S_ISLNK(info.st_mode) or bool(attrs & getattr(stat, "FILE_ATTRIBUTE_REPARSE_POINT", 0x400))
+
+
+def _strict_output_budget_exceeded(paths, kind: str) -> dict | None:
+    """Return explicit host measurements when strict inputs exceed policy."""
+    from am3d.ai.policy import MAX_OUTPUT_BYTES
+
+    total = 0
+    seen = set()
+    for path in paths:
+        try:
+            identity = os.path.normcase(os.path.realpath(path))
+            if identity in seen:
+                continue
+            seen.add(identity)
+            size = Path(path).stat().st_size
+        except OSError:
+            raise
+        if size < 0:
+            raise OSError("invalid file size")
+        if size > MAX_OUTPUT_BYTES:
+            return {"kind": kind, "actual": size,
+                    "limit": MAX_OUTPUT_BYTES, "unit": "bytes"}
+        total += size
+        if total > MAX_OUTPUT_BYTES:
+            return {"kind": kind, "actual": total,
+                    "limit": MAX_OUTPUT_BYTES, "unit": "bytes"}
+    return None
+
+
+def _strict_resource_path(raw: str, base: Path, root: Path,
+                          allowed_suffixes: set[str]) -> tuple[Path | None, str | None, dict | None]:
+    from am3d.core.paths import (classify_portable_relative_path,
+                                 extended_io_path, split_segments)
+
+    if not isinstance(raw, str) or classify_portable_relative_path(raw) is not None:
+        return None, "nonportable resource reference", None
+    parts = split_segments(raw)
+    if not parts or Path(parts[-1]).suffix.casefold() not in allowed_suffixes:
+        return None, "unsupported resource type", None
+    candidate = base.joinpath(*parts)
+    try:
+        candidate = Path(extended_io_path(candidate))
+        root = Path(extended_io_path(root))
+        root_real = Path(os.path.realpath(root))
+        candidate_real = Path(os.path.realpath(candidate))
+        if os.path.commonpath((str(root_real), str(candidate_real))) != str(root_real):
+            return None, "resource escapes output root", None
+    except (OSError, ValueError):
+        return None, "resource escapes output root", None
+    current = candidate
+    while True:
+        if current.exists() or current.is_symlink():
+            if _is_link_or_junction(current):
+                return None, "linked resource is not allowed", None
+        if current == root or current == current.parent:
+            break
+        current = current.parent
+    if not candidate.is_file():
+        return None, "referenced resource is missing", None
+    try:
+        exceeded = _strict_output_budget_exceeded([candidate], "obj_dependency_bytes")
+    except OSError:
+        return None, "referenced resource is unavailable", None
+    if exceeded is not None:
+        return None, "referenced resource exceeds the policy byte limit", exceeded
+    try:
+        candidate.relative_to(root)
+    except ValueError:
+        return None, "resource escapes output root", None
+    return candidate, None, None
+
+
+def _validate_obj_strict(path: str, root: str) -> dict:
+    """Validate OBJ dependencies without reading outside the supplied root.
+
+    The returned resource names are root-relative and suitable for adding to a
+    checked artifact manifest. Diagnostics intentionally contain no source
+    paths or exception strings.
+    """
+    from am3d.core.paths import extended_io_path
+
+    issues = []
+    resources = []
+    resource_details = None
+
+    def _make_result(issue_list, *, resources_value=None, object_materials=None,
+                     materials=None):
+        return {
+            "issues": issue_list,
+            "resources": resources_value if resources_value is not None else [],
+            "object_materials": object_materials if object_materials is not None else {},
+            "materials": materials if materials is not None else {},
+            "resource_limit": resource_details is not None,
+            "resource_limit_details": resource_details,
+        }
+
+    try:
+        root_path = Path(extended_io_path(root))
+        obj_path = Path(extended_io_path(path))
+        root_real = Path(os.path.realpath(root_path))
+        obj_real = Path(os.path.realpath(obj_path))
+        if (not root_path.is_dir() or _is_link_or_junction(root_path)
+                or os.path.commonpath((str(root_real), str(obj_real))) != str(root_real)):
+            return _make_result(["OBJ path is outside or below an unsafe output root"])
+        current = obj_path
+        while True:
+            if current.exists() or current.is_symlink():
+                if _is_link_or_junction(current):
+                    return _make_result(["OBJ path contains a linked component"])
+            if current == root_path or current == current.parent:
+                break
+            current = current.parent
+        if not obj_path.is_file():
+            return _make_result(["OBJ file is missing"])
+        resource_details = _strict_output_budget_exceeded(
+            [obj_path], "obj_input_bytes")
+        if resource_details is not None:
+            return _make_result(["OBJ exceeds the policy byte limit"])
+        parsed = read_obj(str(obj_path))
+    except Exception:
+        return _make_result(["OBJ could not be parsed safely"])
+
+    issues.extend(parsed.get("resource_issues", []))
+    mtl_paths = []
+    if len(parsed.get("mtllibs", [])) > 32:
+        resource_details = {"kind": "obj_dependency_count",
+                            "actual": len(parsed.get("mtllibs", [])),
+                            "limit": 32, "unit": "count"}
+        issues.append("OBJ has too many material sidecar references")
+    if parsed.get("mtllibs"):
+        # Preflight every sidecar before opening any of them.
+        for reference in parsed["mtllibs"][:32]:
+            sidecar, error, resource_failure = _strict_resource_path(
+                reference, obj_path.parent, root_path, {".mtl"})
+            if resource_failure is not None:
+                resource_details = resource_failure
+            if error:
+                issues.append("OBJ material sidecar reference is unsafe or unavailable")
+            else:
+                mtl_paths.append(sidecar)
+    if not issues:
+        resource_details = _strict_output_budget_exceeded(
+            [obj_path, *mtl_paths], "obj_dependency_bytes")
+    if not issues and resource_details is not None:
+        issues.append("OBJ material inputs exceed the policy byte limit")
+    used_materials = {face["material"] for face in parsed["faces"]
+                      if face.get("material")}
+    if used_materials and not parsed.get("mtllibs"):
+        issues.append("OBJ material assignment has no material sidecar")
+    if issues:
+        return _make_result(issues[:16], object_materials=_obj_object_materials(parsed))
+
+    all_materials = {}
+    texture_references = []
+    for mtl_path in mtl_paths:
+        try:
+            mtl_result = read_mtl(str(mtl_path), include_resources=True)
+        except Exception:
+            issues.append("OBJ material sidecar could not be parsed")
+            continue
+        issues.extend(mtl_result["resource_issues"])
+        all_materials.update(mtl_result["materials"])
+        texture_references.extend((mtl_path.parent, name)
+                                  for name in mtl_result["resources"])
+        try:
+            resources.append(mtl_path.relative_to(root_path).as_posix())
+        except ValueError:
+            issues.append("OBJ material sidecar escapes output root")
+
+    textures = []
+    # Again, validate the entire set before any referenced texture is opened.
+    if len(texture_references) > 128:
+        resource_details = {"kind": "obj_dependency_count",
+                            "actual": len(texture_references),
+                            "limit": 128, "unit": "count"}
+        issues.append("MTL has too many texture references")
+    if not issues:
+        for base, reference in texture_references[:128]:
+            texture, error, resource_failure = _strict_resource_path(
+                reference, base, root_path, {".png"})
+            if resource_failure is not None:
+                resource_details = resource_failure
+            if error:
+                issues.append("OBJ texture reference is unsafe or unavailable")
+            else:
+                textures.append(texture)
+    if not issues:
+        resource_details = _strict_output_budget_exceeded(
+            [obj_path, *mtl_paths, *textures], "obj_dependency_bytes")
+    if not issues and resource_details is not None:
+        issues.append("OBJ referenced files exceed the policy byte limit")
+    if not issues:
+        for texture in textures:
+            try:
+                resources.append(texture.relative_to(root_path).as_posix())
+            except ValueError:
+                issues.append("OBJ texture escapes output root")
+
+    n_v, n_vt, n_vn = len(parsed["v"]), len(parsed["vt"]), len(parsed["vn"])
+    for face in parsed["faces"]:
+        for vi, vti, vni in face["refs"]:
+            if not (1 <= vi <= n_v):
+                issues.append("OBJ vertex index is out of range")
+            if vti is not None and not (1 <= vti <= n_vt):
+                issues.append("OBJ texture-coordinate index is out of range")
+            if vni is not None and not (1 <= vni <= n_vn):
+                issues.append("OBJ normal index is out of range")
+        name = face.get("material")
+        if name and name not in all_materials:
+            issues.append("OBJ face references an undeclared material")
+    return _make_result(issues[:32], resources_value=sorted(set(resources)),
+                        object_materials=_obj_object_materials(parsed),
+                        materials=all_materials)
+
+
+def _obj_object_materials(parsed: dict) -> dict[str, list[str]]:
+    assignments = {}
+    for face in parsed.get("faces", []):
+        object_name = face.get("object")
+        material = face.get("material")
+        if object_name and material:
+            assignments.setdefault(object_name, set()).add(material)
+    return {name: sorted(materials) for name, materials in assignments.items()}
+
+
+def validate_obj(path: str, *, root: str | None = None,
+                 return_details: bool = False) -> list[str] | dict:
     """Structural + referential validation of an OBJ (+ .mtl) file.
 
     Checks (independently of the writer): every ``f`` vertex/uv/normal
@@ -278,6 +537,10 @@ def validate_obj(path: str) -> list[str]:
     a declared ``mtllib`` sidecar exists and parses, and every ``usemtl``
     name resolves to a ``newmtl`` entry in that sidecar.
     """
+    if root is not None:
+        result = _validate_obj_strict(path, root)
+        return result if return_details else result["issues"]
+
     issues: list[str] = []
     try:
         parsed = read_obj(path)

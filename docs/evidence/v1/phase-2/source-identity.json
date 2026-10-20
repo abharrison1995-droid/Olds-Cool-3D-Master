@@ -1,0 +1,31 @@
+{
+  "captured_utc": "2026-10-13T19:49:38.335408+00:00",
+  "base_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "scope": "Exact listed source bytes; uncommitted working tree, not a release artifact",
+  "files": {
+    "am3d/ai/prompts.py": {
+      "bytes": 30180,
+      "sha256": "44353f454e18ca107b9f88815d8d89e79996a84e11b88839706b03ce03f2fcf7"
+    },
+    "am3d/ai/test_prompts.py": {
+      "bytes": 16532,
+      "sha256": "63c61f535ead5b32d48e0a9053b0a36d4e6a2f8150d7fdfc62bbdd72a04045de"
+    },
+    "benchmarks/v1/discovery.json": {
+      "bytes": 4956,
+      "sha256": "6483ccc038853cc50e7c9edc7c50e56cfef717151482aa84f1dcbf055177875b"
+    },
+    "benchmarks/v1/prompts.json": {
+      "bytes": 76114,
+      "sha256": "0ef3291a7cb5818091a1a22ebdbfe75dc9cb4118274f32fe6395c478e119e560"
+    },
+    "benchmarks/v1/rubric.md": {
+      "bytes": 6332,
+      "sha256": "b7c84a93d638bf46a0ac3223702abba7870997a89793b6b33b39a19d8b92026b"
+    },
+    "docs/recipes/recipe-v1.schema.json": {
+      "bytes": 5298,
+      "sha256": "0445114cf1093986f08cfa246b7c7c7b9d127e26ff9539bac57c99155c47be9c"
+    }
+  }
+}

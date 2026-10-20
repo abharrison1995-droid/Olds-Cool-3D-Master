@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import copy
+import hashlib
 import shutil
 import tempfile
 from dataclasses import dataclass, field
@@ -96,6 +97,73 @@ def _atlas_outdir(export_specs) -> str:
     return "." if export_specs else ""
 
 
+def _artifact_object_name(name: str, index: int, safe_artifact_names: bool) -> str:
+    """Portable opaque component for names that become writer paths.
+
+    Native scene names stay untouched. The index is deterministic for a
+    recipe and the digest makes the identifier robust if a caller supplies
+    repeated or reordered names outside normal schema validation.
+    """
+    if not safe_artifact_names:
+        return name
+    digest = hashlib.blake2s(str(name).encode("utf-8"), digest_size=4).hexdigest()
+    return f"object_{index:03d}_{digest}"
+
+
+def _artifact_object_names(recipe_names, mesh_names, safe_artifact_names: bool) -> dict[str, str]:
+    """Map every mesh writer name, including session-only meshes in API use."""
+    names = list(recipe_names)
+    known = set(names)
+    names.extend(name for name in mesh_names if name not in known)
+    return {name: _artifact_object_name(name, index, safe_artifact_names)
+            for index, name in enumerate(names)}
+
+
+def _recipe_profile_generator(obj, primitive, params, session):
+    """Attach an editable source spline for recipe lathe/extrude geometry.
+
+    Profile CPs are appended only after the recipe's authored splines have
+    been installed.  This keeps their established positions in the canonical
+    control-point order used by explicit bone weights.
+    """
+    if primitive not in {"lathe", "extrude"}:
+        return None
+
+    raw_profile = np.asarray(params["profile"], dtype=np.float64)
+    if primitive == "lathe":
+        # The generator's source convention is X=radius, Y=axial for every
+        # revolution axis.  The axis changes the generated net, not this
+        # construction spline's coordinate convention.
+        points = np.column_stack((raw_profile[:, 0], raw_profile[:, 1],
+                                  np.zeros(len(raw_profile), dtype=np.float64)))
+        generator_params = {
+            "axis": str(params.get("axis", "y")),
+            "sections": int(params.get("sections", 24)),
+        }
+    else:
+        # Extrusion profiles are already three-dimensional object-space
+        # points; retain all coordinates exactly.
+        points = raw_profile
+        generator_params = {
+            "height": float(params.get("height", 1.0)),
+            "twist_deg": float(params.get("twist_deg", 0.0)),
+            "rings": int(params.get("rings", 4)),
+        }
+
+    base_name = f"__recipe_{primitive}_profile__"
+    spline_name = base_name
+    suffix = 2
+    while spline_name in obj.splines:
+        spline_name = f"{base_name}{suffix}"
+        suffix += 1
+
+    session.add_spline(obj.name, points,
+                       degree=min(3, len(points) - 1),
+                       name=spline_name)
+    return {"op": primitive, "spline": spline_name,
+            "params": generator_params}
+
+
 def _apply_object_transform(mesh, transform):
     """Bake an Object3D's 4x4 transform into its tessellated mesh.
 
@@ -149,7 +217,8 @@ class RecipeExecutor:
     """Applies a validated :class:`Recipe` to a scripting session."""
 
     def __init__(self, session=None, *, output_root: str | None = None,
-                 base_dir: str | None = None):
+                 base_dir: str | None = None,
+                 safe_artifact_names: bool = False):
         if session is None:
             from am3d.core.script import Session
             session = Session()
@@ -158,6 +227,7 @@ class RecipeExecutor:
                             if output_root is not None else None)
         self.base_dir = (os.path.abspath(os.fspath(base_dir))
                          if base_dir is not None else None)
+        self.safe_artifact_names = bool(safe_artifact_names)
 
     @staticmethod
     def _commit_session(target, candidate) -> None:
@@ -332,14 +402,19 @@ class RecipeExecutor:
             built = (build_primitive(spec.primitive, prim_params)
                      if spec.primitive else {"patches": [], "splines": []})
 
-            for pname, net, du, dv in built["patches"]:
-                obj.patches.append(Patch(name=f"{spec.name}_{pname}",
-                                         splines=[], interior=net))
-
             for idx, sr in enumerate(spec.splines):
                 name = sr.name if sr.name != "spline" else f"spline_{idx}"
                 s.add_spline(spec.name, sr.points, degree=sr.degree,
                              name=name, closed=sr.closed)
+
+            generator = _recipe_profile_generator(obj, spec.primitive,
+                                                  prim_params, s)
+            for pname, net, du, dv in built["patches"]:
+                obj.patches.append(Patch(
+                    name=f"{spec.name}_{pname}", splines=[], interior=net,
+                    degree_u=int(du), degree_v=int(dv),
+                    generator=(copy.deepcopy(generator)
+                               if generator is not None else None)))
 
             has_explicit_weights = False
             ordered_bones, bad_parents = _bones_in_parent_order(spec.bones)
@@ -606,12 +681,24 @@ class RecipeExecutor:
                     # Baked atlases carry pattern/texture appearance into
                     # the export instead of collapsing to a flat colour
                     # (finding MAT-01). Only objects actually in this export.
-                    obj_textures = {n: a for n, a in atlases.items()
+                    object_ids = _artifact_object_names(
+                        (spec.name for spec in recipe.objects), meshes,
+                        self.safe_artifact_names)
+                    export_meshes = {object_ids[name]: mesh
+                                     for name, mesh in meshes.items()}
+                    export_materials = ({object_ids[name]: color
+                                         for name, color in mat_colors.items()}
+                                        if mat_colors else None)
+                    export_patch_materials = (
+                        {object_ids[name]: patch_map
+                         for name, patch_map in patch_colors.items()}
+                        if patch_colors else None)
+                    obj_textures = {object_ids[n]: a for n, a in atlases.items()
                                     if n in meshes}
                     try:
-                        write_obj(staged_path, meshes,
-                                  materials=mat_colors or None,
-                                  patch_materials=patch_colors or None,
+                        write_obj(staged_path, export_meshes,
+                                  materials=export_materials,
+                                  patch_materials=export_patch_materials,
                                   textures=obj_textures or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "obj", "mesh_count": len(meshes)}))
                         if mat_colors or patch_colors or obj_textures:
@@ -640,10 +727,22 @@ class RecipeExecutor:
                     final_path = _with_ext(base, ".glb")
                     staged_path = os.path.join(stage_dir, f"export_{index}.glb")
                     try:
-                        write_glb(staged_path, meshes,
-                                  materials=mat_colors or None,
-                                  patch_materials=patch_colors or None,
-                                  textures={n: a for n, a in atlases.items()
+                        object_ids = _artifact_object_names(
+                            (spec.name for spec in recipe.objects), meshes,
+                            self.safe_artifact_names)
+                        export_meshes = {object_ids[name]: mesh
+                                         for name, mesh in meshes.items()}
+                        export_materials = ({object_ids[name]: color
+                                             for name, color in mat_colors.items()}
+                                            if mat_colors else None)
+                        export_patch_materials = (
+                            {object_ids[name]: patch_map
+                             for name, patch_map in patch_colors.items()}
+                            if patch_colors else None)
+                        write_glb(staged_path, export_meshes,
+                                  materials=export_materials,
+                                  patch_materials=export_patch_materials,
+                                  textures={object_ids[n]: a for n, a in atlases.items()
                                             if n in meshes} or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "glb", "mesh_count": len(meshes)}))
                     except Exception as exc:
@@ -660,9 +759,12 @@ class RecipeExecutor:
                             hint="Add geometry (primitives or splines) to objects before exporting sheets.")
                         continue
                     p = dict(spec.params)
-                    for oname, mesh in meshes.items():
-                        final_path = _with_ext(f"{base}_{oname}", ".png")
-                        staged_path = os.path.join(stage_dir, f"export_{index}_{oname}.png")
+                    for object_index, (oname, mesh) in enumerate(meshes.items()):
+                        artifact_name = _artifact_object_name(
+                            oname, object_index, self.safe_artifact_names)
+                        final_path = _with_ext(f"{base}_{artifact_name}", ".png")
+                        staged_path = os.path.join(stage_dir,
+                                                   f"export_{index}_{artifact_name}.png")
                         views = int(p.get("views", 8))
                         size = int(p.get("size", 256))
                         common = {
@@ -767,9 +869,15 @@ class RecipeExecutor:
             # Save any baked atlases alongside exports
             if atlases and atlas_dir:
                 from am3d.renderer.materials import save_image
+                object_indices = {spec.name: object_index
+                                  for object_index, spec in enumerate(recipe.objects)}
                 for oname, atlas in atlases.items():
-                    final_path = _with_ext(f"{atlas_dir}/{oname}_atlas", ".png")
-                    staged_path = os.path.join(stage_dir, f"atlas_{oname}.png")
+                    artifact_name = _artifact_object_name(
+                        oname, object_indices.get(oname, len(object_indices)),
+                        self.safe_artifact_names)
+                    final_path = _with_ext(
+                        os.path.join(atlas_dir, f"{artifact_name}_atlas"), ".png")
+                    staged_path = os.path.join(stage_dir, f"atlas_{artifact_name}.png")
                     meta = {"format": "png", "object": oname, "width": getattr(atlas, "width", 256), "height": getattr(atlas, "height", 256)}
                     try:
                         save_image(atlas, staged_path)

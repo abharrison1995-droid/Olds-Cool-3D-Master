@@ -13,7 +13,7 @@ from PySide6.QtCore import Qt, Signal
 from PySide6.QtGui import QFont
 from PySide6.QtWidgets import (
     QFrame, QHBoxLayout, QLabel, QListWidget, QListWidgetItem,
-    QPushButton, QSizePolicy, QVBoxLayout, QWidget,
+    QPushButton, QScrollArea, QSizePolicy, QVBoxLayout, QWidget,
 )
 
 
@@ -34,6 +34,7 @@ class HomeWidget(QWidget):
     # Signals for the MainWindow to connect.
     action_new = Signal()
     action_open = Signal()
+    action_create_ai = Signal()
     action_recent = Signal(str)          # project path
     action_recover = Signal(str)         # autosave path
     action_example = Signal(str)         # bundled example project path
@@ -49,7 +50,23 @@ class HomeWidget(QWidget):
         self._build_ui()
 
     def _build_ui(self):
-        layout = QVBoxLayout(self)
+        root = QVBoxLayout(self)
+        root.setContentsMargins(0, 0, 0, 0)
+        root.setSpacing(0)
+
+        self.scroll = QScrollArea()
+        self.scroll.setObjectName("homeScroll")
+        self.scroll.setAccessibleName("Home screen content")
+        self.scroll.setWidgetResizable(True)
+        self.scroll.setHorizontalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll.setVerticalScrollBarPolicy(Qt.ScrollBarAsNeeded)
+        self.scroll.setFrameShape(QFrame.NoFrame)
+        content = QWidget()
+        content.setObjectName("homeContent")
+        root.addWidget(self.scroll)
+        self.scroll.setWidget(content)
+
+        layout = QVBoxLayout(content)
         layout.setContentsMargins(60, 40, 60, 40)
         layout.setSpacing(12)
 
@@ -88,6 +105,12 @@ class HomeWidget(QWidget):
 
         # Mnemonics (&) give keyboard-only users Alt+<letter> access to every
         # action without a mouse click; kept distinct within this button list.
+        self._create_ai_btn = _btn(
+            "Create with &AI...",
+            "Create a checked, editable project from a brief",
+            self.action_create_ai)
+        self._create_ai_btn.setObjectName("homePrimaryButton")
+        self._create_ai_btn.setMinimumHeight(58)
         self._new_btn = _btn("&New Empty Project", "Create a new blank project", self.action_new)
         _btn("&Open Project", "Open an existing .am3d project", self.action_open)
         _btn("&Enter Editor", "Continue working in the current project", self.action_enter_editor)
@@ -196,7 +219,7 @@ class HomeWidget(QWidget):
         becomes visible (fresh launch or Close Editor), focus lands on the
         primary action instead of requiring a mouse click first."""
         super().showEvent(event)
-        self._new_btn.setFocus()
+        self._create_ai_btn.setFocus()
 
     # -- internal slots -----------------------------------------------------
 

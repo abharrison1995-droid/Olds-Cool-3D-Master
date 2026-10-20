@@ -1,0 +1,12 @@
+{
+  "schema_version": 1,
+  "algorithm": "SHA-256",
+  "entries": {
+    "scripts/run_ai_benchmark.py": "dffa2dd2886ff6298303c8aee1691c6d7ef83735fb95b0488763b1016f13f13b",
+    "am3d/ai/benchmark.py": "9b1940cb95975337edc63e569128bd1717b5c70ddc03918442cae8080941c1df",
+    "am3d/ai/test_benchmark.py": "2cda61885af700cd9347ea9847bf6db5d9a36e3a70320665e7682f8aa213e1b1",
+    "docs/evidence/v1/phase-8/IMPLEMENTATION.md": "4c5a79b9d209d16e61c2421d74e91cf351c4f10f9359aaeeb172b1126a4265e2",
+    "docs/evidence/v1/phase-8/P1_FIX.md": "532c4bf04fba0e4a52694d1721f3c2c24fdfd9e1514958e0b31218d8fa087a6f"
+  },
+  "note": "The hash index is excluded from its own entries. It records every owned implementation, test, and primary evidence file."
+}

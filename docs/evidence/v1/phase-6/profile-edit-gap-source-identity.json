@@ -1,0 +1,17 @@
+{
+  "baseline_commit": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "baseline_executor_sha256": "2454d5c759ed1ddee47b2814d8d74deb8e466aead2d6b47decd52f49f45b1a6a",
+  "worktree_head": "3f6f7f03d32b4d1a3af06af4fdc0724bf0436945",
+  "identity_scope": "Only files owned by the bounded generated-profile edit correction; unrelated worktree changes are excluded.",
+  "files": {
+    "am3d/recipes/executor.py": "cc902232491f570dd8975cc44047b53e20106f685e1ca57d765bad91c4742a2b",
+    "am3d/recipes/test_executor.py": "2bb0e127c4ebe2142d690ef511db7ba07fd93c7e2432b04adcf5c016faf38cb6",
+    "am3d/ui/test_generated_profile_edit.py": "1ef27d090ce27fa739c1b056ad41b09404bc20bda33853bd21db677a8fcb51cd"
+  },
+  "verification": {
+    "recipe_executor": "101 passed",
+    "profile_edit_and_legacy_surface_edit": "16 passed",
+    "platform": "Windows 10 IoT Enterprise LTSC 19044",
+    "qt_platform": "offscreen"
+  }
+}

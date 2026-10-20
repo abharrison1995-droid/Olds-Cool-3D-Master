@@ -1,0 +1,38 @@
+{
+  "format_version": 1,
+  "date": "2026-10-14",
+  "status": "source-only PowerShell binding repair; no build or ACL qualification",
+  "review_finding": {
+    "reported_by": "root actual PowerShell reproduction",
+    "reproduction": "Split-Path -LiteralPath <payload-path> -Parent against the relocated payload path exited 1 with an unresolved parameter-set error.",
+    "impact": "The Windows build would stop at ACL restore-parent resolution before the guarded denial/preflight sequence. PowerShell AST parsing did not detect this command-binding failure."
+  },
+  "change": {
+    "file": "build_windows.ps1",
+    "replacement": "$aclRestoreParent = [System.IO.Path]::GetDirectoryName($verifiedReleaseDir.FullName)",
+    "test": "Added a focused PowerShell subprocess test which creates a temporary parent/payload directory, obtains an actual System.IO.DirectoryInfo using Get-Item, evaluates the exact new parent expression, and checks the resolved parent matches the fixture. The source contract also rejects the invalid Split-Path form."
+  },
+  "verification": {
+    "command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short -k 'windows_acl_restore_parent or readonly_relocation'",
+    "result": "2 passed, 27 deselected in 2.06s; the PowerShell subprocess test ran and was not skipped",
+    "powershell_ast": "PASS",
+    "linux_syntax": "bash -n build_linux.sh: exit 0",
+    "diff_check": "git diff --check -- build_windows.ps1 build_linux.sh scripts/test_phase10_tooling.py: exit 0; only LF-to-CRLF working-copy notice for build_linux.sh"
+  },
+  "source_identity": {
+    "build_input_digest": "05f5197aba815c182a810f3fabfc5187ee32248f8c99b8c7eb636c08cb6902f1",
+    "final_source_freeze": false,
+    "note": "Shared source remains in progress; this snapshot does not identify a built candidate.",
+    "sha256": {
+      "build_windows.ps1": "d15a307a5e2a605bb47a9cb14fe2aba3bab116cc289ba6d256c6d97e9808062d",
+      "build_linux.sh": "daf7f4e1b661a773c8d29219af0f1f8c2ee4f24647e1affb5baefc24af4799cd",
+      "scripts/test_phase10_tooling.py": "9e8a0d9696d7c71be2aeb153e42cacd5d49391aed34a25e92c62b33bff006f29"
+    }
+  },
+  "not_run": [
+    "full tooling suite after the focused correction",
+    "full build or frozen execution",
+    "lock capture or mutation",
+    "actual Windows ACL write-denial/read-only workflow"
+  ]
+}

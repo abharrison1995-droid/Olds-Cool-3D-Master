@@ -1,0 +1,36 @@
+{
+  "format_version": 1,
+  "status": "source-contract preparation only; frozen read-only execution remains pending",
+  "review_finding": "The previous build scripts proved write denial after all frozen workflows had already run. They did not prove a frozen workflow succeeds while the relocated payload is write-denied.",
+  "change": {
+    "windows": "After icacls denies writes and both payload write probes fail, launch the fixed frozen --ai-self-test with offscreen Qt and a fresh output directory under the extraction root, outside the payload. Validate the frozen offline acceptance report before restoring ACLs. Preserve write-denial and workflow results separately in provenance. ACL restoration remains in finally.",
+    "linux": "After chmod removes write bits and both payload write probes fail, launch the fixed frozen --ai-self-test with a fresh output directory under the extraction root, outside the payload. Validate the frozen offline acceptance report before restoring write bits. Preserve root-capability UNPASSED and workflow results separately in provenance.",
+    "failure_behavior": "A failed workflow after verified write denial is reported UNPASSED and stops the build after permissions are restored. If the host cannot prove write denial, the workflow is not claimed."
+  },
+  "verification": {
+    "static_contract_command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short -k readonly_relocation",
+    "static_contract_result": "1 passed, 27 deselected in 0.24s",
+    "linux_syntax_command": "bash -n build_linux.sh",
+    "linux_syntax_result": "exit 0",
+    "windows_parser_command": "PowerShell Parser.ParseFile(build_windows.ps1) and fail if parser errors are returned",
+    "windows_parser_result": "exit 0",
+    "diff_check_command": "git diff --check -- build_windows.ps1 build_linux.sh scripts/test_phase10_tooling.py",
+    "diff_check_result": "exit 0; Git printed only a line-ending conversion notice for build_linux.sh"
+  },
+  "source_identity": {
+    "build_input_digest": "4cfffaf7120416e0f8e33fb0ca40e48c0306887020194d971eb9d894941b9949",
+    "final_source_freeze": false,
+    "note": "The shared source tree continues to change. This is a source snapshot, not a built candidate identity."
+  },
+  "sha256": {
+    "build_windows.ps1": "fca609fedcc8ed337647ec3607e528ef7f4cc33f3422b2e9218793dfb33701f5",
+    "build_linux.sh": "12356d867091d97dc24fdd9408505bd7ffb3f47b2ce59a0b916e439d26507bf4",
+    "scripts/test_phase10_tooling.py": "b34ce90d9339c4bac14a66e2ef1e0deb65bba265058221210b987870742663d0"
+  },
+  "not_run": [
+    "full build or frozen execution",
+    "lock capture or mutation",
+    "actual ACL/chmod read-only workflow",
+    "Windows 11 or native Mint qualification"
+  ]
+}

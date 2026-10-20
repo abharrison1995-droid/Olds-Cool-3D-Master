@@ -13,9 +13,7 @@ jobs:
     runs-on: windows-latest
     timeout-minutes: 90
     env:
-      # build_windows.ps1 selects the Python launcher; keep its `py -3`
-      # resolution aligned with setup-python and the frozen verifier.
-      PY_PYTHON3: "3.13"
+      PY_PYTHON3: "3.12"
 
     steps:
       - name: Check out source
@@ -24,18 +22,29 @@ jobs:
       - name: Set up Python for independent export verification
         uses: actions/setup-python@v7
         with:
-          python-version: "3.13"
+          python-version: "3.12.14"
 
       - name: Build the frozen Windows candidate
         shell: pwsh
         run: |
-          $buildArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".\build_windows.ps1")
+          $hostPython = Join-Path $env:pythonLocation "python.exe"
+          $buildArgs = @("-NoProfile", "-ExecutionPolicy", "Bypass", "-File", ".\build_windows.ps1", "-HostPython", $hostPython)
           if (-not (Test-Path .\requirements-lock-windows.txt)) {
             $buildArgs += "-CaptureLock"
           }
           & pwsh @buildArgs *>&1 | Tee-Object -FilePath .\windows_build.log
           $buildExitCode = $LASTEXITCODE
           if ($buildExitCode -ne 0) { exit $buildExitCode }
+          if (-not (Test-Path .\requirements-lock-windows.txt)) {
+            $proposal = ".\build\windows\proposed-requirements-lock-windows.txt"
+            if (-not (Test-Path -LiteralPath $proposal -PathType Leaf)) {
+              throw "Successful bootstrap build did not produce its final lock proposal."
+            }
+            Copy-Item -LiteralPath $proposal -Destination .\requirements-lock-windows.txt
+            & pwsh -NoProfile -ExecutionPolicy Bypass -File .\build_windows.ps1 -HostPython $hostPython *>&1 | Tee-Object -FilePath .\windows_locked_build.log
+            $lockedBuildExitCode = $LASTEXITCODE
+            if ($lockedBuildExitCode -ne 0) { exit $lockedBuildExitCode }
+          }
 
       - name: Run frozen Windows acceptance
         shell: pwsh
@@ -61,8 +70,10 @@ jobs:
             release/3D-MASTER-2005-Beta-*-win64.zip
             release/3D-MASTER-2005-Beta-*-win64.zip.sha256
             release/BUILD_PROVENANCE-windows.txt
+            release/BUILD_INPUTS-windows.json
             requirements-lock-windows.txt
             windows_build.log
+            windows_locked_build.log
             frozen_acceptance.log
             export_check.log
 
@@ -74,6 +85,8 @@ jobs:
           if-no-files-found: warn
           path: |
             requirements-lock-windows.txt
+            build/windows/proposed-requirements-lock-windows.txt
             windows_build.log
+            windows_locked_build.log
             frozen_acceptance.log
             export_check.log

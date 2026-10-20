@@ -1,0 +1,17 @@
+{
+  "mode": "running-bootstrap-retry2-analysis-diagnostic",
+  "source_digest": "2aab9e3b80626ea5020b67cc7bebf01e6488179ab64e2156c38bfa9a645309bc",
+  "toc_sha256": "653b7e610d876cdb27554c9e7ea365ed055016db52acd8c04303b5fa3fbaf162",
+  "module_count": 916,
+  "forbidden_modules": {
+    "pytest": [],
+    "_pytest": [],
+    "pygments": [],
+    "packaging": [],
+    "setuptools": [],
+    "distutils": [],
+    "httpx._main": []
+  },
+  "ambient_poppler_binary_count": 0,
+  "icu_payload_entries": []
+}

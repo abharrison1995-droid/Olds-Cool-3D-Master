@@ -1,0 +1,110 @@
+[
+  {
+    "name": "python312.dll",
+    "source_sha256": "8bb70bceffd5877733a957b31c392ca027bd2f84230e00de1654f994422fa2af",
+    "staged_sha256": "8bb70bceffd5877733a957b31c392ca027bd2f84230e00de1654f994422fa2af",
+    "source_distribution_path": "C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python312.dll"
+  },
+  {
+    "name": "numpy.libs\\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll",
+    "source_sha256": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde",
+    "staged_sha256": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\numpy.libs\\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll"
+  },
+  {
+    "name": "shiboken6\\Shiboken.pyd",
+    "source_sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1",
+    "staged_sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\shiboken6\\Shiboken.pyd"
+  },
+  {
+    "name": "PySide6\\QtCore.pyd",
+    "source_sha256": "74f96322c5e9cea73aefd2ed5870e5275336b31f552fcd32f12fc81d23f1bc6f",
+    "staged_sha256": "74f96322c5e9cea73aefd2ed5870e5275336b31f552fcd32f12fc81d23f1bc6f",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\QtCore.pyd"
+  },
+  {
+    "name": "VCRUNTIME140.dll",
+    "source_sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "staged_sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066",
+    "source_distribution_path": "C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\VCRUNTIME140.dll"
+  },
+  {
+    "name": "VCRUNTIME140_1.dll",
+    "source_sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+    "staged_sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f",
+    "source_distribution_path": "C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\VCRUNTIME140_1.dll"
+  },
+  {
+    "name": "PySide6\\Qt6Core.dll",
+    "source_sha256": "d6a3c37c5263c5d418fc0e80b722bc9fca7c0859e6f635f9624a2fde00bdc653",
+    "staged_sha256": "d6a3c37c5263c5d418fc0e80b722bc9fca7c0859e6f635f9624a2fde00bdc653",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\Qt6Core.dll"
+  },
+  {
+    "name": "shiboken6\\MSVCP140.dll",
+    "source_sha256": "fd4a8c046fa3fea9ca6132f50cf8a56cf1e783b2d3093ba5c85fa063bc6b3845",
+    "staged_sha256": "fd4a8c046fa3fea9ca6132f50cf8a56cf1e783b2d3093ba5c85fa063bc6b3845",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\shiboken6\\MSVCP140.dll"
+  },
+  {
+    "name": "PySide6\\VCRUNTIME140_1.dll",
+    "source_sha256": "48aa2783793ea18ab3c2c71d420d4fff9814e662a1ff810053c6e5250061a716",
+    "staged_sha256": "48aa2783793ea18ab3c2c71d420d4fff9814e662a1ff810053c6e5250061a716",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\VCRUNTIME140_1.dll"
+  },
+  {
+    "name": "python3.dll",
+    "source_sha256": "0366ee3d630c26ffc27bfab162648ae8c5cadc74b4b46f3e179ca70f4436cab9",
+    "staged_sha256": "0366ee3d630c26ffc27bfab162648ae8c5cadc74b4b46f3e179ca70f4436cab9",
+    "source_distribution_path": "C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python3.dll"
+  },
+  {
+    "name": "PySide6\\VCRUNTIME140.dll",
+    "source_sha256": "f893ae75a1a24eea174d982f94bc80ce2448201eaa919a73c0653a5657685de4",
+    "staged_sha256": "f893ae75a1a24eea174d982f94bc80ce2448201eaa919a73c0653a5657685de4",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\VCRUNTIME140.dll"
+  },
+  {
+    "name": "shiboken6\\shiboken6.abi3.dll",
+    "source_sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469",
+    "staged_sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\shiboken6\\shiboken6.abi3.dll"
+  },
+  {
+    "name": "PySide6\\pyside6.abi3.dll",
+    "source_sha256": "d0b5c701fb3a8ea839e72b602058f3960935156ebeca084893c54c99e54dd707",
+    "staged_sha256": "d0b5c701fb3a8ea839e72b602058f3960935156ebeca084893c54c99e54dd707",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\pyside6.abi3.dll"
+  },
+  {
+    "name": "PySide6\\MSVCP140.dll",
+    "source_sha256": "4c667b706893593812cd111b369ba6a77f54d1f1b1ae87cf3bf37692663cfba2",
+    "staged_sha256": "4c667b706893593812cd111b369ba6a77f54d1f1b1ae87cf3bf37692663cfba2",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\MSVCP140.dll"
+  },
+  {
+    "name": "shiboken6\\VCRUNTIME140.dll",
+    "source_sha256": "de617641d82eac15595d2e39394163ac33e49bb032cf2c2ea0044ed39d3675e9",
+    "staged_sha256": "de617641d82eac15595d2e39394163ac33e49bb032cf2c2ea0044ed39d3675e9",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\shiboken6\\VCRUNTIME140.dll"
+  },
+  {
+    "name": "shiboken6\\VCRUNTIME140_1.dll",
+    "source_sha256": "fa577d54bd10a91e52472da784a619da6cf241af45f0a0c48b27e91fa0fe6104",
+    "staged_sha256": "fa577d54bd10a91e52472da784a619da6cf241af45f0a0c48b27e91fa0fe6104",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\shiboken6\\VCRUNTIME140_1.dll"
+  },
+  {
+    "name": "PySide6\\MSVCP140_2.dll",
+    "source_sha256": "89917964abb6ca16a260cab258e180c3abc239b5af00eed659d0edf0efdd339c",
+    "staged_sha256": "89917964abb6ca16a260cab258e180c3abc239b5af00eed659d0edf0efdd339c",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\MSVCP140_2.dll"
+  },
+  {
+    "name": "PySide6\\MSVCP140_1.dll",
+    "source_sha256": "d419d24b0a76366f5c9d908b0e45fe70e9e9154bb8ad5f3de42070f2337f857b",
+    "staged_sha256": "d419d24b0a76366f5c9d908b0e45fe70e9e9154bb8ad5f3de42070f2337f857b",
+    "source_distribution_path": "<repo>\\build\\windows\\venv\\Lib\\site-packages\\PySide6\\MSVCP140_1.dll"
+  }
+]

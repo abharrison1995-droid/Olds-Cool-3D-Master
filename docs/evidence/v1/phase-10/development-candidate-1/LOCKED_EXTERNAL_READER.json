@@ -1,0 +1,217 @@
+{
+  "qa_reader": "trimesh",
+  "version": "5.1.1",
+  "mode": "local independent static-artifact parsing",
+  "archive_sha256": "743eb4cbcf8b7e0e9920aa9ca9c26f7fa87fb266af40ec5254db730c3198bfe3",
+  "ok": true,
+  "artifacts": [
+    {
+      "path": ".generation-attempts/a9a35480-5a7a-4434-9815-e6ac5c7f6346/candidates/candidate-01/attempt-22a5072ed0b24d69a940091001f89a4a/export_01.obj",
+      "sha256": "6da6719c4963912f2ba28cb5a1d26427e3cf34cf3ce46a53f0bf41ae7c6ad23c",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.5,
+          -0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": ".generation-attempts/a9a35480-5a7a-4434-9815-e6ac5c7f6346/candidates/candidate-01/attempt-22a5072ed0b24d69a940091001f89a4a/export_02.glb",
+      "sha256": "09385cb288ab189c3f4f0d8d9fabc8f60eeebdaa48aa6fa0a9a3e973458cb2a4",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.5,
+          -0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": ".generation-attempts/e3008913-d73b-4eed-ac87-0435025a5c3d/candidates/candidate-01/attempt-7f28499aea094b3292210737fcb9e7b7/export_01.obj",
+      "sha256": "ef375d607682529740b8fa71276955ecb65aec01109b9a83ee4cf0c911cf32bd",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.75,
+          -0.5
+        ],
+        [
+          0.5,
+          0.75,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": ".generation-attempts/e3008913-d73b-4eed-ac87-0435025a5c3d/candidates/candidate-01/attempt-7f28499aea094b3292210737fcb9e7b7/export_02.glb",
+      "sha256": "460dad3cd8d25f416df03ce52f4d63f4a0e3da3cc1d694684d7689881dec567d",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.75,
+          -0.5
+        ],
+        [
+          0.5,
+          0.75,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": "generations/a9a35480-5a7a-4434-9815-e6ac5c7f6346/export_01.obj",
+      "sha256": "6da6719c4963912f2ba28cb5a1d26427e3cf34cf3ce46a53f0bf41ae7c6ad23c",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.5,
+          -0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": "generations/a9a35480-5a7a-4434-9815-e6ac5c7f6346/export_02.glb",
+      "sha256": "09385cb288ab189c3f4f0d8d9fabc8f60eeebdaa48aa6fa0a9a3e973458cb2a4",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.5,
+          -0.5
+        ],
+        [
+          0.5,
+          0.5,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": "generations/e3008913-d73b-4eed-ac87-0435025a5c3d/export_01.obj",
+      "sha256": "ef375d607682529740b8fa71276955ecb65aec01109b9a83ee4cf0c911cf32bd",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.75,
+          -0.5
+        ],
+        [
+          0.5,
+          0.75,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    },
+    {
+      "path": "generations/e3008913-d73b-4eed-ac87-0435025a5c3d/export_02.glb",
+      "sha256": "460dad3cd8d25f416df03ce52f4d63f4a0e3da3cc1d694684d7689881dec567d",
+      "mesh_count": 1,
+      "faces": 2700,
+      "bounds": [
+        [
+          -0.5,
+          -0.75,
+          -0.5
+        ],
+        [
+          0.5,
+          0.75,
+          0.5
+        ]
+      ],
+      "materials": [
+        [
+          20,
+          61,
+          230,
+          255
+        ]
+      ]
+    }
+  ]
+}

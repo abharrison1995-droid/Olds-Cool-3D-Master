@@ -1,0 +1,62 @@
+3D MASTER:2005 -- Windows build provenance
+archive          : 3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip
+sha256           : 743eb4cbcf8b7e0e9920aa9ca9c26f7fa87fb266af40ec5254db730c3198bfe3
+am3d version     : 1.0.0.dev1
+git commit       : 3f6f7f03d32b4d1a3af06af4fdc0724bf0436945
+git status       : DIRTY -- built from uncommitted changes
+built on         : Microsoft Windows 10 IoT Enterprise LTSC 10.0.19044 AMD64
+python (host)    : 3.12.14
+python (build)   : 3.12.14
+pyinstaller      : 6.22.2
+tests            : full suite passed
+
+pinned build set (pip freeze):
+  altgraph==0.17.5
+  anyio==4.15.1
+  attrs==26.1.0
+  certifi==2026.7.22
+  colorama==0.4.6
+  glcontext==3.1.0
+  h11==0.16.0
+  httpcore==1.0.9
+  httpx==0.28.1
+  idna==3.20
+  iniconfig==2.3.1
+  jaraco.classes==3.4.0
+  jaraco.context==6.1.2
+  jaraco.functools==4.6.0
+  jsonschema==4.26.0
+  jsonschema-specifications==2025.9.1
+  keyring==25.7.0
+  moderngl==5.12.0
+  more-itertools==11.2.0
+  msgpack==1.2.1
+  numpy==2.4.6
+  packaging==26.3
+  pefile==2024.8.26
+  pillow==12.3.0
+  pluggy==1.6.0
+  Pygments==2.21.0
+  pyinstaller==6.22.2
+  pyinstaller-hooks-contrib==2026.8
+  PySide6==6.11.2
+  PySide6_Addons==6.11.2
+  PySide6_Essentials==6.11.2
+  pytest==9.1.1
+  pywin32-ctypes==0.2.3
+  referencing==0.37.0
+  rpds-py==2026.9.1
+  setuptools==84.0.0
+  shiboken6==6.11.2
+  typing_extensions==4.16.0
+host python      : 3.12.14
+build inputs sha256: 7f90f1092eff741a399397f540a5cf3a38bb0902d249f7d3aaa0cfb7d4022a92
+input manifest   : release/BUILD_INPUTS-windows.json
+frozen AI acceptance: offline fixed MockTransport passed; no live network qualification
+relocated CLI    : validation/build/malformed structured error passed
+relocated read-only write-denial: UNPASSED: Windows ACL restore capability unavailable
+read-only frozen AI workflow: UNPASSED: restore capability not proven; payload ACL was not changed
+Windows 11 qualification: not claimed (builder OS: Microsoft Windows 10 IoT Enterprise LTSC 10.0.19044)
+candidate status : development candidate evidence; no release, store, or publication qualification
+lock capture     : captured source lock installed and exact set verified
+captured lock sha256: 0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6

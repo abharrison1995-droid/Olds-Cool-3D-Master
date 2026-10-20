@@ -126,6 +126,22 @@ Selected scene rows use amber fill with dark text. Timeline key markers stay cya
 
 The center canvas is graphite with a fine perspective floor grid. Rendered geometry remains the focal point; selection bounds and transform gizmos appear only when the scene state calls for them.
 
+## Home and asset creation
+
+Home keeps **Create with AI...** as its primary action while retaining the
+ordinary New/Open and example-project routes. The AI workflow is a separate
+creation work area with a natural-language brief, provider settings, explicit
+transmission confirmation, run status, checked preview and result details.
+Keep the user's brief and produced asset in view, make the request destination
+and data disclosure legible, and show actual stage and attempt state without
+inventing progress percentages. Fit the workflow into the existing desktop
+workbench visual system.
+
+AI Settings stay explicit and small. Use the labels and behavior of the
+current source; do not imply a preselected model, provider pricing, or a
+general endpoint plug-in system. The source currently allows the
+`api.openai.com` host and requires the user to choose a model.
+
 ## Do's and Don'ts
 
 ### Do:

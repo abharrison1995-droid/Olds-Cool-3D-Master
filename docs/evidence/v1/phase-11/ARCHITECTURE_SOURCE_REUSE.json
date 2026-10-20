@@ -1,0 +1,43 @@
+{
+  "mode": "root evidence-only source reuse binding; no new independent architecture review round",
+  "review_sha256": "d56ea079ebb0c0e7c3c0cb88131d0b67e167f898ec753e37ef4f52faeebf2cd2",
+  "verified_files": [
+    {
+      "path": "am3d/ai/credentials.py",
+      "sha256": "af019cedb840eae9b5cfde00073af07ef00d1f058a690273f8f2996e233a40f2",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ai/providers.py",
+      "sha256": "bf1acc782ecade0de4d585a47e1e3fb73c04520e52b52118271e745270887ba4",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ui/ai_settings.py",
+      "sha256": "571f9653583500d00516527cb2c8e5a4e5476f110de6648182b1b6038ae4b076",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ai/test_providers.py",
+      "sha256": "973448b1173e4e6e9c7d06ec4301d1b04382b3e52d4b60d7696ff12180ddb146",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ai/test_credentials.py",
+      "sha256": "331f62ad879e4dafa33af46bd1e1592ec4a85e001876978f5d3f0499f56f7fae",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ui/test_ai_workspace.py",
+      "sha256": "a230eec3f6999423f670bd6f8ff7461a4921c61705f2b0f3440f684475ccd61e",
+      "independent_review_hash_matches": true
+    },
+    {
+      "path": "am3d/ai/test_checks.py",
+      "sha256": "eb837eaed63ff3e1f18ff89fb70395cf36ab90023ee37e68a472f88902a5d687",
+      "independent_review_hash_matches": true
+    }
+  ],
+  "qualification": "local source finding disposition reused for unchanged reviewed files; final packaging and product deltas separately reviewed",
+  "wording_clarification": "Review phrase no target Windows10 IoT device exercised means reviewer did not exercise target qualification; its source tests actually ran on this Windows10 host. Required targets are Windows11 and Mint22.3, not Windows10."
+}

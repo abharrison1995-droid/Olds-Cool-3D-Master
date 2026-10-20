@@ -7,10 +7,12 @@ is a portable document; the verdict must not depend on the host OS.
 """
 
 import os
+from pathlib import Path
 
 import pytest
 
 from am3d.core.paths import (classify_portable_relative_path,
+                             extended_io_path,
                              has_drive_letter, has_traversal,
                              is_absolute_any_platform, is_unc,
                              normalize_separators, reserved_component,
@@ -91,3 +93,11 @@ def test_is_absolute_any_platform_accepts_relative_names():
         # "D:rel" is drive-relative, i.e. not absolute -- it is rejected by
         # the drive-letter rule instead, not by the absoluteness rule.
         assert not is_absolute_any_platform(rel)
+
+
+def test_extended_io_path_is_absolute_and_keeps_long_windows_prefix():
+    resolved = extended_io_path(Path.cwd() / "a" / "b")
+    assert os.path.isabs(resolved)
+    if os.name == "nt":
+        assert resolved.startswith("\\\\?\\")
+        assert "\\a\\b" in resolved

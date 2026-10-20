@@ -222,3 +222,109 @@ def test_recipe_export_reflects_the_selected_pose(tmp_path):
 
     assert parsed_verts.shape == expected_verts.shape
     assert np.allclose(parsed_verts, expected_verts, atol=1e-5)
+
+
+def test_strict_obj_rejects_external_mtl_before_opening_it(tmp_path, monkeypatch):
+    import am3d.export.validate as validator
+
+    root = tmp_path / "output"
+    root.mkdir()
+    outside = tmp_path / "private-sentinel.mtl"
+    outside.write_text("newmtl paint\nKd 1 0 0\n", encoding="utf-8")
+    obj = root / "mesh.obj"
+    obj.write_text(
+        f"mtllib {outside}\no safe\nv 0 0 0\nv 1 0 0\nv 0 1 0\n"
+        "usemtl paint\nf 1 2 3\n", encoding="utf-8")
+
+    def forbidden_open(*_args, **_kwargs):
+        raise AssertionError("external material file must not be opened")
+
+    monkeypatch.setattr(validator, "read_mtl", forbidden_open)
+    result = validator.validate_obj(str(obj), root=str(root), return_details=True)
+    encoded = repr(result)
+    assert result["issues"]
+    assert result["resource_limit"] is False
+    assert all("private-sentinel" not in issue for issue in result["issues"])
+    assert "private-sentinel" not in encoded
+    assert result["resources"] == []
+
+
+def test_strict_obj_rejects_external_texture_and_collects_safe_dependencies(tmp_path):
+    root = tmp_path / "output"
+    root.mkdir()
+    outside = tmp_path / "outside.png"
+    outside.write_bytes(b"not opened")
+    obj = root / "mesh.obj"
+    obj.write_text("mtllib mesh.mtl\no safe\nv 0 0 0\nv 1 0 0\nv 0 1 0\n"
+                   "usemtl paint\nf 1 2 3\n", encoding="utf-8")
+    mtl = root / "mesh.mtl"
+    mtl.write_text("newmtl paint\nKd 0.1 0.2 0.3\nmap_Kd ../outside.png\n",
+                   encoding="utf-8")
+    result = validate_obj(str(obj), root=str(root), return_details=True)
+    assert any("texture reference" in issue for issue in result["issues"])
+    assert "../outside.png" not in result["resources"]
+
+    mtl.write_text("newmtl paint\nKd 0.1 0.2 0.3\nmap_Kd atlas.png\n",
+                   encoding="utf-8")
+    (root / "atlas.png").write_bytes(b"bounded fixture resource")
+    result = validate_obj(str(obj), root=str(root), return_details=True)
+    assert result["issues"] == []
+    assert result["resources"] == ["atlas.png", "mesh.mtl"]
+
+
+def test_strict_obj_stat_bounds_main_input_before_parsing(tmp_path, monkeypatch):
+    import am3d.ai.policy as policy
+    import am3d.export.validate as validator
+
+    root = tmp_path / "output"
+    root.mkdir()
+    obj = root / "mesh.obj"
+    obj.write_text("o mesh\nv 0 0 0\n", encoding="utf-8")
+    monkeypatch.setattr(policy, "MAX_OUTPUT_BYTES", 4)
+    calls = []
+
+    def forbidden_parse(*_args, **_kwargs):
+        calls.append(True)
+        raise AssertionError("over-budget OBJ must not be parsed")
+
+    monkeypatch.setattr(validator, "read_obj", forbidden_parse)
+    result = validator.validate_obj(str(obj), root=str(root), return_details=True)
+    assert result["issues"] == ["OBJ exceeds the policy byte limit"]
+    assert result["resource_limit"] is True
+    assert result["resource_limit_details"] == {
+        "kind": "obj_input_bytes", "actual": obj.stat().st_size,
+        "limit": 4, "unit": "bytes"}
+    assert calls == []
+
+
+def test_strict_obj_bounds_aggregate_sidecars_before_reading_any_mtl(tmp_path, monkeypatch):
+    import am3d.ai.policy as policy
+    import am3d.export.validate as validator
+
+    root = tmp_path / "output"
+    root.mkdir()
+    obj = root / "mesh.obj"
+    obj.write_text(
+        "mtllib first.mtl\nmtllib second.mtl\no mesh\nv 0 0 0\n",
+        encoding="utf-8")
+    for name in ("first.mtl", "second.mtl"):
+        (root / name).write_text("#" + "x" * 79 + "\n", encoding="utf-8")
+    assert obj.stat().st_size < 200
+    assert (root / "first.mtl").stat().st_size < 200
+    monkeypatch.setattr(policy, "MAX_OUTPUT_BYTES", 200)
+    calls = []
+
+    def forbidden_parse(*_args, **_kwargs):
+        calls.append(True)
+        raise AssertionError("over-budget MTL set must not be parsed")
+
+    monkeypatch.setattr(validator, "read_mtl", forbidden_parse)
+    result = validator.validate_obj(str(obj), root=str(root), return_details=True)
+    assert result["issues"] == ["OBJ material inputs exceed the policy byte limit"]
+    assert result["resource_limit"] is True
+    assert result["resource_limit_details"] == {
+        "kind": "obj_dependency_bytes",
+        "actual": obj.stat().st_size + (root / "first.mtl").stat().st_size
+        + (root / "second.mtl").stat().st_size,
+        "limit": 200, "unit": "bytes"}
+    assert calls == []

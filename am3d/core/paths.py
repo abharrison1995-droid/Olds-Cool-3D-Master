@@ -14,7 +14,10 @@ from __future__ import annotations
 import os
 import re
 
+from os import PathLike
+
 __all__ = [
+    "extended_io_path",
     "DRIVE_RE",
     "has_drive_letter",
     "is_unc",
@@ -24,6 +27,30 @@ __all__ = [
     "reserved_component",
     "classify_portable_relative_path",
 ]
+
+
+def extended_io_path(path: str | PathLike[str]) -> str:
+    r"""Return an absolute host-I/O path with Windows long-path syntax.
+
+    This helper is for application-owned filesystem operations only. It does
+    not validate or normalize recipe/resource paths; those remain governed by
+    the portable path policy below. On Windows, absolute drive and UNC paths
+    receive the ``\\?\`` prefix so deeply nested per-run roots work even
+    when process-wide long-path support is not enabled. Other platforms get
+    the ordinary absolute path.
+    """
+    absolute = os.path.abspath(os.fspath(path))
+    if os.name != "nt":
+        return absolute
+    if absolute.startswith("\\\\?\\"):
+        return absolute
+    if absolute.startswith("\\\\.\\"):
+        raise ValueError("Windows device namespace paths are not supported")
+    if absolute.startswith("\\\\"):
+        return "\\\\?\\UNC\\" + absolute[2:]
+    if re.match(r"^[A-Za-z]:[\\/]", absolute):
+        return "\\\\?\\" + absolute
+    raise ValueError("host I/O path must be an absolute drive or UNC path")
 
 # A leading Windows drive specification: "C:\x", "C:/x" (drive-absolute) and
 # "C:x" (drive-relative, resolved against that drive's own working directory).

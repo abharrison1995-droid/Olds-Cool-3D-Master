@@ -1,0 +1,9 @@
+# Source delta and visual evidence reuse
+
+The initial bootstrap source snapshot remains historical. The native-check test correction changes selection by semantic ID only; runtime checks are unchanged. The independently reviewed credential fixes change provider/credential screening and Settings imports/privacy guards, with no Settings layout, labels, sizing, tab order, or drawing changes.
+
+Phase9 final captures retain their original source manifest and checksums. The Settings source hash in that manifest is no longer the current file hash; do not claim that all eight visual source identities still match. These captures remain evidence for the unchanged layout only. Current Settings privacy behavior is bound to the independent11-check result in ARCHITECTURE_REVIEW.md, and integrated regression remains required for the new complete source snapshot. The overwritten preliminary captures remain unverifiable; none are restored or accepted by this disposition.
+
+The independent reviewer verified64 provider/credential checks,11 settings checks and the exact two native-privacy/preflight cases. This closes those source findings only. Final build, lock, frozen artifact, live provider, target desktop, GPU and human qualification gates remain open.
+
+Final local update: the seven independently recorded architecture source/test hashes match current files (ARCHITECTURE_SOURCE_REUSE.json). The final bundled-doc correction changes only three docs (BUNDLED_DOC_INPUT_DELTA.json). Current source2be687b3… full locked suite1048/2/4 and exact ZIP36970e05… frozen local checks passed; their exact current bindings are in phase-10/ROOT_LOCKED_ACCEPTANCE.md and LOCKED_ROOT_BINDING.json. Earlier gate-open statements above describe their historical cutoff, not the current local result. Target/live/human/native/GPU/read-only/committed RC qualification remains open.

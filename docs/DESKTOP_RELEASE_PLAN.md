@@ -1,12 +1,19 @@
 # Desktop release assessment and implementation handoff (historical snapshot)
 
+> **Superseded for active V1 scheduling.** The approved
+> [V1 master plan](V1_MASTER_IMPLEMENTATION_PLAN.md) now sets Windows 11 and
+> Linux Mint 22.3 as release targets. This snapshot's MX 25.2 requirement and
+> its execution history remain historical evidence; they do not qualify the
+> current V1 source or replace its platform gates. A Windows candidate may be
+> produced for testing, but supported publication requires actual acceptance.
+
 Date: 2026-09-09. Assessed commit: `d01187ccbc48803add2cf7ebd3e750f68883362b`.
 This is a point-in-time assessment of that commit, retained to explain the
 findings and their origins. Its opening baseline and “recommended first
 implementation batch” are historical; later implementation and evidence are
-recorded in `docs/evidence/desktop-release/FINDING_LEDGER.md`. The active
-product roadmap is [IMPLEMENTATION_ROADMAP.md](IMPLEMENTATION_ROADMAP.md).
-Use the ledger and active roadmap before scheduling any work from this file.
+recorded in `docs/evidence/desktop-release/FINDING_LEDGER.md`. This file's
+former roadmap link and scheduling instructions are superseded by the active
+[V1 master plan](V1_MASTER_IMPLEMENTATION_PLAN.md).
 
 Scope update (2026-09-28): the active roadmap now defines a Linux Mint 22.3
 preview-candidate milestone that can be completed on the available

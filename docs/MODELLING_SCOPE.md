@@ -1,62 +1,74 @@
-# What this app models, and what an export contains
+# What the app models, and what its exports contain
 
-Finding SCOPE-01. Two behaviours surprise people who come from a polygon
-modeller, and both are by design rather than defects — but neither was
-written down, so an export could look "empty" with no explanation.
+3D MASTER:2005 stores an editable scene built from spline patches, supported
+source profiles, materials, rigs and actions. Renderers and surface exporters
+evaluate patch geometry into triangles. They do not turn every spline or
+control point in the project into an exported surface.
 
-## Splines are construction curves, not geometry
+## Profiles and generated surfaces
 
-A spline on its own is a *profile*: a curve you shape and then turn into a
-surface with **Lathe** or **Extrude**. Nothing renders or exports from the
-curve itself.
+An open spline is a construction curve. By itself it has no faces: a tested
+open three-point spline evaluates to 33 sampled vertices and zero triangles.
+It appears as a curve in the viewport so that its points can be selected and
+edited, but it contributes no surface to a render or OBJ/GLB export until a
+surface is built from it.
 
-Concretely, an object holding one open 3-point spline and nothing else
-evaluates to:
+Recipe-generated `lathe` and `extrude` objects retain their authored source
+profile as a collision-safe spline together with the existing generator
+parameters and effective degrees. Editing that profile through the existing
+spline control-point commands changes the generated surface triangles.
+Focused source checks cover the profile edit, exact undo/redo, and native
+save/reopen round trip. The lathe profile follows the established
+radius/axial convention for its selected revolution axis; an extrusion keeps
+its three-dimensional profile.
 
-    vertices: 33   triangles: 0
+This is a specific source-profile editing path, not a general patch control
+net editor. Moving an unrelated guide spline does not reshape a baked patch,
+and the desktop UI does not expose direct array/net editing of arbitrary
+patches. Primitive objects can be transformed and assigned materials. Direct
+access to other control-net data is a scripting/API task rather than a
+general-purpose GUI surface-editing workflow. See
+[`PROFILE_EDIT_GAP.md`](evidence/v1/phase-6/PROFILE_EDIT_GAP.md) for the
+scoped correction and its tests.
 
-The 33 vertices are the sampled curve, which is what the viewport draws so
-you can see and edit it. There are no triangles because no surface has been
-built yet.
+## Surface-only exports
 
-So an object made only of splines:
+OBJ and GLB contain tessellated patch surfaces at the pose selected for
+export. Supported per-object and per-patch material assignments, flat colors,
+UVs and baked atlas data are carried where the writer supports them. They do
+not contain construction splines, control points, bones, skin weights,
+actions, keyframes, hooks, cameras or lights. OBJ and GLB are static pose
+snapshots, not skeletal-animation interchange.
 
-- shows in the viewport as a curve,
-- renders as nothing,
-- exports as an object with no faces.
+The `.am3d` project is the editable scene format and retains supported scene,
+rig and action data. Format 2 has an optional bounded generation-metadata
+envelope; a writer using older explicit root fields can drop that optional
+metadata when it saves. AI generation records and their manifests are stored
+as local sidecars. Exported OBJ/GLB files do not become an authoritative
+history record.
 
-This is the intended pure-spline workflow: the control net is the document,
-and tessellation is an output representation, produced only where a patch
-exists.
+## When an export or preview has no visible surface
 
-## Exports are surface-only
+An empty surface output means that the evaluated scene has no visible surface
+triangles. Check these conditions:
 
-OBJ and glTF/GLB are surface formats. The exporters write the tessellated
-patch surfaces and nothing else:
+1. The object may contain only construction splines. Build a lathe or
+   extrusion surface from a supported profile.
+2. Surface objects may be hidden. Check **Visible in viewport** in the Object
+   properties.
+3. The project may contain no objects, or no visible surfaces.
 
-- **written**: patch surfaces, their UVs, per-object and per-patch
-  materials, flat colours and baked texture atlases;
-- **not written**: splines and control points, bones and skin weights,
-  actions/keyframes, hooks, and cameras or lights.
+The AI checker rejects an empty or structurally invalid whole-scene result
+before publication. Its 512×512 preview checks decoded image bounds and
+nonblank occupancy. This establishes structural visibility only; it does not
+prove that the image is attractive or that the intended design was achieved.
 
-A rig is preserved in the project's own `.am3d` file, which round-trips
-everything. If you need the animation itself somewhere else, export the
-action as `.am3a`, or render a sequence (**File → Render Image /
-Sequence…**) rather than expecting it inside an OBJ.
+## Animation and appearance limits
 
-## "My export is empty"
-
-An export with no faces means the scene evaluated to zero triangles. In
-order of likelihood:
-
-1. **Every object is still a spline.** Lathe or extrude a profile first
-   (Create → Lathe Selected Profile / Extrude Selected Spline).
-2. **The objects that do have surfaces are hidden.** Export uses the same
-   evaluated scene as the viewport, and hidden objects are excluded — clear
-   the visibility checkbox in the Object tab.
-3. **The project is empty.** A new project starts with no objects at all.
-
-The same three checks explain an empty render: the render path and the
-export path share one scene evaluation
-(`am3d.core.scene.evaluate_scene`), so whatever one shows, the other
-agrees with.
+The native project stores rig and action data. OBJ and GLB take one static
+pose. The recipe CLI can make CPU-rendered sprite, toon and animation sheets;
+those are images rather than rigged interchange files. The AI preview uses
+fixed-camera software rendering and represents texture patterns by their base
+material color, so it does not demonstrate full texture appearance. Physically
+transparent/refractive glass and animated GLB are outside the current tested
+recipe capability.

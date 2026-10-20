@@ -11,15 +11,17 @@ workspace.
 
 from __future__ import annotations
 
+import copy
 import sys
 from pathlib import Path
 
 import am3d
-from PySide6.QtCore import QTimer
+from PySide6.QtCore import QTimer, Qt
 from PySide6.QtGui import QAction, QKeySequence, QUndoStack
 from PySide6.QtWidgets import (
-    QApplication, QFileDialog, QLabel, QMainWindow, QMessageBox,
-    QStackedWidget, QToolButton, QVBoxLayout, QWidget,
+    QApplication, QDialog, QDialogButtonBox, QFileDialog, QLabel, QMainWindow,
+    QMessageBox, QPlainTextEdit, QStackedWidget, QSizePolicy,
+    QToolButton, QVBoxLayout, QWidget,
 )
 
 from am3d.core.script import Session
@@ -41,6 +43,28 @@ __all__ = ["MainWindow", "main", "MODES", "load_theme", "apply_theme"]
 THEME_DIR = Path(__file__).resolve().parent
 DEFAULT_THEME = "am2005"
 ASSETS_DIR = Path(__file__).resolve().parents[2] / "assets"
+
+
+def _safe_autosave_interval_minutes(value, default=5):
+    """Return a bounded, display-safe autosave interval from QSettings."""
+    try:
+        minutes = int(value)
+    except (TypeError, ValueError, OverflowError):
+        return default
+    return minutes if 1 <= minutes <= 60 else default
+
+
+def _show_plain_message(parent, title: str, text: str,
+                        icon=QMessageBox.Information):
+    """Show trusted or derived diagnostic text without rich-text parsing."""
+    box = QMessageBox(parent)
+    box.setWindowTitle(title)
+    box.setIcon(icon)
+    box.setStandardButtons(QMessageBox.Ok)
+    box.setTextFormat(Qt.PlainText)
+    box.setText(text)
+    box.exec()
+    return box
 
 
 def application_icon():
@@ -118,10 +142,35 @@ class MainWindow(QMainWindow):
         self.home = HomeWidget()
         self._connect_home()
         self.editor_widget = self._editor_widget  # built by _build_central
+        from .ai_controller import AIController
+        from .ai_workspace import AIWorkspace
+        self.ai_controller = AIController(self)
+        self.ai_controller.busy_changed.connect(self._on_ai_busy_changed)
+        self.ai_workspace = AIWorkspace(self.ai_controller, self)
+        self.ai_workspace.back_home.connect(self.show_home)
+        self.ai_workspace.settings_requested.connect(self._file_ai_settings)
+        self.ai_workspace.adoption_requested.connect(self._adopt_ai_project)
+        self.ai_workspace.refinement_requested.connect(
+            self._prepare_ai_refinement)
+        self.ai_controller.lifecycle_quiescent.connect(
+            self._continue_deferred_close)
         self.stack = QStackedWidget()
         self.stack.addWidget(self.home)         # index 0
         self.stack.addWidget(self.editor_widget) # index 1
+        self.stack.addWidget(self.ai_workspace)  # index 2
+        # QStackedWidget combines every page's minimum hint, even while that
+        # page is hidden. Keep only the active page's original sizing policy
+        # in the stack calculation so compact Home/AI windows aren't forced
+        # to inherit the editor's tiled minimum.
+        self._stack_page_size_policies = {
+            page: page.sizePolicy()
+            for page in (self.home, self.editor_widget, self.ai_workspace)
+        }
         self.setCentralWidget(self.stack)
+        self._editor_active_window_minimum = self.minimumSizeHint()
+        self._set_active_stack_page(self.home)
+        self._close_after_ai = False
+        self._allow_deferred_close = False
         self._apply_settings()
         self.show_home()
 
@@ -283,6 +332,7 @@ class MainWindow(QMainWindow):
 
         _add("&New", self._file_new, "Ctrl+N")
         _add("&Open .am3d...", self._file_open, "Ctrl+O")
+        _add("Create with &AI...", self.show_ai_workspace)
         fm.addSeparator()
         _add("&Save .am3d", self._file_save, "Ctrl+S")
         _add("Save &As .am3d...", self._file_save_as)
@@ -321,6 +371,8 @@ class MainWindow(QMainWindow):
             wm.addAction(name, lambda _=False, n=name: self.set_workspace(n))
         sm = m.addMenu("&Settings")
         sm.addAction("&Preferences...", self._file_settings)
+        self._ai_settings_action = sm.addAction(
+            "AI &Provider...", self._file_ai_settings)
 
         hm = m.addMenu("&Help")
         hm.addAction("&Quick Start", self._show_quick_start)
@@ -733,7 +785,7 @@ class MainWindow(QMainWindow):
 
     def show_home(self):
         """Switch to the Home hub."""
-        self.stack.setCurrentIndex(0)
+        self._set_active_stack_page(self.home)
         self.home.set_recent_projects(self.doc_ctrl.recent_projects())
         self.home.set_recover_visible(self.doc_ctrl.autosave_exists())
         self.home.set_examples(self._example_projects())
@@ -759,18 +811,140 @@ class MainWindow(QMainWindow):
 
     def show_editor(self):
         """Switch to the editor workspace."""
-        self.stack.setCurrentIndex(1)
+        self._set_active_stack_page(self.editor_widget)
         self.menuBar().setVisible(True)
         self.workspace_tabs.setVisible(True)
         self.tiled.setVisible(True)
         self._refresh_all()
         self.update()
 
+    def show_ai_workspace(self):
+        """Show AI creation without changing the current editable document."""
+        self._set_active_stack_page(self.ai_workspace)
+        self.menuBar().setVisible(False)
+        self.workspace_tabs.setVisible(False)
+        self.tiled.setVisible(False)
+        self.update()
+
+    def _set_active_stack_page(self, active_page: QWidget):
+        """Exclude hidden page minima while restoring the active page policy."""
+        self.stack.setCurrentWidget(active_page)
+        for page, original_policy in self._stack_page_size_policies.items():
+            policy = QSizePolicy(original_policy)
+            if page is not active_page:
+                policy.setHorizontalPolicy(QSizePolicy.Ignored)
+                policy.setVerticalPolicy(QSizePolicy.Ignored)
+            page.setSizePolicy(policy)
+            page.updateGeometry()
+        self.stack.updateGeometry()
+        if active_page is self.editor_widget:
+            self.setMinimumSize(self._editor_active_window_minimum)
+        else:
+            # Clear the last editor-derived top-level minimum; the current
+            # page and its own child scroll area now govern reachable content.
+            self.setMinimumSize(0, 0)
+
+    def _on_ai_busy_changed(self, busy: bool):
+        """Keep provider configuration read-only during generation or copy."""
+        action = getattr(self, "_ai_settings_action", None)
+        if action is not None:
+            action.setEnabled(not busy)
+
+    def _adopt_ai_project(self, project_path: str, history_available: bool):
+        """Adopt only a worker-created copy, after the normal dirty guard."""
+        if not self.doc_ctrl.maybe_abandon_document():
+            self.ai_workspace.adoption_finished(False, history_available)
+            return
+        try:
+            self.doc_ctrl.do_open(project_path)
+        except Exception:
+            from PySide6.QtWidgets import QMessageBox
+            QMessageBox.critical(
+                self, "Open generated project failed",
+                "The writable project copy could not be loaded. Your current project remains active.")
+            self.ai_workspace.adoption_finished(False, history_available)
+            return
+        self.doc_ctrl.add_recent(project_path)
+        self._reset_document_ui_state()
+        self._refresh_all()
+        self.ai_workspace.adoption_finished(True, history_available)
+        self.show_editor()
+
+    def _prepare_ai_refinement(self, parent_id: str, instruction: str):
+        """Resolve manual divergence before authorizing a recipe-only child."""
+        from PySide6.QtWidgets import QMessageBox
+        detail = self.ai_workspace._history_detail
+        record = detail.get("record") if isinstance(detail, dict) else None
+        authority_digest = detail.get("project_digest") if isinstance(detail, dict) else None
+        if (not isinstance(record, dict) or record.get("run_id") != parent_id
+                or record.get("status") != "complete"
+                or not isinstance(authority_digest, str)):
+            self.ai_workspace.history_status.setText(
+                "Select and verify the completed parent again before refining.")
+            return
+        try:
+            from am3d.core.serializer import project_content_digest
+            # Session.actions may contain unsaved action/keyframe edits that
+            # are not yet mirrored onto Project.actions. Include the explicit
+            # Session state in the authored digest.
+            project = self.session.project
+            generation_envelope = getattr(project, "generation", None)
+            generation_before = (copy.deepcopy(generation_envelope)
+                                 if isinstance(generation_envelope, dict)
+                                 else generation_envelope)
+            try:
+                current_digest = project_content_digest(
+                    project, actions=self.session.actions)
+            finally:
+                # The serializer's save path updates provenance divergence.
+                # A comparison is read-only, including when the user cancels.
+                if isinstance(generation_envelope, dict):
+                    generation_envelope.clear()
+                    generation_envelope.update(generation_before)
+                project.generation = generation_envelope
+        except Exception:
+            self.ai_workspace.history_status.setText(
+                "Current project changes could not be compared safely. No refinement was started.")
+            return
+        if current_digest != authority_digest:
+            box = QMessageBox(self)
+            box.setWindowTitle("Manual edits differ from the saved generation")
+            box.setIcon(QMessageBox.Warning)
+            box.setTextFormat(Qt.PlainText)
+            box.setText(
+                "Refinement uses the selected generation's saved recipe. It does not include or merge the current project's manual edits.")
+            box.setInformativeText(
+                "Save manual copy writes the current session through the ordinary Save As path, then refines the original saved generation. Refine original keeps the current session open and starts from the selected immutable recipe. Cancel leaves the session and undo history untouched.")
+            save_copy = box.addButton("Save manual copy", QMessageBox.ActionRole)
+            refine_original = box.addButton(
+                "Refine original generation", QMessageBox.AcceptRole)
+            cancel = box.addButton("Cancel", QMessageBox.RejectRole)
+            box.setDefaultButton(cancel)
+            box.exec()
+            clicked = box.clickedButton()
+            if clicked is save_copy:
+                try:
+                    saved_path = self.doc_ctrl.do_save_as()
+                except Exception:
+                    self.ai_workspace.history_status.setText(
+                        "The manual copy could not be saved. The current session remains open and no refinement was started.")
+                    return
+                if saved_path is None:
+                    self.ai_workspace.history_status.setText(
+                        "Save As was cancelled. The current session and undo history remain active; no refinement was started.")
+                    return
+            elif clicked is not refine_original:
+                self.ai_workspace.history_status.setText(
+                    "Refinement cancelled. The current session and undo history are unchanged.")
+                return
+        self.ai_workspace.launch_refinement(parent_id, instruction)
+
     def _connect_home(self):
         """Wire HomeWidget signals to MainWindow actions."""
         h = self.home
         h.action_new.connect(self._file_new)
         h.action_open.connect(self._file_open)
+        h.action_create_ai.connect(self.show_ai_workspace)
         h.action_enter_editor.connect(self.show_editor)
         h.action_about.connect(self._about)
         h.action_quick_start.connect(self._show_quick_start)
@@ -844,11 +1018,27 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Warn about unsaved changes on close."""
+        if self.ai_controller.busy and not self._allow_deferred_close:
+            self._close_after_ai = True
+            self.ai_controller.request_shutdown()
+            event.ignore()
+            return
+        self._allow_deferred_close = False
         if self.doc_ctrl.maybe_abandon_document():
             self.doc_ctrl.clear_autosave()
             event.accept()
         else:
+            self._close_after_ai = False
+            self.ai_controller.resume_after_close_cancelled()
             event.ignore()
+
+    def _continue_deferred_close(self):
+        """Finish close on the GUI thread after the owned worker has stopped."""
+        if not self._close_after_ai:
+            return
+        self._close_after_ai = False
+        self._allow_deferred_close = True
+        QTimer.singleShot(0, self.close)
 
     def _on_index_changed(self, *args):
         """Refresh all panels on undo/redo."""
@@ -976,6 +1166,15 @@ class MainWindow(QMainWindow):
             self._apply_autosave_interval()
             self._apply_settings()
 
+    def _file_ai_settings(self):
+        """Open the explicit provider and credential configuration dialog."""
+        if self.ai_controller.busy:
+            return
+        from .ai_settings import AISettingsDialog
+        dialog = AISettingsDialog(self.ai_controller.session_credentials, self)
+        dialog.exec()
+        self.ai_controller.session_credentials = dialog.session_credentials
+
     def _apply_settings(self):
         """Apply the undo-depth, grid-visibility, and render-backend
         Settings preferences to live state. Read fresh from QSettings each
@@ -1008,14 +1207,10 @@ class MainWindow(QMainWindow):
         disturbing the timer's identity or its connected signal."""
         from PySide6.QtCore import QSettings
         raw = QSettings("3DMASTER2005", "app").value("autosaveInterval", 5)
-        try:
-            minutes = int(raw)
-        except (TypeError, ValueError):
-            # A hand-edited or corrupted settings store must not be able to
-            # crash startup (this runs from MainWindow.__init__) — fall back
-            # to the dialog's own default rather than propagating.
-            minutes = 5
-        self._autosave_timer.setInterval(max(1, minutes) * 60_000)
+        # A hand-edited or corrupted settings store must not be able to
+        # crash startup or the Diagnostics view.
+        minutes = _safe_autosave_interval_minutes(raw)
+        self._autosave_timer.setInterval(minutes * 60_000)
 
     def _on_autosave_timeout(self):
         """Write an autosave snapshot if the document has unsaved changes.
@@ -1025,42 +1220,66 @@ class MainWindow(QMainWindow):
             self.doc_ctrl.do_autosave()
 
     def _about(self):
-        QMessageBox.about(
+        _show_plain_message(
             self, "About 3D MASTER:2005",
             f"3D MASTER:2005  Version {am3d.__version__}\n\n"
-            "A pure spline-based 3D character animation suite.\n"
-            "Workspaces: Layout  Model  Rig  Animate  Render")
+            "A spline-patch 3D editor with internal tessellation.\n"
+            "The in-app AI workflow is a development test candidate; stable "
+            "release and target-platform gates are pending.\n"
+            "Manual editing and the external Python scripting API remain "
+            "available.")
 
     def _show_quick_start(self):
-        QMessageBox.information(
-            self, "Quick Start",
-            "1. New Empty Project (Ctrl+N), or double-click an Example "
-            "below to open a finished one.\n"
-            "2. Model: Create menu > a primitive, or draw a profile spline "
-            "and Lathe/Extrude it into a surface.\n"
-            "3. Rig: Rig menu > Add Bone, then Add Child Bone for each "
-            "bone after it, then Bind Geometry to Skeleton -- until you "
-            "bind, posing moves the bone but not the model. Select a bone "
-            "in the Outliner and drag it in the viewport to pose it; the "
-            "bundled Examples come pre-rigged.\n"
-            "4. Animate: switch to the Animate workspace, set poses on the "
-            "Timeline to key an Action.\n"
-            "5. Save (Ctrl+S). Render Image / Sequence (F12) makes the "
-            "final picture; Export OBJ/GLB writes the surfaces.\n\n"
-            "Undo/Redo (Ctrl+Z / Ctrl+Y) cover every edit above, including "
-            "keying poses and importing actions.\n\n"
-            "The Vase and Generated Character entries under Examples are "
-            "complete projects you can open, edit, and re-export to see the "
-            "whole pipeline end to end.")
+        dialog = QDialog(self)
+        dialog.setWindowTitle("Quick Start")
+        dialog.setMaximumSize(620, 380)
+        dialog.resize(620, 380)
+        layout = QVBoxLayout(dialog)
+        guide = QPlainTextEdit(dialog)
+        guide.setReadOnly(True)
+        guide.setAccessibleName("Create with AI and manual editing quick start")
+        guide.setPlainText(
+            "Create an asset\n"
+            "1. On Home, choose Create with AI… . New and Open remain "
+            "available for offline manual work.\n"
+            "2. In the AI work area, choose AI Settings… . Enter the exact "
+            "model name and use the configured api.openai.com endpoint. "
+            "Choose the OS-backed System credential store or Session-only "
+            "key (memory).\n"
+            "3. Write a plain-language brief; no JSON is required. Choose "
+            "Generate… and review the endpoint, model, and data disclosure. "
+            "Only Send request starts transmission. The request can include "
+            "your brief, normalized requirements, recipe candidates, fixed "
+            "recipe context, and bounded sanitized repair or check feedback.\n"
+            "4. Inspect the checked preview, summary, limitations, and report. "
+            "Open in Editor creates a writable copy. Local history keeps the "
+            "checked result; manual edits are a separate version.\n"
+            "5. To refine, select a verified saved generation, describe the "
+            "change, and choose Refine Selected… . Refinement starts from the "
+            "saved recipe and makes a full replacement; it never merges "
+            "manual edits. Save manual copy, Refine original generation, or "
+            "Cancel when a manual copy has diverged.\n\n"
+            "Privacy and limits\n"
+            "No request is sent at startup or when opening Settings. Local "
+            "generation allows up to five semantic calls within a shared "
+            "ten-minute deadline; each call can retry one transient HTTP "
+            "failure. Provider token use and dollar cost are unknown. Native "
+            "AM3D projects stay editable. OBJ and GLB are "
+            "static pose exports. Keys use the selected credential store and "
+            "are not written to application preferences. A saved result and "
+            "manual edits remain separate until you choose what to save.")
+        layout.addWidget(guide, 1)
+        buttons = QDialogButtonBox(QDialogButtonBox.Ok, parent=dialog)
+        buttons.accepted.connect(dialog.accept)
+        layout.addWidget(buttons)
+        dialog.exec()
 
-    def _show_diagnostics(self):
-        """Report the live state a bug report or support request would
-        actually need: versions, active renderer backend and why, the
-        current document's identity/size, undo/autosave state, and where
-        on disk the app is reading/writing from."""
+    def _diagnostics_text(self):
+        """Build an allowlisted support summary without document or secret data."""
         import sys as _sys
         import PySide6
-        from PySide6.QtCore import qVersion, QSettings, QStandardPaths
+        import re
+        from PySide6.QtCore import qVersion, QSettings
 
         s = QSettings("3DMASTER2005", "app")
         backend = self.viewport.renderer_name
@@ -1069,29 +1288,58 @@ class MainWindow(QMainWindow):
                       "Auto (ModernGL preferred; software fallback enabled)")
 
         proj = self.session.project
-        doc_desc = (Path(self.doc_ctrl.path).name if self.doc_ctrl.has_path
-                    else "(unsaved)")
         undo_limit = self.undo_stack.undoLimit()
+        document_state = "saved" if self.doc_ctrl.has_path else "unsaved"
+        document_state += ", modified" if self.doc_ctrl.dirty else ", clean"
+        autosave = _safe_autosave_interval_minutes(
+            s.value("autosaveInterval", 5))
 
-        app_data = QStandardPaths.writableLocation(
-            QStandardPaths.AppLocalDataLocation)
+        try:
+            from am3d.ai.records import application_identity
+            identity = application_identity()
+            raw_build_id = identity.get("build_id", "unavailable")
+        except Exception:
+            raw_build_id = "unavailable"
+        match = re.fullmatch(
+            r"(build-input-sha256|source-code-sha256):([0-9a-f]{64})",
+            str(raw_build_id))
+        build_identity = (f"{match.group(1)}:{match.group(2)[:16]}…"
+                          if match else "unavailable")
 
-        QMessageBox.information(
-            self, "Diagnostics",
+        job_summary = "idle"
+        if (self.ai_controller.busy
+                and getattr(self.ai_controller, "_thread_kind", None)
+                == "generation"):
+            allowed_stages = {
+                "starting", "interpreting", "brief_ready", "candidate",
+                "validation_repair", "checking", "publishing", "completed",
+                "runtime_repair", "check_repair", "failed", "cancelled",
+            }
+            stage = str(self.ai_controller.active_stage)
+            stage = stage if stage in allowed_stages else "working"
+            try:
+                attempt = min(9, max(0, int(self.ai_controller.active_attempt)))
+            except (TypeError, ValueError, OverflowError):
+                attempt = 0
+            job_summary = f"{stage}; attempt {attempt}"
+
+        return (
             f"3D MASTER:2005  Version {am3d.__version__}\n"
+            f"Build identity: {build_identity}\n"
             f"Python {_sys.version.split()[0]}   "
             f"PySide6 {PySide6.__version__}   Qt {qVersion()}\n\n"
-            f"Renderer backend: {backend}\n"
-            f"Renderer preference: {preference}\n\n"
-            f"Document: {doc_desc}"
-            f"{'  (modified)' if self.doc_ctrl.dirty else ''}\n"
+            f"Renderer route: {backend}\n"
+            f"Renderer preference: {preference}\n"
+            f"AI job: {job_summary}\n\n"
+            f"Document: {document_state}\n"
             f"Objects: {len(proj.objects)}   "
             f"Actions: {len(self.session.actions)}\n"
             f"Undo entries: {self.undo_stack.count()}   "
-            f"Undo limit: {undo_limit if undo_limit else 'unlimited'}\n\n"
-            f"Autosave interval: {int(s.value('autosaveInterval', 5))} min   "
-            f"Snapshots on disk: {len(self.doc_ctrl.list_autosave_files())}\n"
-            f"App data directory: {app_data}")
+            f"Undo limit: {undo_limit if undo_limit else 'unlimited'}\n"
+            f"Autosave interval: {autosave} min")
+
+    def _show_diagnostics(self):
+        _show_plain_message(self, "Diagnostics", self._diagnostics_text())
 
 
 ORG_NAME = "3DMASTER2005"

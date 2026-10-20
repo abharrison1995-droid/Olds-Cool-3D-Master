@@ -1,0 +1,26 @@
+{
+  "executor_sha256": "2454d5c759ed1ddee47b2814d8d74deb8e466aead2d6b47decd52f49f45b1a6a",
+  "mode": "source/read-only/offline",
+  "results": [
+    {
+      "primitive": "lathe",
+      "spline_names": [
+        "guide"
+      ],
+      "patch_generators": [
+        null
+      ],
+      "guide_edit_changes_referenced_surface": false
+    },
+    {
+      "primitive": "extrude",
+      "spline_names": [
+        "guide"
+      ],
+      "patch_generators": [
+        null
+      ],
+      "guide_edit_changes_referenced_surface": false
+    }
+  ]
+}

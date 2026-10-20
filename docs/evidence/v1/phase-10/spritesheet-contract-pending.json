@@ -1,0 +1,55 @@
+{
+  "status": "pending_product_contract_correction",
+  "qualification": "source fixed-mock diagnostic; not a frozen build or release qualification",
+  "command": [
+    "python",
+    "-m",
+    "am3d.ui",
+    "--ai-self-test",
+    "--out",
+    "<fresh host-selected output directory>"
+  ],
+  "run_id": "fd19d302-78d3-42e5-b425-a839bd255158",
+  "observed_utc": "2026-10-13T21:31:53Z",
+  "fixture": {
+    "brief": "Create a simple blue cube, save an editable native project, and produce OBJ, GLB, and a preview sprite sheet.",
+    "required_exports": ["am3d", "obj", "glb", "spritesheet"],
+    "candidate_sheet_export": {
+      "format": "spritesheet",
+      "path": "ignored-sheet",
+      "params": {"views": 4, "size": 48}
+    }
+  },
+  "safe_check_report": {
+    "check_id": "requested_exports",
+    "status": "failed",
+    "resource_limit": false,
+    "files": [
+      "project.am3d",
+      "export_01.obj",
+      "export_01.mtl",
+      "export_02.glb"
+    ],
+    "issues": ["required spritesheet file is missing"],
+    "recorded_png_artifacts": [
+      "export_03_object_000_bcd1dec4.png",
+      "preview.png"
+    ]
+  },
+  "contract_paths": {
+    "checker_expected_from_spec": "ignored-sheet.png",
+    "executor_per_object_output_pattern": "ignored-sheet_<opaque-object-id>.png",
+    "recorded_per_object_output": "export_03_object_000_bcd1dec4.png",
+    "explanation": "The checker currently derives one unsuffixed PNG from the recipe path. The executor emits one PNG per rendered object with an opaque object suffix. The recorded preview and object sheet do not satisfy the checker’s unsuffixed expected path."
+  },
+  "original_state_receipt": {
+    "sha256": "fb294a01017406e031f0c3ce62446d5e27886371f38f69ed2fcce91ddd564f57",
+    "path": "work/v1/phase10-debug/phase10-ai-self-test/records/.generation-attempts/fd19d302-78d3-42e5-b425-a839bd255158/state.json",
+    "note": "The raw diagnostic record stays in ignored work data; this checked-in evidence contains only the bounded fields needed to reproduce the contract failure."
+  },
+  "limits": [
+    "No live provider, credentials, or network call was used.",
+    "This confirms a checker/export contract bug; it is not resolved by removing the sheet from the fixture.",
+    "The fixed acceptance sheet case remains pending the narrowly assigned checker contract correction and its independent review."
+  ]
+}

@@ -1,0 +1,7 @@
+Command: .\.venv\Scripts\python.exe -m pytest am3d/ai/test_sheet_contract.py -q --maxfail=1 --tb=short
+............ [100%]
+12 passed in 65.57s (0:01:05)
+
+Command: .\.venv\Scripts\python.exe -m pytest am3d/ai/test_checks.py::test_export_preflight_stops_glb_parser_reads am3d/ai/test_checks.py::test_checker_marks_strict_obj_byte_guard_as_terminal_resource_limit am3d/ai/test_checks.py::test_missing_requested_export_fails_independent_export_check am3d/ai/test_checks.py::test_checker_validates_baked_glb_png_mime_crc_and_header_bounds -q --maxfail=1 --tb=short
+....                                                                     [100%]
+4 passed in 26.60s

@@ -1,0 +1,3054 @@
+{
+  "schema_version": 1,
+  "fixture_set": "v1-release",
+  "frozen": true,
+  "coordinate_convention": "right-handed, Y-up, X-right, Z-forward; dimensions in metres; normalized sRGB colors",
+  "dimension_tolerance_fraction": 0.2,
+  "items": [
+    {
+      "id": "01",
+      "tier": "static",
+      "prompt": "Create an editable chunky blue enamel mug for an isometric RPG. Include a rounded cylindrical body, separate side handle, and visible rim. Use blue enamel on the body and a dark contrasting handle. Approximate size 0.12 m wide by 0.11 m high by 0.09 m deep. Export OBJ and GLB.",
+      "target_dimensions_m": {
+        "width": 0.12,
+        "height": 0.11,
+        "depth": 0.09
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "body",
+        "handle",
+        "rim"
+      ],
+      "materials": [
+        {
+          "component": "body",
+          "color_srgb": [
+            0.12,
+            0.3,
+            0.82
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "handle",
+          "color_srgb": [
+            0.12,
+            0.12,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "handle",
+          "predicate": "on_x_positive_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "rim",
+          "predicate": "above",
+          "object": "body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj",
+        "glb"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "02",
+      "tier": "static",
+      "prompt": "Create a low-poly red desk lamp with a round base, upright stem, and distinct shade. Keep the three parts distinct; use red on the shade and dark metal on the stem. Approximate size 0.18 x 0.45 x 0.18 m. Export the editable native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.18,
+        "height": 0.45,
+        "depth": 0.18
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "base",
+        "stem",
+        "shade"
+      ],
+      "materials": [
+        {
+          "component": "shade",
+          "color_srgb": [
+            0.82,
+            0.08,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "stem",
+          "color_srgb": [
+            0.12,
+            0.13,
+            0.15
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "base",
+          "color_srgb": [
+            0.32,
+            0.34,
+            0.36
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "base",
+          "predicate": "below",
+          "object": "stem"
+        },
+        {
+          "subject": "shade",
+          "predicate": "above",
+          "object": "stem"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "03",
+      "tier": "static",
+      "prompt": "Create a brown wooden crate with a box body and at least four visibly separate reinforcement slats on its outside faces. Use warm brown for the body and darker brown for the slats. Keep slats editable. Approximate size 0.8 x 0.7 x 0.7 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.8,
+        "height": 0.7,
+        "depth": 0.7
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "crate_body",
+        "front_slats",
+        "side_slats",
+        "top_slats"
+      ],
+      "materials": [
+        {
+          "component": "crate_body",
+          "color_srgb": [
+            0.42,
+            0.23,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_slats",
+          "color_srgb": [
+            0.27,
+            0.13,
+            0.06
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "side_slats",
+          "color_srgb": [
+            0.32,
+            0.16,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "top_slats",
+          "color_srgb": [
+            0.37,
+            0.19,
+            0.08
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "front_slats",
+          "predicate": "on_front_face_of",
+          "object": "crate_body"
+        },
+        {
+          "subject": "side_slats",
+          "predicate": "on_side_face_of",
+          "object": "crate_body"
+        },
+        {
+          "subject": "top_slats",
+          "predicate": "on_top_of",
+          "object": "crate_body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "reinforcement slats",
+          "components": [
+            "front_slats",
+            "side_slats",
+            "top_slats"
+          ],
+          "minimum_total": 4
+        }
+      ]
+    },
+    {
+      "id": "04",
+      "tier": "static",
+      "prompt": "Create a green metal watering can with a main container, a long narrow spout extending away from the body, and a separate arched handle above it. Make all three clear in silhouette. Approximate size 0.50 x 0.36 x 0.22 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.5,
+        "height": 0.36,
+        "depth": 0.22
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "body",
+        "spout",
+        "handle"
+      ],
+      "materials": [
+        {
+          "component": "body",
+          "color_srgb": [
+            0.12,
+            0.48,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "spout",
+          "color_srgb": [
+            0.1,
+            0.38,
+            0.14
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "handle",
+          "color_srgb": [
+            0.06,
+            0.25,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "spout",
+          "predicate": "extends_x_positive_from",
+          "object": "body"
+        },
+        {
+          "subject": "handle",
+          "predicate": "above",
+          "object": "body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "05",
+      "tier": "static",
+      "prompt": "Create a round red stool with one circular seat and exactly three separate wooden legs spaced around its underside. Use red for the seat and brown wood for all legs. Approximate size 0.42 x 0.48 x 0.42 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.42,
+        "height": 0.48,
+        "depth": 0.42
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "seat",
+        "front_left_leg",
+        "front_right_leg",
+        "rear_leg"
+      ],
+      "materials": [
+        {
+          "component": "seat",
+          "color_srgb": [
+            0.78,
+            0.06,
+            0.05
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_left_leg",
+          "color_srgb": [
+            0.4,
+            0.22,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_right_leg",
+          "color_srgb": [
+            0.4,
+            0.22,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_leg",
+          "color_srgb": [
+            0.4,
+            0.22,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "seat",
+          "predicate": "above",
+          "object": "legs"
+        },
+        {
+          "subject": "front_left_leg",
+          "predicate": "around_underside_of",
+          "object": "seat"
+        },
+        {
+          "subject": "front_right_leg",
+          "predicate": "around_underside_of",
+          "object": "seat"
+        },
+        {
+          "subject": "rear_leg",
+          "predicate": "around_underside_of",
+          "object": "seat"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "stool legs",
+          "components": [
+            "front_left_leg",
+            "front_right_leg",
+            "rear_leg"
+          ],
+          "exact_total": 3
+        }
+      ]
+    },
+    {
+      "id": "06",
+      "tier": "static",
+      "prompt": "Create a compact wooden writing desk with a broad top, four separate corner legs reaching the floor, and one visible drawer front centered below the top. Use medium brown wood and a darker drawer front. Approximate size 1.2 x 0.8 x 0.65 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 1.2,
+        "height": 0.8,
+        "depth": 0.65
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "top",
+        "front_left_leg",
+        "front_right_leg",
+        "rear_left_leg",
+        "rear_right_leg",
+        "drawer_front"
+      ],
+      "materials": [
+        {
+          "component": "top",
+          "color_srgb": [
+            0.48,
+            0.28,
+            0.13
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_left_leg",
+          "color_srgb": [
+            0.4,
+            0.21,
+            0.09
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_right_leg",
+          "color_srgb": [
+            0.4,
+            0.21,
+            0.09
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_left_leg",
+          "color_srgb": [
+            0.4,
+            0.21,
+            0.09
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_right_leg",
+          "color_srgb": [
+            0.4,
+            0.21,
+            0.09
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "drawer_front",
+          "color_srgb": [
+            0.31,
+            0.15,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "top",
+          "predicate": "above",
+          "object": "legs"
+        },
+        {
+          "subject": "drawer_front",
+          "predicate": "under_front_edge_of",
+          "object": "top"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "07",
+      "tier": "static",
+      "prompt": "Create an early-2000s grey office chair with seat, upright back, central stem, simplified wheeled base, and at least three visible wheels. Use grey seat/back and dark grey base/wheels. Approximate size 0.65 x 1.05 x 0.65 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.65,
+        "height": 1.05,
+        "depth": 0.65
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "seat",
+        "back",
+        "stem",
+        "base",
+        "wheel_front",
+        "wheel_left",
+        "wheel_right"
+      ],
+      "materials": [
+        {
+          "component": "seat",
+          "color_srgb": [
+            0.4,
+            0.42,
+            0.44
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "back",
+          "color_srgb": [
+            0.36,
+            0.38,
+            0.4
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "stem",
+          "color_srgb": [
+            0.2,
+            0.21,
+            0.22
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "base",
+          "color_srgb": [
+            0.18,
+            0.19,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "wheel_front",
+          "color_srgb": [
+            0.08,
+            0.09,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "wheel_left",
+          "color_srgb": [
+            0.08,
+            0.09,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "wheel_right",
+          "color_srgb": [
+            0.08,
+            0.09,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "back",
+          "predicate": "above_and_behind",
+          "object": "seat"
+        },
+        {
+          "subject": "stem",
+          "predicate": "below",
+          "object": "seat"
+        },
+        {
+          "subject": "base",
+          "predicate": "below",
+          "object": "stem"
+        },
+        {
+          "subject": "wheel_front",
+          "predicate": "under_base",
+          "object": "base"
+        },
+        {
+          "subject": "wheel_left",
+          "predicate": "under_base",
+          "object": "base"
+        },
+        {
+          "subject": "wheel_right",
+          "predicate": "under_base",
+          "object": "base"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "visible wheels",
+          "components": [
+            "wheel_front",
+            "wheel_left",
+            "wheel_right"
+          ],
+          "minimum_total": 3
+        }
+      ]
+    },
+    {
+      "id": "08",
+      "tier": "static",
+      "prompt": "Create a medieval blacksmith anvil with dark worn-iron body, tapered horn at one end, and separate brown wooden block below. Approximate its profile with simple supported geometry and color; do not claim a physically accurate forged surface. Approximate size 0.70 x 0.35 x 0.25 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.7,
+        "height": 0.35,
+        "depth": 0.25
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "anvil_body",
+        "horn",
+        "wood_block"
+      ],
+      "materials": [
+        {
+          "component": "anvil_body",
+          "color_srgb": [
+            0.17,
+            0.18,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "horn",
+          "color_srgb": [
+            0.2,
+            0.21,
+            0.23
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "wood_block",
+          "color_srgb": [
+            0.34,
+            0.18,
+            0.08
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "horn",
+          "predicate": "extends_x_positive_from",
+          "object": "anvil_body"
+        },
+        {
+          "subject": "anvil_body",
+          "predicate": "above",
+          "object": "wood_block"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The profile and worn-iron appearance are stylised approximations from supported geometry and color, not a physically accurate forged surface.",
+            "expected_phrasing": [
+              "stylised profile and worn-iron color approximation",
+              "not a physically accurate forged surface"
+            ],
+            "semantic_keywords": [
+              "stylised approximation",
+              "supported geometry",
+              "color",
+              "not physically accurate forged surface"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "09",
+      "tier": "static",
+      "prompt": "Create a wooden treasure chest with lower box, separately shaped lid, and at least two brass-colored straps visible across it. Use brown wood and gold-brass straps. Keep the lid and straps editable. Approximate size 0.80 x 0.65 x 0.50 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.8,
+        "height": 0.65,
+        "depth": 0.5
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "chest_base",
+        "lid",
+        "front_strap_left",
+        "front_strap_right"
+      ],
+      "materials": [
+        {
+          "component": "chest_base",
+          "color_srgb": [
+            0.38,
+            0.19,
+            0.08
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "lid",
+          "color_srgb": [
+            0.46,
+            0.24,
+            0.1
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_strap_left",
+          "color_srgb": [
+            0.72,
+            0.48,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_strap_right",
+          "color_srgb": [
+            0.72,
+            0.48,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "lid",
+          "predicate": "above",
+          "object": "chest_base"
+        },
+        {
+          "subject": "front_strap_left",
+          "predicate": "across_front_of",
+          "object": "chest_base"
+        },
+        {
+          "subject": "front_strap_right",
+          "predicate": "across_front_of",
+          "object": "chest_base"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "brass straps",
+          "components": [
+            "front_strap_left",
+            "front_strap_right"
+          ],
+          "minimum_total": 2
+        }
+      ]
+    },
+    {
+      "id": "10",
+      "tier": "static",
+      "prompt": "Create a stylised iron lantern with base, top cap, cage frame, and visible yellow insert representing light. Use distinct iron and yellow colors. The insert is opaque color, not physically transparent glass. Approximate size 0.28 x 0.45 x 0.28 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.28,
+        "height": 0.45,
+        "depth": 0.28
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "base",
+        "top_cap",
+        "cage_frame",
+        "yellow_insert"
+      ],
+      "materials": [
+        {
+          "component": "base",
+          "color_srgb": [
+            0.17,
+            0.18,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "top_cap",
+          "color_srgb": [
+            0.17,
+            0.18,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "cage_frame",
+          "color_srgb": [
+            0.22,
+            0.23,
+            0.25
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "yellow_insert",
+          "color_srgb": [
+            0.98,
+            0.72,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "top_cap",
+          "predicate": "above",
+          "object": "cage_frame"
+        },
+        {
+          "subject": "cage_frame",
+          "predicate": "around",
+          "object": "yellow_insert"
+        },
+        {
+          "subject": "base",
+          "predicate": "below",
+          "object": "cage_frame"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The yellow insert is an opaque color cue representing light, not physically transparent glass.",
+            "expected_phrasing": [
+              "opaque yellow insert representing light",
+              "not transparent glass"
+            ],
+            "semantic_keywords": [
+              "opaque",
+              "yellow insert",
+              "represents light",
+              "not transparent glass"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "11",
+      "tier": "static",
+      "prompt": "Create an upright fantasy sword with a long narrow blade, perpendicular crossguard, dark leather grip, and simple pommel. Use silver-grey blade, muted metal guard, and dark brown grip. Approximate size 0.12 x 1.0 x 0.08 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.12,
+        "height": 1,
+        "depth": 0.08
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "blade",
+        "crossguard",
+        "grip",
+        "pommel"
+      ],
+      "materials": [
+        {
+          "component": "blade",
+          "color_srgb": [
+            0.62,
+            0.68,
+            0.74
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "crossguard",
+          "color_srgb": [
+            0.38,
+            0.4,
+            0.42
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "grip",
+          "color_srgb": [
+            0.22,
+            0.1,
+            0.05
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "pommel",
+          "color_srgb": [
+            0.48,
+            0.5,
+            0.52
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "blade",
+          "predicate": "above",
+          "object": "crossguard"
+        },
+        {
+          "subject": "crossguard",
+          "predicate": "above",
+          "object": "grip"
+        },
+        {
+          "subject": "pommel",
+          "predicate": "below",
+          "object": "grip"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "12",
+      "tier": "static",
+      "prompt": "Create an upright industrial barrel as a cylinder with two separate dark hoops wrapped around it at different heights. Use muted industrial metal on the body and near-black hoops. Approximate size 0.45 x 0.80 x 0.45 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.45,
+        "height": 0.8,
+        "depth": 0.45
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "barrel_body",
+        "lower_hoop",
+        "upper_hoop"
+      ],
+      "materials": [
+        {
+          "component": "barrel_body",
+          "color_srgb": [
+            0.42,
+            0.44,
+            0.46
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "lower_hoop",
+          "color_srgb": [
+            0.09,
+            0.1,
+            0.11
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "upper_hoop",
+          "color_srgb": [
+            0.09,
+            0.1,
+            0.11
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "lower_hoop",
+          "predicate": "around_lower_section_of",
+          "object": "barrel_body"
+        },
+        {
+          "subject": "upper_hoop",
+          "predicate": "around_upper_section_of",
+          "object": "barrel_body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "barrel hoops",
+          "components": [
+            "lower_hoop",
+            "upper_hoop"
+          ],
+          "exact_total": 2
+        }
+      ]
+    },
+    {
+      "id": "13",
+      "tier": "static",
+      "prompt": "Create a chunky factory pipe with vertical and perpendicular horizontal runs, elbow joining them, and flange rings at open ends. Use dark industrial metal. Assemble the joint and do not claim Boolean or CSG fusion. Approximate size 0.70 x 0.55 x 0.25 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.7,
+        "height": 0.55,
+        "depth": 0.25
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "vertical_run",
+        "horizontal_run",
+        "elbow",
+        "flange_vertical",
+        "flange_horizontal"
+      ],
+      "materials": [
+        {
+          "component": "vertical_run",
+          "color_srgb": [
+            0.24,
+            0.26,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "horizontal_run",
+          "color_srgb": [
+            0.24,
+            0.26,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "elbow",
+          "color_srgb": [
+            0.29,
+            0.31,
+            0.33
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "flange_vertical",
+          "color_srgb": [
+            0.16,
+            0.17,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "flange_horizontal",
+          "color_srgb": [
+            0.16,
+            0.17,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "horizontal_run",
+          "predicate": "perpendicular_to",
+          "object": "vertical_run"
+        },
+        {
+          "subject": "elbow",
+          "predicate": "joins",
+          "object": "vertical_run"
+        },
+        {
+          "subject": "elbow",
+          "predicate": "joins",
+          "object": "horizontal_run"
+        },
+        {
+          "subject": "flange_vertical",
+          "predicate": "at_end_of",
+          "object": "vertical_run"
+        },
+        {
+          "subject": "flange_horizontal",
+          "predicate": "at_end_of",
+          "object": "horizontal_run"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The pipe elbow and flange joint are assembled from supported parts without Boolean or CSG fusion.",
+            "expected_phrasing": [
+              "assembled joint",
+              "not Boolean/CSG fused"
+            ],
+            "semantic_keywords": [
+              "assembled parts",
+              "joint",
+              "no Boolean/CSG fusion"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "14",
+      "tier": "static",
+      "prompt": "Create a yellow road barrier with a long horizontal beam, two separate feet below it, and black markings across the beam. Use yellow beam, charcoal markings, and dark neutral feet. Approximate size 1.40 x 0.65 x 0.22 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 1.4,
+        "height": 0.65,
+        "depth": 0.22
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "beam",
+        "left_foot",
+        "right_foot",
+        "black_markings"
+      ],
+      "materials": [
+        {
+          "component": "beam",
+          "color_srgb": [
+            0.94,
+            0.72,
+            0.08
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_foot",
+          "color_srgb": [
+            0.18,
+            0.19,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_foot",
+          "color_srgb": [
+            0.18,
+            0.19,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "black_markings",
+          "color_srgb": [
+            0.04,
+            0.05,
+            0.06
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "left_foot",
+          "predicate": "below_left_end_of",
+          "object": "beam"
+        },
+        {
+          "subject": "right_foot",
+          "predicate": "below_right_end_of",
+          "object": "beam"
+        },
+        {
+          "subject": "black_markings",
+          "predicate": "across_front_of",
+          "object": "beam"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "barrier feet",
+          "components": [
+            "left_foot",
+            "right_foot"
+          ],
+          "exact_total": 2
+        }
+      ]
+    },
+    {
+      "id": "15",
+      "tier": "static",
+      "prompt": "Create a beige early-2000s CRT monitor with boxy case, separate dark front screen, and stable stand. Use beige case, near-black screen, and darker neutral stand. Approximate size 0.55 x 0.50 x 0.45 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.55,
+        "height": 0.5,
+        "depth": 0.45
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "case",
+        "screen",
+        "stand"
+      ],
+      "materials": [
+        {
+          "component": "case",
+          "color_srgb": [
+            0.68,
+            0.62,
+            0.48
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "screen",
+          "color_srgb": [
+            0.04,
+            0.05,
+            0.06
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "stand",
+          "color_srgb": [
+            0.42,
+            0.4,
+            0.35
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "screen",
+          "predicate": "on_front_face_of",
+          "object": "case"
+        },
+        {
+          "subject": "case",
+          "predicate": "above",
+          "object": "stand"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "16",
+      "tier": "static",
+      "prompt": "Create a retro grey game console with low rectangular shell and two visible cartridge-slot approximations on top. Use separate dark narrow parts or shallow color panels; disclose these are not true recesses. Use grey shell and charcoal slots. Approximate size 0.55 x 0.12 x 0.40 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.55,
+        "height": 0.12,
+        "depth": 0.4
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "console_shell",
+        "slot_left",
+        "slot_right"
+      ],
+      "materials": [
+        {
+          "component": "console_shell",
+          "color_srgb": [
+            0.48,
+            0.5,
+            0.52
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "slot_left",
+          "color_srgb": [
+            0.1,
+            0.11,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "slot_right",
+          "color_srgb": [
+            0.1,
+            0.11,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "slot_left",
+          "predicate": "on_top_of",
+          "object": "console_shell"
+        },
+        {
+          "subject": "slot_right",
+          "predicate": "on_top_of",
+          "object": "console_shell"
+        },
+        {
+          "subject": "slot_left",
+          "predicate": "left_of",
+          "object": "slot_right"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The cartridge slots are surface or raised-part approximations and are not true recessed geometry.",
+            "expected_phrasing": [
+              "surface or raised-part slot approximation",
+              "not true recesses"
+            ],
+            "semantic_keywords": [
+              "surface panel or raised part",
+              "slot",
+              "not a true recess"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "17",
+      "tier": "static",
+      "prompt": "Create a small red British telephone kiosk with square frame, shallow roof, and visible front/side panel divisions. Use strong red frame and darker window-like panels. Approximate size 0.90 x 2.20 x 0.90 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.9,
+        "height": 2.2,
+        "depth": 0.9
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "frame",
+        "roof",
+        "front_panels",
+        "side_panels"
+      ],
+      "materials": [
+        {
+          "component": "frame",
+          "color_srgb": [
+            0.78,
+            0.05,
+            0.04
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "roof",
+          "color_srgb": [
+            0.7,
+            0.04,
+            0.03
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_panels",
+          "color_srgb": [
+            0.16,
+            0.22,
+            0.26
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "side_panels",
+          "color_srgb": [
+            0.19,
+            0.25,
+            0.29
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "roof",
+          "predicate": "above",
+          "object": "frame"
+        },
+        {
+          "subject": "front_panels",
+          "predicate": "inside_front_of",
+          "object": "frame"
+        },
+        {
+          "subject": "side_panels",
+          "predicate": "inside_sides_of",
+          "object": "frame"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The dark kiosk panels suggest glazing as a visual approximation; the fixture does not require physically transparent glass.",
+            "expected_phrasing": [
+              "dark panels approximate glazing",
+              "glazing-like visual panels"
+            ],
+            "semantic_keywords": [
+              "dark panels",
+              "approximate glazing"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "18",
+      "tier": "static",
+      "prompt": "Create a simple cottage with rectangular walls, flatter pitched roof, chimney, and front door. Keep the roof shallow and chimney above it. Use muted stone walls, dark roof, and contrasting door. Approximate size 3.0 x 2.5 x 2.5 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 3,
+        "height": 2.5,
+        "depth": 2.5
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "walls",
+        "roof_left",
+        "roof_right",
+        "chimney",
+        "front_door"
+      ],
+      "materials": [
+        {
+          "component": "walls",
+          "color_srgb": [
+            0.63,
+            0.57,
+            0.44
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "roof_left",
+          "color_srgb": [
+            0.28,
+            0.18,
+            0.14
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "roof_right",
+          "color_srgb": [
+            0.28,
+            0.18,
+            0.14
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "chimney",
+          "color_srgb": [
+            0.42,
+            0.34,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_door",
+          "color_srgb": [
+            0.24,
+            0.12,
+            0.06
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "roof_left",
+          "predicate": "above",
+          "object": "walls"
+        },
+        {
+          "subject": "roof_right",
+          "predicate": "above",
+          "object": "walls"
+        },
+        {
+          "subject": "chimney",
+          "predicate": "on_roof",
+          "object": "walls"
+        },
+        {
+          "subject": "front_door",
+          "predicate": "on_front_face_of",
+          "object": "walls"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "19",
+      "tier": "static",
+      "prompt": "Create a stone arch gateway from separate chunky blocks: two upright posts and horizontal top blocks leaving a clearly open passage underneath. Use grey-brown stone and show the opening from the front. Approximate size 2.2 x 2.6 x 0.50 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 2.2,
+        "height": 2.6,
+        "depth": 0.5
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "left_post",
+        "right_post",
+        "top_blocks"
+      ],
+      "materials": [
+        {
+          "component": "left_post",
+          "color_srgb": [
+            0.48,
+            0.45,
+            0.4
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_post",
+          "color_srgb": [
+            0.48,
+            0.45,
+            0.4
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "top_blocks",
+          "color_srgb": [
+            0.55,
+            0.52,
+            0.47
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "left_post",
+          "predicate": "left_of_passage",
+          "object": "right_post"
+        },
+        {
+          "subject": "right_post",
+          "predicate": "right_of_passage",
+          "object": "left_post"
+        },
+        {
+          "subject": "top_blocks",
+          "predicate": "above_both_posts",
+          "object": "left_post"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "20",
+      "tier": "static",
+      "prompt": "Create an early-2000s British bus shelter with exaggerated PC-game proportions: green frame and roof, glass-like side/rear panels, and a bench. Panels are separate pale blue-grey surfaces. Disclose these are stylised opaque tinted surfaces, not truly transparent glass. Approximate size 4.0 x 2.4 x 1.2 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 4,
+        "height": 2.4,
+        "depth": 1.2
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "frame",
+        "roof",
+        "side_panels",
+        "rear_panels",
+        "bench"
+      ],
+      "materials": [
+        {
+          "component": "frame",
+          "color_srgb": [
+            0.1,
+            0.36,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "roof",
+          "color_srgb": [
+            0.08,
+            0.3,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "side_panels",
+          "color_srgb": [
+            0.55,
+            0.72,
+            0.78
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_panels",
+          "color_srgb": [
+            0.55,
+            0.72,
+            0.78
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "bench",
+          "color_srgb": [
+            0.4,
+            0.24,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "roof",
+          "predicate": "above",
+          "object": "frame"
+        },
+        {
+          "subject": "side_panels",
+          "predicate": "between_frame_posts",
+          "object": "frame"
+        },
+        {
+          "subject": "rear_panels",
+          "predicate": "behind_bench",
+          "object": "bench"
+        },
+        {
+          "subject": "bench",
+          "predicate": "inside_shelter",
+          "object": "frame"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "The shelter panels are opaque tinted surfaces, not physically transparent glass.",
+            "expected_phrasing": [
+              "opaque tinted panels",
+              "not truly transparent glass"
+            ],
+            "semantic_keywords": [
+              "opaque",
+              "tinted surfaces",
+              "not physically transparent glass"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "21",
+      "tier": "static",
+      "prompt": "Create a grey park bench with two solid supports and separate wooden seat and back slats. Show at least three seat slats and three back slats with small gaps. Use grey supports and warm brown slats. Approximate size 1.5 x 0.85 x 0.60 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 1.5,
+        "height": 0.85,
+        "depth": 0.6
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "left_support",
+        "right_support",
+        "seat_slats",
+        "back_slats"
+      ],
+      "materials": [
+        {
+          "component": "left_support",
+          "color_srgb": [
+            0.38,
+            0.4,
+            0.42
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_support",
+          "color_srgb": [
+            0.38,
+            0.4,
+            0.42
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "seat_slats",
+          "color_srgb": [
+            0.46,
+            0.25,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "back_slats",
+          "color_srgb": [
+            0.46,
+            0.25,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "seat_slats",
+          "predicate": "span_between_supports",
+          "object": "left_support"
+        },
+        {
+          "subject": "back_slats",
+          "predicate": "above_and_behind",
+          "object": "seat_slats"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "seat slats",
+          "components": [
+            "seat_slats"
+          ],
+          "minimum_total": 3
+        },
+        {
+          "component_group": "back slats",
+          "components": [
+            "back_slats"
+          ],
+          "minimum_total": 3
+        }
+      ]
+    },
+    {
+      "id": "22",
+      "tier": "static",
+      "prompt": "Create a green litter bin with upright body, dark opening approximation on its upper face, and small feet underneath. Make the opening visibly darker and disclose if shown as a surface panel rather than a hole. Approximate size 0.45 x 0.80 x 0.45 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 0.45,
+        "height": 0.8,
+        "depth": 0.45
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "bin_body",
+        "opening_panel",
+        "foot_left",
+        "foot_right"
+      ],
+      "materials": [
+        {
+          "component": "bin_body",
+          "color_srgb": [
+            0.12,
+            0.42,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "opening_panel",
+          "color_srgb": [
+            0.05,
+            0.07,
+            0.06
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "foot_left",
+          "color_srgb": [
+            0.2,
+            0.21,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "foot_right",
+          "color_srgb": [
+            0.2,
+            0.21,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "opening_panel",
+          "predicate": "on_top_of",
+          "object": "bin_body"
+        },
+        {
+          "subject": "foot_left",
+          "predicate": "under_left_side_of",
+          "object": "bin_body"
+        },
+        {
+          "subject": "foot_right",
+          "predicate": "under_right_side_of",
+          "object": "bin_body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "If the opening is represented by a surface panel, disclose that it is a dark visual approximation rather than a modeled hole.",
+            "applies_if": "The opening is shown as a surface panel rather than an actual hole.",
+            "expected_phrasing": [
+              "dark surface-panel approximation",
+              "not a modeled hole"
+            ],
+            "semantic_keywords": [
+              "dark panel",
+              "opening approximation",
+              "not an actual hole"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "23",
+      "tier": "static",
+      "prompt": "Create a simplified static red compact car exterior with body, raised cabin, and exactly four separate black wheels. Place two wheels on each side, one toward front and one toward rear. Keep the car low and compact. Approximate size 3.6 m long x 1.3 m high x 1.6 m wide. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 3.6,
+        "height": 1.3,
+        "depth": 1.6
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "body",
+        "cabin",
+        "front_left_wheel",
+        "front_right_wheel",
+        "rear_left_wheel",
+        "rear_right_wheel"
+      ],
+      "materials": [
+        {
+          "component": "body",
+          "color_srgb": [
+            0.78,
+            0.06,
+            0.05
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "cabin",
+          "color_srgb": [
+            0.66,
+            0.7,
+            0.73
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_left_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_right_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_left_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_right_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "cabin",
+          "predicate": "above",
+          "object": "body"
+        },
+        {
+          "subject": "front_left_wheel",
+          "predicate": "under_front_left_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "front_right_wheel",
+          "predicate": "under_front_right_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "rear_left_wheel",
+          "predicate": "under_rear_left_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "rear_right_wheel",
+          "predicate": "under_rear_right_side_of",
+          "object": "body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "car wheels",
+          "components": [
+            "front_left_wheel",
+            "front_right_wheel",
+            "rear_left_wheel",
+            "rear_right_wheel"
+          ],
+          "exact_total": 4
+        }
+      ],
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "This deliverable is a static exterior representation, not a functional vehicle.",
+            "expected_phrasing": [
+              "static exterior only",
+              "not a functional vehicle"
+            ],
+            "semantic_keywords": [
+              "static",
+              "exterior only",
+              "not functional"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "24",
+      "tier": "static",
+      "prompt": "Create a chunky blue delivery van with front cabin, visibly larger rear cargo body, and exactly four separate dark wheels. Make cargo section longer or wider than cabin. Keep it static. Approximate size 4.5 m long x 1.6 m high x 1.8 m wide. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 4.5,
+        "height": 1.6,
+        "depth": 1.8
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "cabin",
+        "cargo_body",
+        "front_left_wheel",
+        "front_right_wheel",
+        "rear_left_wheel",
+        "rear_right_wheel"
+      ],
+      "materials": [
+        {
+          "component": "cabin",
+          "color_srgb": [
+            0.08,
+            0.25,
+            0.76
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "cargo_body",
+          "color_srgb": [
+            0.06,
+            0.2,
+            0.66
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_left_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "front_right_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_left_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "rear_right_wheel",
+          "color_srgb": [
+            0.05,
+            0.06,
+            0.07
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "cargo_body",
+          "predicate": "behind_and_larger_than",
+          "object": "cabin"
+        },
+        {
+          "subject": "front_left_wheel",
+          "predicate": "under_front_left_side_of",
+          "object": "cabin"
+        },
+        {
+          "subject": "front_right_wheel",
+          "predicate": "under_front_right_side_of",
+          "object": "cabin"
+        },
+        {
+          "subject": "rear_left_wheel",
+          "predicate": "under_rear_left_side_of",
+          "object": "cargo_body"
+        },
+        {
+          "subject": "rear_right_wheel",
+          "predicate": "under_rear_right_side_of",
+          "object": "cargo_body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      },
+      "component_count_checks": [
+        {
+          "component_group": "van wheels",
+          "components": [
+            "front_left_wheel",
+            "front_right_wheel",
+            "rear_left_wheel",
+            "rear_right_wheel"
+          ],
+          "exact_total": 4
+        }
+      ],
+      "requirements": {
+        "expected_disclosures": [
+          {
+            "interpretation": "This deliverable is a static van exterior representation, not a functional vehicle.",
+            "expected_phrasing": [
+              "static exterior only",
+              "not a functional vehicle"
+            ],
+            "semantic_keywords": [
+              "static",
+              "exterior only",
+              "not functional"
+            ]
+          }
+        ]
+      }
+    },
+    {
+      "id": "25",
+      "tier": "static",
+      "prompt": "Create a stylised unrigged toy robot with red torso, head, two long arms, and two legs. Keep arms visibly longer than torso width; use chunky simple shapes and add no bones or animation. Use red torso and contrasting neutral head/limbs. Approximate size 1.4 x 1.8 x 0.60 m. Export native project and OBJ.",
+      "target_dimensions_m": {
+        "width": 1.4,
+        "height": 1.8,
+        "depth": 0.6
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "torso",
+        "head",
+        "left_arm",
+        "right_arm",
+        "left_leg",
+        "right_leg"
+      ],
+      "materials": [
+        {
+          "component": "torso",
+          "color_srgb": [
+            0.78,
+            0.06,
+            0.05
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "head",
+          "color_srgb": [
+            0.62,
+            0.64,
+            0.66
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_arm",
+          "color_srgb": [
+            0.48,
+            0.5,
+            0.52
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_arm",
+          "color_srgb": [
+            0.48,
+            0.5,
+            0.52
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_leg",
+          "color_srgb": [
+            0.35,
+            0.37,
+            0.39
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_leg",
+          "color_srgb": [
+            0.35,
+            0.37,
+            0.39
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "head",
+          "predicate": "above",
+          "object": "torso"
+        },
+        {
+          "subject": "left_arm",
+          "predicate": "on_x_negative_side_of",
+          "object": "torso"
+        },
+        {
+          "subject": "right_arm",
+          "predicate": "on_x_positive_side_of",
+          "object": "torso"
+        },
+        {
+          "subject": "left_leg",
+          "predicate": "below",
+          "object": "torso"
+        },
+        {
+          "subject": "right_leg",
+          "predicate": "below",
+          "object": "torso"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": false,
+        "bound_components": [],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": []
+      }
+    },
+    {
+      "id": "26",
+      "tier": "rig",
+      "prompt": "Create a simple rounded green creature with renderable body, head, two arms and two legs, plus a basic articulated rig. Bind body and limbs so the native project can pose them. Use green body and matching limb colors. Approximate size 0.80 x 1.1 x 0.70 m. Export native project and OBJ bind-pose snapshot.",
+      "target_dimensions_m": {
+        "width": 0.8,
+        "height": 1.1,
+        "depth": 0.7
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "body",
+        "head",
+        "left_arm",
+        "right_arm",
+        "left_leg",
+        "right_leg"
+      ],
+      "materials": [
+        {
+          "component": "body",
+          "color_srgb": [
+            0.16,
+            0.55,
+            0.24
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "head",
+          "color_srgb": [
+            0.2,
+            0.62,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_arm",
+          "color_srgb": [
+            0.14,
+            0.48,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_arm",
+          "color_srgb": [
+            0.14,
+            0.48,
+            0.2
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_leg",
+          "color_srgb": [
+            0.12,
+            0.42,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_leg",
+          "color_srgb": [
+            0.12,
+            0.42,
+            0.18
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "head",
+          "predicate": "above",
+          "object": "body"
+        },
+        {
+          "subject": "left_arm",
+          "predicate": "on_x_negative_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "right_arm",
+          "predicate": "on_x_positive_side_of",
+          "object": "body"
+        },
+        {
+          "subject": "left_leg",
+          "predicate": "below",
+          "object": "body"
+        },
+        {
+          "subject": "right_leg",
+          "predicate": "below",
+          "object": "body"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "obj"
+      ],
+      "rig": {
+        "required": true,
+        "bound_components": [
+          "body",
+          "head",
+          "left_arm",
+          "right_arm",
+          "left_leg",
+          "right_leg"
+        ],
+        "action_kind": null,
+        "must_deform_components": [],
+        "expected_bones": [
+          "root",
+          "spine",
+          "head",
+          "arm_l",
+          "arm_r",
+          "leg_l",
+          "leg_r"
+        ]
+      }
+    },
+    {
+      "id": "27",
+      "tier": "rig",
+      "prompt": "Create a chunky humanoid robot waving its right arm. Include torso, head, paired arms and legs; add a simple rig, bind torso and limbs, and make a short custom wave visibly deform the right arm at intermediate sampled frames. Use contrasting robot colors. Approximate size 0.90 x 1.8 x 0.50 m. Export native project and animation sheet.",
+      "target_dimensions_m": {
+        "width": 0.9,
+        "height": 1.8,
+        "depth": 0.5
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "torso",
+        "head",
+        "left_arm",
+        "right_arm",
+        "left_leg",
+        "right_leg"
+      ],
+      "materials": [
+        {
+          "component": "torso",
+          "color_srgb": [
+            0.32,
+            0.36,
+            0.4
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "head",
+          "color_srgb": [
+            0.62,
+            0.66,
+            0.68
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_arm",
+          "color_srgb": [
+            0.18,
+            0.22,
+            0.26
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_arm",
+          "color_srgb": [
+            0.88,
+            0.3,
+            0.08
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_leg",
+          "color_srgb": [
+            0.22,
+            0.25,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_leg",
+          "color_srgb": [
+            0.22,
+            0.25,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "head",
+          "predicate": "above",
+          "object": "torso"
+        },
+        {
+          "subject": "left_arm",
+          "predicate": "on_x_negative_side_of",
+          "object": "torso"
+        },
+        {
+          "subject": "right_arm",
+          "predicate": "on_x_positive_side_of",
+          "object": "torso"
+        },
+        {
+          "subject": "left_leg",
+          "predicate": "below",
+          "object": "torso"
+        },
+        {
+          "subject": "right_leg",
+          "predicate": "below",
+          "object": "torso"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "animation_sheet"
+      ],
+      "rig": {
+        "required": true,
+        "bound_components": [
+          "torso",
+          "head",
+          "left_arm",
+          "right_arm",
+          "left_leg",
+          "right_leg"
+        ],
+        "action_kind": "custom",
+        "must_deform_components": [
+          "right_arm"
+        ],
+        "expected_bones": [
+          "root",
+          "spine",
+          "arm_l",
+          "arm_r",
+          "leg_l",
+          "leg_r"
+        ]
+      }
+    },
+    {
+      "id": "28",
+      "tier": "rig",
+      "prompt": "Create a copper clockwork beetle with central shell and six distinct legs, using one shared rig that binds shell and legs. Add a short walk-in-place action with visible leg movement at intermediate times. Use copper shell and darker metal legs. Approximate size 1.2 x 0.60 x 1.0 m. Export native project and animation sheet.",
+      "target_dimensions_m": {
+        "width": 1.2,
+        "height": 0.6,
+        "depth": 1
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "shell",
+        "leg_front_left",
+        "leg_front_right",
+        "leg_middle_left",
+        "leg_middle_right",
+        "leg_rear_left",
+        "leg_rear_right"
+      ],
+      "materials": [
+        {
+          "component": "shell",
+          "color_srgb": [
+            0.62,
+            0.3,
+            0.12
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_front_left",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_front_right",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_middle_left",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_middle_right",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_rear_left",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "leg_rear_right",
+          "color_srgb": [
+            0.24,
+            0.2,
+            0.16
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "shell",
+          "predicate": "above",
+          "object": "legs"
+        },
+        {
+          "subject": "leg_front_left",
+          "predicate": "paired_across_x_with",
+          "object": "leg_front_right"
+        },
+        {
+          "subject": "leg_middle_left",
+          "predicate": "paired_across_x_with",
+          "object": "leg_middle_right"
+        },
+        {
+          "subject": "leg_rear_left",
+          "predicate": "paired_across_x_with",
+          "object": "leg_rear_right"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "animation_sheet"
+      ],
+      "rig": {
+        "required": true,
+        "bound_components": [
+          "shell",
+          "leg_front_left",
+          "leg_front_right",
+          "leg_middle_left",
+          "leg_middle_right",
+          "leg_rear_left",
+          "leg_rear_right"
+        ],
+        "action_kind": "walk",
+        "must_deform_components": [
+          "leg_front_left",
+          "leg_front_right",
+          "leg_middle_left",
+          "leg_middle_right",
+          "leg_rear_left",
+          "leg_rear_right"
+        ],
+        "expected_bones": [
+          "root",
+          "shell",
+          "leg_fl",
+          "leg_fr",
+          "leg_ml",
+          "leg_mr",
+          "leg_rl",
+          "leg_rr"
+        ]
+      },
+      "component_count_checks": [
+        {
+          "component_group": "beetle legs",
+          "components": [
+            "leg_front_left",
+            "leg_front_right",
+            "leg_middle_left",
+            "leg_middle_right",
+            "leg_rear_left",
+            "leg_rear_right"
+          ],
+          "exact_total": 6
+        }
+      ]
+    },
+    {
+      "id": "29",
+      "tier": "rig",
+      "prompt": "Create a simple blue mascot with torso, head and paired legs, plus basic rig and short jump action. Bind torso and legs so they visibly deform or move at intermediate sampled times. Use blue body with contrasting face or accent. Approximate size 0.90 x 1.2 x 0.70 m. Export native project and animation sheet.",
+      "target_dimensions_m": {
+        "width": 0.9,
+        "height": 1.2,
+        "depth": 0.7
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "torso",
+        "head",
+        "left_leg",
+        "right_leg"
+      ],
+      "materials": [
+        {
+          "component": "torso",
+          "color_srgb": [
+            0.08,
+            0.3,
+            0.82
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "head",
+          "color_srgb": [
+            0.12,
+            0.4,
+            0.9
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_leg",
+          "color_srgb": [
+            0.06,
+            0.22,
+            0.68
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_leg",
+          "color_srgb": [
+            0.06,
+            0.22,
+            0.68
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "head",
+          "predicate": "above",
+          "object": "torso"
+        },
+        {
+          "subject": "left_leg",
+          "predicate": "below_left_side_of",
+          "object": "torso"
+        },
+        {
+          "subject": "right_leg",
+          "predicate": "below_right_side_of",
+          "object": "torso"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "animation_sheet"
+      ],
+      "rig": {
+        "required": true,
+        "bound_components": [
+          "torso",
+          "head",
+          "left_leg",
+          "right_leg"
+        ],
+        "action_kind": "jump",
+        "must_deform_components": [
+          "torso",
+          "left_leg",
+          "right_leg"
+        ],
+        "expected_bones": [
+          "root",
+          "torso",
+          "head",
+          "leg_l",
+          "leg_r"
+        ]
+      }
+    },
+    {
+      "id": "30",
+      "tier": "rig",
+      "prompt": "Create a simple rigged guard with torso, head, paired arms and paired legs. Add idle breathing that causes small visible torso or shoulder deformation over sampled frames. Keep proportions chunky and all major parts editable. Use muted guard colors with distinct torso/head materials. Approximate size 0.90 x 1.8 x 0.55 m. Export native project and animation sheet.",
+      "target_dimensions_m": {
+        "width": 0.9,
+        "height": 1.8,
+        "depth": 0.55
+      },
+      "dimension_tolerance_fraction": 0.2,
+      "required_components": [
+        "torso",
+        "head",
+        "left_arm",
+        "right_arm",
+        "left_leg",
+        "right_leg"
+      ],
+      "materials": [
+        {
+          "component": "torso",
+          "color_srgb": [
+            0.34,
+            0.38,
+            0.42
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "head",
+          "color_srgb": [
+            0.72,
+            0.56,
+            0.38
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_arm",
+          "color_srgb": [
+            0.26,
+            0.3,
+            0.34
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_arm",
+          "color_srgb": [
+            0.26,
+            0.3,
+            0.34
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "left_leg",
+          "color_srgb": [
+            0.2,
+            0.24,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        },
+        {
+          "component": "right_leg",
+          "color_srgb": [
+            0.2,
+            0.24,
+            0.28
+          ],
+          "tolerance_per_channel": 0.15
+        }
+      ],
+      "spatial_relations": [
+        {
+          "subject": "head",
+          "predicate": "above",
+          "object": "torso"
+        },
+        {
+          "subject": "left_arm",
+          "predicate": "paired_with",
+          "object": "right_arm"
+        },
+        {
+          "subject": "left_leg",
+          "predicate": "below",
+          "object": "torso"
+        },
+        {
+          "subject": "right_leg",
+          "predicate": "below",
+          "object": "torso"
+        }
+      ],
+      "required_exports": [
+        "am3d",
+        "animation_sheet"
+      ],
+      "rig": {
+        "required": true,
+        "bound_components": [
+          "torso",
+          "head",
+          "left_arm",
+          "right_arm",
+          "left_leg",
+          "right_leg"
+        ],
+        "action_kind": "idle",
+        "must_deform_components": [
+          "torso",
+          "left_arm",
+          "right_arm"
+        ],
+        "expected_bones": [
+          "root",
+          "spine",
+          "head",
+          "arm_l",
+          "arm_r",
+          "leg_l",
+          "leg_r"
+        ]
+      }
+    }
+  ],
+  "fixture_revision": "v1-premeasurement-r2"
+}

@@ -1,0 +1,77 @@
+{
+  "status": "strict_source_acceptance_passed",
+  "source_input_digest_snapshot": "0c62207bdbab2768e3c84b3faca82abc7e2c15ae12b0204152838d4df90cd953",
+  "snapshot_note": "UI and history source edits were still in progress at this snapshot. Root must recompute the stable input digest after source freeze; this is not a candidate build or final release identity.",
+  "later_source_digest_observation": {
+    "digest": "f5cd7a089310fba31127844e05c8597740e51d0dda71c2d3a1af860dd80ba722",
+    "note": "The input digest changed after the recorded test snapshot while concurrent UI/history work continued. It is another diagnostic snapshot, not the exact test-time digest or final frozen-source identity."
+  },
+  "commands": [
+    {
+      "command": ".venv/Scripts/python.exe -m pytest scripts/test_phase10_tooling.py::test_source_acceptance_runs_fixed_mock_flow_before_qt -q --tb=short --basetemp <fresh work/v1 temp>",
+      "result": "1 passed in 33.81s",
+      "acceptance_report": {
+        "path": "work/v1/phase10-source-acceptance-b38a5a81b5834ddb8ba7d0476588cf08/test_source_acceptance_runs_fi0/selftest-output/phase10-ai-self-test/acceptance.json",
+        "sha256": "677a536874343ccda3642a74063072c65d8a0717bbc9a2d8bc783b43e5ee6911"
+      }
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short",
+      "result": "11 passed, 3 skipped in 28.19s",
+      "skip_reasons": [
+        "Three file/directory symlink guard tests were skipped because this Windows host could not create the requested symlinks. The strict source acceptance did not skip."
+      ]
+    },
+    {
+      "command": ".venv/Scripts/python.exe -m py_compile scripts/build_input_digest.py scripts/test_phase10_tooling.py am3d/ai/frozen_acceptance.py",
+      "result": "passed"
+    },
+    {
+      "command": "bash -n build_linux.sh",
+      "result": "passed"
+    }
+  ],
+  "fixed_acceptance_result": {
+    "ok": true,
+    "mode": "source",
+    "qualification": "offline-fixed-mock-transport",
+    "provider_requests": 4,
+    "live_network_used": false,
+    "qt_loaded_before_dispatch": false,
+    "worker_and_checks": "passed",
+    "history_store": "passed",
+    "refinement": "passed",
+    "credential_sentinel_written": false,
+    "export_checks": {
+      "obj_parse": "passed",
+      "glb_parse": "passed",
+      "spritesheet_png": "passed",
+      "preview_png": "passed",
+      "preview_nonblank": true
+    },
+    "runtime_source_identity": {
+      "version": "0.2.0b1",
+      "build_id": "source-code-sha256:b3a9660174c3bad6393b9e403bd1cc1666ef96033e8c8c61d9dea45905b0539f",
+      "capability_version": "recipe-v1-policy-v1-prompt-v1"
+    }
+  },
+  "long_path_diagnostic": {
+    "initial_strict_test_error": "FileNotFoundError during the credential-sentinel scan",
+    "relative_path_pattern": "records/.generation-attempts/<run-id>/candidates/candidate-01/attempt-<32-hex>/export_01.mtl",
+    "ordinary_path_characters": 322,
+    "extended_path_characters": 326,
+    "ordinary_Path_exists_and_open": "false / FileNotFoundError",
+    "extended_io_path_exists_and_open": "true / passed",
+    "resolution": "The trusted selftest now normalizes its host I/O paths with am3d.core.paths.extended_io_path. Missing files still fail the scan; no retries or skip path remain."
+  },
+  "current_source_sha256": {
+    "scripts/build_input_digest.py": "708b0922d61db86830d640d9627fbb4d0b4e1902d4644ee707cb8c1af62ea602",
+    "scripts/test_phase10_tooling.py": "6df72ef30fc7ba6466e68b99fdabff7ad81570c9162aa304979c449e5a97c201",
+    "am3d/ai/frozen_acceptance.py": "add07ebdfad3f767978966652c85238aa297c3c1fd42448341f777e4fd877cec"
+  },
+  "not_run_or_claimed": [
+    "No full build or archive was run.",
+    "No platform lock was captured or modified.",
+    "No frozen, Windows 11, native Mint, clean-machine, physical-GPU, live-provider, TLS/network, release, or publication qualification is claimed."
+  ]
+}

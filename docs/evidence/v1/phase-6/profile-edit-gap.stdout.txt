@@ -1,0 +1,11 @@
+Command:
+$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m pytest am3d/recipes/test_executor.py -q --tb=short
+
+Pytest summary:
+101 passed in 132.93s (0:02:12)
+
+Command:
+$env:QT_QPA_PLATFORM='offscreen'; .venv\Scripts\python.exe -m pytest am3d/ui/test_generated_profile_edit.py am3d/ui/test_edit_surface.py -q --tb=short
+
+Pytest summary:
+16 passed in 14.58s

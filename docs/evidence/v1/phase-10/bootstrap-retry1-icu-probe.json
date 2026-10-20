@@ -1,0 +1,21 @@
+{
+  "exit_code": 0,
+  "smoke_ok": true,
+  "source_digest": "840c4e12518e9d279cf713c4e5f0fba3701c3bf9b4ffb29a85d31ee5eedfe41f",
+  "manifest_sha256": "4807e1417834b35a4ccf43939725ba0c92ffd32b1550121d1c348365923c6c61",
+  "restored": true,
+  "removed_files": [
+    {
+      "sha256": "a780df139ea375f0791a95178413efe9db0160a353541cfbda9a87ca2c6eab3a",
+      "file": "icuuc.dll"
+    },
+    {
+      "sha256": "ceb6ff1e834fd7700d05d90e970420ebf3c31dcd5a2b573c6d131bc7bef9dfce",
+      "file": "icudt78.dll"
+    }
+  ],
+  "mode": "unqualified-controlled-ICU-removal-diagnostic",
+  "manifest_present": true,
+  "finished_in_60s": true,
+  "step_count": 14
+}

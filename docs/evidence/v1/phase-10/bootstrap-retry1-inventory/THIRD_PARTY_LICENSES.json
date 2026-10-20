@@ -1,0 +1,201 @@
+{
+  "format_version": 1,
+  "packages": [
+    {
+      "license": "BSD-3-Clause AND 0BSD AND MIT AND Zlib AND CC0-1.0",
+      "license_files": [
+        "numpy/numpy-2.4.6.dist-info/licenses/LICENSE.txt",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/include/numpy/libdivide/LICENSE.txt",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/src/common/pythoncapi-compat/COPYING",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/src/highway/LICENSE",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/src/multiarray/dragon4_LICENSE.txt",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/src/npysort/x86-simd-sort/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/_core/src/umath/svml/LICENSE",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/fft/pocketfft/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/linalg/lapack_lite/LICENSE.txt",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/ma/LICENSE",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/distributions/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/mt19937/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/pcg64/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/philox/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/sfc64/LICENSE.md",
+        "numpy/numpy-2.4.6.dist-info/licenses/numpy/random/src/splitmix64/LICENSE.md",
+        "numpy/numpy/_core/include/numpy/random/LICENSE.txt",
+        "numpy/numpy/ma/LICENSE",
+        "numpy/numpy/random/LICENSE.md"
+      ],
+      "name": "numpy",
+      "version": "2.4.6"
+    },
+    {
+      "license": "Apache-2.0",
+      "license_files": [
+        "msgpack/msgpack-1.2.1.dist-info/licenses/COPYING"
+      ],
+      "name": "msgpack",
+      "version": "1.2.1"
+    },
+    {
+      "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "license_files": [
+        "pyside6/pyside6-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt"
+      ],
+      "name": "PySide6",
+      "version": "6.11.2"
+    },
+    {
+      "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "license_files": [
+        "pyside6-addons/pyside6_addons-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt"
+      ],
+      "name": "PySide6_Addons",
+      "version": "6.11.2"
+    },
+    {
+      "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "license_files": [
+        "pyside6-essentials/pyside6_essentials-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt"
+      ],
+      "name": "PySide6_Essentials",
+      "version": "6.11.2"
+    },
+    {
+      "license": "LGPL-3.0-only OR GPL-2.0-only OR GPL-3.0-only",
+      "license_files": [
+        "shiboken6/shiboken6-6.11.2.dist-info/licenses/LicenseRef-Qt-Commercial.txt"
+      ],
+      "name": "shiboken6",
+      "version": "6.11.2"
+    },
+    {
+      "license": "MIT-CMU",
+      "license_files": [
+        "pillow/pillow-12.3.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "pillow",
+      "version": "12.3.0"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "moderngl/moderngl-5.12.0.dist-info/LICENSE"
+      ],
+      "name": "moderngl",
+      "version": "5.12.0"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "glcontext/glcontext-3.1.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "glcontext",
+      "version": "3.1.0"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "httpx/httpx-0.28.1.dist-info/licenses/LICENSE.md"
+      ],
+      "name": "httpx",
+      "version": "0.28.1"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "httpcore/httpcore-1.0.9.dist-info/licenses/LICENSE.md"
+      ],
+      "name": "httpcore",
+      "version": "1.0.9"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "h11/h11-0.16.0.dist-info/licenses/LICENSE.txt"
+      ],
+      "name": "h11",
+      "version": "0.16.0"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "anyio/anyio-4.15.1.dist-info/licenses/LICENSE"
+      ],
+      "name": "anyio",
+      "version": "4.15.1"
+    },
+    {
+      "license": "MPL-2.0",
+      "license_files": [
+        "certifi/certifi-2026.7.22.dist-info/licenses/LICENSE"
+      ],
+      "name": "certifi",
+      "version": "2026.7.22"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "idna/idna-3.20.dist-info/licenses/LICENSE.md"
+      ],
+      "name": "idna",
+      "version": "3.20"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "keyring/keyring-25.7.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "keyring",
+      "version": "25.7.0"
+    },
+    {
+      "license": "PSF-2.0",
+      "license_files": [
+        "typing-extensions/typing_extensions-4.16.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "typing_extensions",
+      "version": "4.16.0"
+    },
+    {
+      "license": "MIT License",
+      "license_files": [
+        "jaraco-classes/jaraco.classes-3.4.0.dist-info/LICENSE"
+      ],
+      "name": "jaraco.classes",
+      "version": "3.4.0"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "jaraco-context/jaraco_context-6.1.2.dist-info/licenses/LICENSE"
+      ],
+      "name": "jaraco.context",
+      "version": "6.1.2"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "jaraco-functools/jaraco_functools-4.6.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "jaraco.functools",
+      "version": "4.6.0"
+    },
+    {
+      "license": "MIT",
+      "license_files": [
+        "more-itertools/more_itertools-11.2.0.dist-info/licenses/LICENSE"
+      ],
+      "name": "more-itertools",
+      "version": "11.2.0"
+    },
+    {
+      "license": "BSD-3-Clause",
+      "license_files": [
+        "pywin32-ctypes/pywin32_ctypes-0.2.3.dist-info/LICENSE.txt"
+      ],
+      "name": "pywin32-ctypes",
+      "version": "0.2.3"
+    }
+  ],
+  "platform": "windows"
+}

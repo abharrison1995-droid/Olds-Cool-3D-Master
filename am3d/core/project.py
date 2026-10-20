@@ -165,6 +165,9 @@ class Project:
         # Authored bone pose rotations and offsets (object_name -> {bone_name -> ...})
         self.poses: dict = {}
         self.pose_offsets: dict = {}
+        # Bounded, optional V1 provenance. Full run evidence lives in the
+        # sidecar; the serializer validates this additive format-2 envelope.
+        self.generation: dict | None = None
 
     # ---- object management -------------------------------------------------
     def create_object(self, name: str) -> Object3D:

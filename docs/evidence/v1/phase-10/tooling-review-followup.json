@@ -1,0 +1,71 @@
+{
+  "format_version": 1,
+  "status": "source-tooling-followup; not a frozen candidate",
+  "source_snapshot": {
+    "build_input_digest": "986715e192c7503988b3aca926cf0a5c736e11b5caec0fffa75cab059a320be3",
+    "final_source_freeze": false,
+    "note": "The shared source tree is still changing. This digest is a diagnostic snapshot, not the identity of a built candidate. A later digest-only check in this same turn returned 80fc7ad2b2cbe01e30ad83b1578dc6628e6c58f0626e3b8a2eef833bd292be2c, confirming the shared input set changed after the recorded snapshot."
+  },
+  "review_dispositions": [
+    {
+      "finding": "Tracked-input enumeration could fail open when git ls-files failed.",
+      "disposition": "fixed",
+      "change": "The digest helper now raises a fixed safe InputInventoryError and its CLI exits nonzero instead of using an empty tracked set.",
+      "coverage": "Tests cover missing Git, a non-checkout, and a deleted tracked runtime input that changes the digest."
+    },
+    {
+      "finding": "Offline fixed acceptance imports the credential backend but does not qualify OS-store CRUD.",
+      "disposition": "separate explicit source probe passed; frozen probe remains unpassed",
+      "change": "Added --ai-self-test --credential-store-check as a separate pre-Qt fixed operation. It uses only a random owned alias and fake sentinels, verifies set/get/rotate/get/delete/absence, verifies cleanup in finally, and writes only fixed status codes. It never reads a default alias or uses a provider/network.",
+      "host": "Windows 10 IoT Enterprise LTSC build 19044 x64; source interpreter, not the Windows 11 target or a frozen application.",
+      "safe_result": "source-credential-store-check.json"
+    },
+    {
+      "finding": "Build diagnostics did not stop at the first source test failure.",
+      "disposition": "implemented",
+      "change": "Both platform build scripts now pass --maxfail=1 --tb=short to the full pytest invocation."
+    },
+    {
+      "finding": "Shared keyring runtime notices omitted jaraco dependencies and more-itertools on Windows.",
+      "disposition": "source helper fixed; frozen payload closure remains unverified",
+      "change": "Moved jaraco.classes, jaraco.context, jaraco.functools, and more-itertools into the common notice set. Added a metadata-driven check for active keyring and jaraco requirements under Windows and Linux marker environments. The post-build payload TOC audit remains pending."
+    },
+    {
+      "finding": "Windows build provenance referenced undefined $hostPy.Version.",
+      "disposition": "fixed",
+      "change": "Provenance now records the already validated $hostPythonVersion, with a focused regression test. Both build scripts already identify their outputs as development candidate evidence; legacy Beta archive/folder names are retained for compatibility."
+    }
+  ],
+  "verification": {
+    "focused_command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py am3d/ai/test_credentials.py -q --tb=short",
+    "focused_result": "30 passed, 4 skipped in 28.57s; skips are filesystem symlink/reparse capability cases on this host.",
+    "credential_notice_metadata_command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short -k runtime_license_names_cover",
+    "credential_notice_metadata_result": "2 passed in 1.00s (Windows and Linux metadata markers).",
+    "source_credential_probe_command": ".venv\\Scripts\\python.exe -m am3d.ui --ai-self-test --credential-store-check --out work/v1/phase10-source-credential-probe-20261013-01",
+    "source_credential_probe_result": "exit 0; Windows source-mode CRUD passed; cleanup passed; no provider or network used; output contains no alias or sentinel.",
+    "source_credential_probe_sha256": "c0acd2d62a8c0b56b3beb3455e052cdcb4ae92eb91086b0346d33982318bfc83",
+    "other_checks": [
+      "python -m py_compile for the changed Python helpers and focused test module: passed",
+      "bash -n build_linux.sh: passed",
+      "PowerShell parser AST for build_windows.ps1: passed",
+      "git diff --check on owned changed files: passed (Git emitted only its LF-to-CRLF working-copy notice for two files)"
+    ],
+    "build_input_digest_snapshot": "986715e192c7503988b3aca926cf0a5c736e11b5caec0fffa75cab059a320be3"
+  },
+  "owned_file_sha256": {
+    "scripts/build_input_digest.py": "6b45db17c94b2cc8c391193d1a92d759ee9e9008b95258b0c2afa745feb9be1a",
+    "scripts/test_phase10_tooling.py": "1657b236caea1c9c2b9018a3329728867ab40deb4ac9820e9a3182b27ab04754",
+    "scripts/write_runtime_licenses.py": "5039a1306a5f4d6613031e1512942622ca2a45cb6e6f4f19ab727a4a55061d7b",
+    "am3d/ai/frozen_acceptance.py": "af8d386de4973e3bda9071a138689e792ebce9c2663146eb3087b885f7e01568",
+    "build_windows.ps1": "b4749c14aaf3437c9e269cbf52ec245a67f16dba69a17be876a9c2e449be9f5e",
+    "build_linux.sh": "3c314c6422a80c52ae304caf8a8b35f44a420e3efd7162146b47cb731faaac9c"
+  },
+  "not_run": [
+    "full source/build suite",
+    "Windows or Linux frozen build",
+    "platform lock capture or mutation",
+    "frozen secure-store probe",
+    "archive/relocation qualification",
+    "Windows 11, native Mint, live provider/network, or physical GPU qualification"
+  ]
+}

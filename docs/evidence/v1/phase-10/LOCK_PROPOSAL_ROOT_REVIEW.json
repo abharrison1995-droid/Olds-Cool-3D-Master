@@ -1,0 +1,50 @@
+{
+  "mode": "root-proposal-review-before-source-promotion",
+  "proposal_sha256": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
+  "exact_38_installed_application_build_dependencies": true,
+  "setuptools_pinned": "84.0.0",
+  "pip_installer_version_recorded_not_in_default_freeze": "26.2.1",
+  "direct_requirements_checked": [
+    {
+      "requirement": "numpy==2.4.6",
+      "locked_version": "2.4.6"
+    },
+    {
+      "requirement": "msgpack==1.2.1",
+      "locked_version": "1.2.1"
+    },
+    {
+      "requirement": "PySide6==6.11.2",
+      "locked_version": "6.11.2"
+    },
+    {
+      "requirement": "Pillow==12.3.0",
+      "locked_version": "12.3.0"
+    },
+    {
+      "requirement": "moderngl==5.12.0",
+      "locked_version": "5.12.0"
+    },
+    {
+      "requirement": "httpx==0.28.1",
+      "locked_version": "0.28.1"
+    },
+    {
+      "requirement": "keyring==25.7.0",
+      "locked_version": "25.7.0"
+    },
+    {
+      "requirement": "pytest==9.1.1",
+      "locked_version": "9.1.1"
+    },
+    {
+      "requirement": "jsonschema==4.26.0",
+      "locked_version": "4.26.0"
+    },
+    {
+      "requirement": "pyinstaller==6.22.2",
+      "locked_version": "6.22.2"
+    }
+  ],
+  "qualification": "source lock promotion approved locally; full locked rebuild and independent artifact review remain mandatory; not committed or released"
+}

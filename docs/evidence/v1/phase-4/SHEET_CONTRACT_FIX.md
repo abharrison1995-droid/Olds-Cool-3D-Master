@@ -1,0 +1,19 @@
+# Phase 4 sprite-sheet export contract correction
+
+Date: 2026-10-13. Source baseline: `3f6f7f03d32b4d1a3af06af4fdc0724bf0436945`. This bounded correction reopens only the requested-export checker gate; it does not claim Phase 4, packaging, or release acceptance.
+
+The preserved public fixed-mock failure is documented in [`phase-10/spritesheet-contract-pending.json`](../phase-10/spritesheet-contract-pending.json), SHA-256 `B80DD21BBBDD85679E81D5A1425C3996890DC17A77B5298503F6F16FA8BCB1CC`. Its run ID is `fd19d302-78d3-42e5-b425-a839bd255158`. The fixture brief requested an editable native project, OBJ, GLB, and a preview sprite sheet. The checker reported `requested_exports: failed`, `resource_limit: false`, and `required spritesheet file is missing`; the output contained `export_03_object_000_bcd1dec4.png` and `preview.png`, while the checker expected `ignored-sheet.png`. The original ignored state record remains at the receipt's recorded path and has SHA-256 `fb294a01017406e031f0c3ce62446d5e27886371f38f69ed2fcce91ddd564f57`.
+
+`am3d/ai/checks.py` now derives the exact opaque per-object paths for `spritesheet` and `toon_sheet` from the reopened scene's mesh insertion order, filtering meshes with vertices just as the executor does. Each expected sheet is checked independently and included in the artifact manifest. Preview, atlas, renamed, and unrelated PNG files cannot fill a missing expected object sheet. The single composited `animation_sheet` output continues to use its base PNG path.
+
+Requested export enforcement now combines caller-authored `requirements.required_exports` with the accepted normalized brief's `exports`; `gltf` remains an alias for `glb`, and the native project remains mandatory. Unknown or malformed requested formats produce a fixed diagnostic without echoing their text. These changes leave the existing tree/path guards, file and pixel caps, Pillow checks, and literal boolean `resource_limit` behavior in place.
+
+The focused regression module uses the worker's `RecipeExecutor(..., safe_artifact_names=True)` configuration and the fixed checker API. It covers one- and two-object sprite and toon sheets with Unicode and path-looking object names, exact missing-sheet handling in the presence of unrelated PNGs, malformed PNGs, a dimension cap before pixel loading, accepted-brief and caller requirement union, all requested native/OBJ/GLB/sprite exports passing together, and the unchanged single composited animation sheet. A direct fixed-mock UI self-test was not rerun here; the frozen acceptance sheet case is pending the packaging owner's reinstatement and result.
+
+## Verification
+
+Windows source environment: `Windows-10-10.0.19044-SP0`, Python `3.12.14`, `.venv`, headless/offscreen tests. No live provider, credential, network call, frozen application, commit, push, or release action was used.
+
+The new focused module passed **12 tests in 65.57s**. The bounded existing export/resource selection passed **4 tests in 26.60s**. Exact commands and stdout are in [`sheet-contract-fix-tests.txt`](sheet-contract-fix-tests.txt); SHA-256 identities are in [`sheet-contract-fix-hashes.txt`](sheet-contract-fix-hashes.txt).
+
+An earlier all-checker-suite attempt was interrupted before diagnostics and is incomplete, not a passing result. An intermediate focused-module attempt was also interrupted after three failure markers but before traceback output; it remains incomplete, and those markers are not counted as a passing or final failing result. A later complete module run identified one test-fixture mismatch: that fixture's accepted brief declared `am3d` while its direct executor recipe omitted an explicit AM3D export. The fixture was corrected; the final focused module passed. Independent focused review and the frozen self-test result remain pending.

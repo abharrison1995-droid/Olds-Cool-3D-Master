@@ -1,0 +1,9 @@
+{
+  "manifest_present": false,
+  "source_digest": "840c4e12518e9d279cf713c4e5f0fba3701c3bf9b4ffb29a85d31ee5eedfe41f",
+  "exited_in_10s": false,
+  "window_title": "Unhandled exception in script",
+  "mode": "unqualified-bootstrap-retry1-startup-investigation",
+  "artifacts_directory_present": false,
+  "cpu_seconds": 0.9375
+}

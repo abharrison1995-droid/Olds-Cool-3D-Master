@@ -14,7 +14,7 @@
 #
 set -euo pipefail
 
-REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd -P)"
 cd "$REPO_ROOT"
 
 SKIP_TESTS=0
@@ -39,6 +39,55 @@ step()  { printf '\n\033[33m%s\033[0m\n' "$*"; }
 ok()    { printf '\033[32m  %s\033[0m\n' "$*"; }
 die()   { printf '\033[31mERROR: %s\033[0m\n' "$*" >&2; exit 1; }
 
+safe_remove_repo_dir() {
+    local target="$1" allowed_root="$2" current target_abs
+    target_abs="$(realpath -m -- "$target")"
+    [ "$target" = "$target_abs" ] \
+        || die "refusing a non-canonical or linked recursive-removal path: $target"
+    case "$target_abs" in "$allowed_root"/*) ;; *) die "refusing recursive removal outside its intended root: $target" ;; esac
+    current="$target_abs"
+    while [ "$current" != "$allowed_root" ]; do
+        [ ! -L "$current" ] || die "refusing recursive removal through a symlink: $current"
+        current="$(dirname -- "$current")"
+    done
+    [ ! -L "$allowed_root" ] || die "refusing recursive removal from a symlink root: $allowed_root"
+    [ -e "$target_abs" ] || return 0
+    [ -d "$target_abs" ] && [ ! -L "$target_abs" ] || die "refusing to recursively remove a non-directory: $target"
+    [ -z "$(find -P "$target_abs" -type l -print -quit)" ] \
+        || die "refusing to recursively remove a tree containing links: $target"
+    rm -rf -- "$target_abs"
+}
+
+safe_remove_repo_file() {
+    local target="$1" allowed_root="$2" target_abs
+    target_abs="$(realpath -m -- "$target")"
+    [ "$target" = "$target_abs" ] \
+        || die "refusing a non-canonical or linked file-removal path: $target"
+    case "$target_abs" in "$allowed_root"/*) ;; *) die "refusing file removal outside its intended root: $target" ;; esac
+    [ ! -L "$target_abs" ] || die "refusing to remove a linked file: $target"
+    [ -e "$target_abs" ] || return 0
+    [ -f "$target_abs" ] || die "refusing to remove a non-regular file: $target"
+    rm -f -- "$target_abs"
+}
+
+safe_remove_fresh_temp_dir() {
+    local target="$1" prefix="$2" temp_root target_abs
+    temp_root="$(realpath -m -- "${TMPDIR:-/tmp}")"
+    target_abs="$(realpath -m -- "$target")"
+    [ "$target" = "$target_abs" ] \
+        || die "refusing a non-canonical or linked temporary path: $target"
+    [ "$(dirname -- "$target_abs")" = "$temp_root" ] \
+        || die "refusing to remove a path outside the temporary root: $target"
+    [[ "$(basename -- "$target_abs")" == "$prefix"* ]] \
+        || die "refusing to remove a temporary path with an unexpected name: $target"
+    [ ! -L "$target" ] || die "refusing to remove a linked temporary directory: $target"
+    [ -e "$target" ] || return 0
+    [ -d "$target" ] || die "refusing to recursively remove a non-directory: $target"
+    [ -z "$(find -P "$target" -type l -print -quit)" ] \
+        || die "refusing to remove a temporary tree containing links: $target"
+    rm -rf -- "$target_abs"
+}
+
 info "=== 3D MASTER:2005 Linux Build ==="
 
 # ---- 1. Isolated build environment ----------------------------------------
@@ -53,7 +102,7 @@ import sys
 raise SystemExit(0 if sys.version_info[:2] >= (3, 11) else 1)
 PY
 ok "Python: $PY_VERSION"
-rm -rf "$VENV_DIR"
+safe_remove_repo_dir "$VENV_DIR" "$REPO_ROOT"
 PY="$VENV_DIR/bin/python"
 # Debian-family systems commonly ship python3 without ensurepip (the
 # python3-venv package is separate), so `python3 -m venv` cannot bootstrap
@@ -64,7 +113,7 @@ VENV_TOOL=""
 if python3 -m venv "$VENV_DIR" >/dev/null 2>&1 && "$PY" -m pip --version >/dev/null 2>&1; then
     VENV_TOOL="venv"
 elif command -v uv >/dev/null 2>&1; then
-    rm -rf "$VENV_DIR"
+    safe_remove_repo_dir "$VENV_DIR" "$REPO_ROOT"
     # Absolute path, not the bare name: `--python python3` lets uv pick one
     # of its own managed interpreters, which silently built the release on a
     # different Python version than the one the tests were verified against.
@@ -93,27 +142,63 @@ pip_freeze() {
 }
 
 step "Step 2: Installing locked build dependencies..."
+[ -f "$REPO_ROOT/requirements-lock-linux.txt" ] || die "requirements-lock-linux.txt is required"
 pip_install -r "$REPO_ROOT/requirements-lock-linux.txt" \
     || die "dependency installation failed"
-ok "$(pip_freeze | wc -l) packages installed from requirements-lock-linux.txt"
+LOCK_FREEZE="$(pip_freeze)"
+AM3D_PHASE10_FREEZE="$LOCK_FREEZE" "$PY" - "$REPO_ROOT/requirements-lock-linux.txt" <<'PY' \
+    || die "installed dependency versions do not exactly match requirements-lock-linux.txt"
+import os, re, sys
+from pathlib import Path
+def normalize(lines):
+    result = {}
+    for raw in lines:
+        line = raw.strip()
+        if not line or line.startswith("#"):
+            continue
+        match = re.fullmatch(r"([A-Za-z0-9_.-]+)==([^;\s]+)", line)
+        if not match:
+            raise SystemExit(f"unsupported non-pinned lock entry: {line}")
+        name = re.sub(r"[-_.]+", "-", match.group(1)).casefold()
+        result[name] = match.group(2)
+    return result
+locked = normalize(Path(sys.argv[1]).read_text(encoding="utf-8").splitlines())
+resolved = normalize(os.environ["AM3D_PHASE10_FREEZE"].splitlines())
+for bootstrap in ("pip", "setuptools", "wheel"):
+    locked.pop(bootstrap, None)
+    resolved.pop(bootstrap, None)
+if locked != resolved:
+    for name in sorted(set(locked) | set(resolved)):
+        if locked.get(name) != resolved.get(name):
+            print(f"{name}: locked={locked.get(name)} resolved={resolved.get(name)}")
+    raise SystemExit(1)
+print(f"{len(resolved)} pinned packages exactly match the Linux lock.")
+PY
+ok "$(printf '%s\n' "$LOCK_FREEZE" | wc -l) resolved packages installed from requirements-lock-linux.txt"
 
-SOURCE_DIGEST_BEFORE="$(python3 "$REPO_ROOT/scripts/build_input_digest.py" \
+SOURCE_DIGEST_BEFORE="$("$PY" "$REPO_ROOT/scripts/build_input_digest.py" \
     --root "$REPO_ROOT" --digest-only)"
+[ "${#SOURCE_DIGEST_BEFORE}" -eq 64 ] || die "could not capture the complete starting build-input digest"
 ok "Build input digest: $SOURCE_DIGEST_BEFORE"
+"$PY" "$REPO_ROOT/scripts/write_build_identity.py" --root "$REPO_ROOT" \
+    --platform linux --digest "$SOURCE_DIGEST_BEFORE" \
+    || die "could not write the compact Linux bundle identity"
+export AM3D_BUILD_IDENTITY_PATH="$BUILD_DIR/build_identity.json"
 
 # ---- 2. Tests --------------------------------------------------------------
 step "Step 3: Running the test suite..."
 if [ "$SKIP_TESTS" -eq 1 ]; then
     ok "SKIPPED (--skip-tests): this build is not release-qualified"
 else
-    QT_QPA_PLATFORM=offscreen "$PY" -m pytest "$REPO_ROOT/am3d" -q \
+    QT_QPA_PLATFORM=offscreen "$PY" -m pytest "$REPO_ROOT/am3d" -q --maxfail=1 --tb=short \
         || die "tests failed -- aborting the build"
     ok "All tests passed."
 fi
 
 # ---- 3. Freeze both entry points ------------------------------------------
 step "Step 4: Building the windowed GUI with PyInstaller..."
-rm -rf "$DIST_DIR" "$WORK_DIR"
+safe_remove_repo_dir "$DIST_DIR" "$REPO_ROOT"
+safe_remove_repo_dir "$WORK_DIR" "$REPO_ROOT"
 "$PY" -m PyInstaller --clean --noconfirm \
     --distpath "$DIST_DIR" --workpath "$WORK_DIR" \
     "$REPO_ROOT/am3d.spec" || die "PyInstaller GUI build failed"
@@ -157,7 +242,7 @@ check_plugin "Wayland shell integration" "libqt-shell.so" "libxdg-shell.so"
 
 # ---- 5. Stage the release folder ------------------------------------------
 step "Step 6: Staging the release folder..."
-rm -rf "$RELEASE_DIR"
+safe_remove_repo_dir "$RELEASE_DIR" "$REPO_ROOT"
 mkdir -p "$RELEASE_DIR"
 cp -a "$GUI_DIST/." "$RELEASE_DIR/"
 [ -f "$DIST_DIR/am3d-recipe" ] || die "recipe CLI executable not found"
@@ -202,19 +287,9 @@ LAUNCHER
 chmod +x "$RELEASE_DIR/3D-MASTER-2005.sh"
 
 mkdir -p "$RELEASE_DIR/LICENSES"
-cat > "$RELEASE_DIR/LICENSES/NOTICE.txt" <<'NOTICE'
-3D MASTER:2005 Beta
-Copyright (c) 2026
-
-This software uses:
-- PySide6 (LGPL-3.0)
-- NumPy (BSD-3-Clause)
-- msgpack (Apache-2.0)
-- Pillow (MIT-CMU)
-- ModernGL (MIT)
-
-See the respective packages for full license terms.
-NOTICE
+"$PY" "$REPO_ROOT/scripts/write_runtime_licenses.py" --root "$REPO_ROOT" \
+    --output "$RELEASE_DIR" --platform linux \
+    || die "could not write truthful runtime dependency license notices"
 ok "Release staged at: $RELEASE_DIR"
 
 # ---- 6. Packaged smoke test ------------------------------------------------
@@ -247,9 +322,72 @@ if int(sys.argv[2]) != 0 or not manifest.get("ok") or bad:
 print(f"  Smoke test passed: {len(manifest['steps'])} steps, all ok.")
 PY
 
+step "Step 7a: Running the fixed offline AI acceptance flow..."
+AI_TEST_HOST="$SMOKE_DIR/ai-self-test-host"
+mkdir -p "$AI_TEST_HOST"
+set +e
+timeout "$SMOKE_TIMEOUT" "$RELEASE_DIR/$APP_NAME" --ai-self-test \
+    --out "$AI_TEST_HOST" > "$SMOKE_DIR/ai_self_test.stdout" \
+    2> "$SMOKE_DIR/ai_self_test.stderr"
+AI_TEST_RC=$?
+set -e
+[ "$AI_TEST_RC" -eq 124 ] && die "fixed AI acceptance timed out after ${SMOKE_TIMEOUT}s"
+[ "$AI_TEST_RC" -eq 0 ] || { cat "$SMOKE_DIR/ai_self_test.stdout" "$SMOKE_DIR/ai_self_test.stderr" >&2; \
+    die "fixed offline AI acceptance failed (exit $AI_TEST_RC)"; }
+"$PY" - "$AI_TEST_HOST/phase10-ai-self-test/acceptance.json" <<'PY' \
+    || die "fixed AI acceptance did not produce truthful evidence"
+import json, sys
+report = json.loads(open(sys.argv[1], encoding="utf-8").read())
+if (report.get("ok") is not True or report.get("mode") != "frozen"
+        or report.get("qualification") != "offline-fixed-mock-transport"
+        or report.get("live_network_used") is not False
+        or report.get("provider_requests") != 4
+        or report.get("credential_sentinel_written") is not False
+        or report.get("worker_and_checks") != "passed"
+        or report.get("refinement") != "passed"):
+    print(json.dumps(report, indent=2)); raise SystemExit(1)
+print("  Fixed mock-transport AI acceptance passed; no live provider/network qualification is claimed.")
+PY
+
 step "Step 7b: Running a recipe with the packaged CLI..."
 "$RELEASE_DIR/am3d-recipe" --recipe "$RELEASE_DIR/examples/recipes/minimal.json" \
     --validate-only || die "packaged recipe CLI could not validate the bundled example"
+
+RELOCATED_RECIPE_OUT="$VERIFY_ROOT/relocated_recipe_output"
+mkdir -p "$RELOCATED_RECIPE_OUT"
+"$VERIFY_DIR/am3d-recipe" --recipe "$VERIFY_ROOT/standalone_recipe.json" \
+    --out "$RELOCATED_RECIPE_OUT" > "$VERIFY_ROOT/relocated_recipe_report.json" \
+    || die "relocated recipe CLI could not build the external example"
+"$PY" - "$VERIFY_ROOT/relocated_recipe_report.json" "$RELOCATED_RECIPE_OUT" <<'PY' \
+    || die "relocated recipe CLI did not produce its promised artifacts"
+import json, pathlib, sys
+report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+out = pathlib.Path(sys.argv[2])
+written = [path for path in out.rglob("*") if path.is_file()]
+if report.get("ok") is not True or not written:
+    raise SystemExit("relocated CLI reported success without output files")
+print(f"  Relocated recipe CLI built {len(written)} artifact(s).")
+PY
+
+MALFORMED_RECIPE="$VERIFY_ROOT/malformed_recipe.json"
+printf '{"version":1,' > "$MALFORMED_RECIPE"
+set +e
+"$VERIFY_DIR/am3d-recipe" --recipe "$MALFORMED_RECIPE" --validate-only \
+    > "$VERIFY_ROOT/malformed_recipe.stdout" 2> "$VERIFY_ROOT/malformed_recipe.stderr"
+MALFORMED_RC=$?
+set -e
+[ "$MALFORMED_RC" -eq 1 ] || die "relocated recipe CLI did not reject malformed JSON with exit 1"
+"$PY" - "$VERIFY_ROOT/malformed_recipe.stdout" <<'PY' \
+    || die "relocated recipe CLI did not return its structured parse error"
+import json, pathlib, sys
+report = json.loads(pathlib.Path(sys.argv[1]).read_text(encoding="utf-8"))
+records = report.get("error_records", [])
+if (report.get("ok") is not False or not records
+        or records[0].get("code") != "recipe_read_error"
+        or records[0].get("stage") != "parse"):
+    raise SystemExit("relocated CLI parse error record is incomplete")
+print("  Relocated recipe CLI returned the structured parse-error record.")
+PY
 
 # The packaged error path is part of the agent contract too: a caller must
 # receive parseable structured errors and a failing exit code, not a traceback.
@@ -280,7 +418,7 @@ PY
 # Validation alone never touches the geometry, exporter or writer, so the
 # bundled recipe is also actually built (journey 6) into a scratch directory
 # outside the payload.
-RECIPE_OUT="$(mktemp -d "${TMPDIR:-/tmp}/am3d_recipe_run_XXXXXX")"
+RECIPE_OUT="$(realpath -- "$(mktemp -d "${TMPDIR:-/tmp}/am3d_recipe_run_XXXXXX")")"
 "$RELEASE_DIR/am3d-recipe" --recipe "$RELEASE_DIR/examples/recipes/minimal.json" \
     --out "$RECIPE_OUT" > "$RECIPE_OUT/report.json" \
     || { cat "$RECIPE_OUT/report.json"; die "packaged recipe CLI failed to build the bundled example"; }
@@ -295,7 +433,7 @@ if not written:
     raise SystemExit("the recipe reported success but wrote nothing")
 print(f"  Recipe CLI built {len(written)} file(s) from the bundled example.")
 PY
-rm -rf "$RECIPE_OUT"
+safe_remove_fresh_temp_dir "$RECIPE_OUT" "am3d_recipe_run_"
 ok "Recipe CLI validated and built the bundled example recipe."
 
 # ---- 7. Archive, checksum, provenance -------------------------------------
@@ -303,17 +441,15 @@ ok "Recipe CLI validated and built the bundled example recipe."
 # inside it means a build artefact leaked into the release folder (this
 # caught the smoke manifest, which used to be written straight into it).
 step "Step 7c: Checking the payload for build-machine references..."
-LEAKED="$(grep -rlF "$REPO_ROOT" "$RELEASE_DIR" 2>/dev/null | head -5 || true)"
-[ -z "$LEAKED" ] || die "release payload references the build location:
-$LEAKED"
-echo "  No build-machine paths in the payload."
+"$PY" "$REPO_ROOT/scripts/audit_build_payload.py" --payload "$RELEASE_DIR" \
+    --forbidden-root "$REPO_ROOT" || die "complete release payload path audit failed"
 
 step "Step 7d: Verifying and recording the complete build input set..."
-SOURCE_DIGEST_AFTER="$(python3 "$REPO_ROOT/scripts/build_input_digest.py" \
+SOURCE_DIGEST_AFTER="$("$PY" "$REPO_ROOT/scripts/build_input_digest.py" \
     --root "$REPO_ROOT" --digest-only)"
 [ "$SOURCE_DIGEST_BEFORE" = "$SOURCE_DIGEST_AFTER" ] \
     || die "build inputs changed during the candidate build"
-python3 "$REPO_ROOT/scripts/build_input_digest.py" --root "$REPO_ROOT" \
+"$PY" "$REPO_ROOT/scripts/build_input_digest.py" --root "$REPO_ROOT" \
     --write-manifest "$REPO_ROOT/release/BUILD_INPUTS-linux.json" \
     --digest-only >/dev/null
 ok "Tracked and untracked build inputs match the starting digest."
@@ -322,7 +458,8 @@ step "Step 8: Packaging the release archive and checksum..."
 VERSION="$("$PY" -c 'import am3d; print(am3d.__version__)')"
 ARCHIVE_NAME="3D-MASTER-2005-Beta-$VERSION-linux-x86_64.tar.gz"
 ARCHIVE_PATH="$REPO_ROOT/release/$ARCHIVE_NAME"
-rm -f "$ARCHIVE_PATH" "$ARCHIVE_PATH.sha256"
+safe_remove_repo_file "$ARCHIVE_PATH" "$REPO_ROOT"
+safe_remove_repo_file "$ARCHIVE_PATH.sha256" "$REPO_ROOT"
 # --sort=name and fixed ownership/timestamps keep packaging byte-stable when
 # given the same staged folder. PyInstaller may emit different frozen payload
 # bytes across separate builds from identical source inputs; the checksum
@@ -362,8 +499,11 @@ ok "release/BUILD_PROVENANCE-linux.txt"
 # the path and re-runs both entry points there, so a bundle that secretly
 # depends on a build-machine path fails here instead of on a user's system.
 step "Step 9: Verifying the archive from a relocated path..."
-VERIFY_ROOT="$(mktemp -d "${TMPDIR:-/tmp}/am3d verify éé XXXXXX")"
-cleanup() { rm -rf "$VERIFY_ROOT"; }
+VERIFY_ROOT="$(realpath -- "$(mktemp -d "${TMPDIR:-/tmp}/am3d verify éé XXXXXX")")"
+cleanup() {
+    chmod -R u+w "$VERIFY_ROOT" 2>/dev/null || true
+    safe_remove_fresh_temp_dir "$VERIFY_ROOT" "am3d verify éé "
+}
 trap cleanup EXIT
 tar -xzf "$ARCHIVE_PATH" -C "$VERIFY_ROOT"
 VERIFY_DIR="$VERIFY_ROOT/$RELEASE_NAME"
@@ -390,6 +530,109 @@ if int(sys.argv[2]) != 0 or not manifest.get("ok") or bad:
     raise SystemExit(1)
 PY
 ok "Relocated recipe CLI and GUI smoke test both passed."
+
+step "Step 9b: Checking relocated payload write protection..."
+READ_ONLY_STATUS="UNPASSED: running as root; root bypasses Unix mode bits"
+READ_ONLY_WORKFLOW_STATUS="UNPASSED: payload write denial could not be proven"
+if [ "$(id -u)" -ne 0 ]; then
+    READ_ONLY_AI_HOST="$VERIFY_ROOT/readonly_ai_self_test_host"
+    READ_ONLY_AI_REPORT="$READ_ONLY_AI_HOST/phase10-ai-self-test/acceptance.json"
+    [ ! -e "$READ_ONLY_AI_HOST" ] || die "read-only AI acceptance output path already exists"
+    mkdir -p -- "$READ_ONLY_AI_HOST"
+    READ_ONLY_AI_HOST_REAL="$(realpath -- "$READ_ONLY_AI_HOST")"
+    case "$READ_ONLY_AI_HOST_REAL" in
+        "$VERIFY_DIR"|"$VERIFY_DIR"/*) die "read-only workflow output must stay outside the payload" ;;
+    esac
+    if ! chmod -R a-w -- "$VERIFY_DIR"; then
+        READ_ONLY_STATUS="UNPASSED: could not apply read-only permissions"
+        READ_ONLY_WORKFLOW_STATUS="UNPASSED: write denial was not proven"
+        printf '  Relocated payload read-only check: %s\n' "$READ_ONLY_STATUS"
+        printf '  Read-only frozen AI workflow: %s\n' "$READ_ONLY_WORKFLOW_STATUS"
+        die "could not apply read-only permissions to the relocated payload"
+    fi
+    set +e
+    "$PY" - "$VERIFY_DIR/README.txt" "$VERIFY_DIR/phase10-write-probe.txt" <<'PY'
+import pathlib, sys
+existing, created = map(pathlib.Path, sys.argv[1:])
+def is_denied(operation):
+    try:
+        operation()
+    except PermissionError:
+        return True
+    return False
+if not is_denied(lambda: existing.open("ab").close()):
+    raise SystemExit("existing payload file remained writable")
+if not is_denied(lambda: created.write_text("probe", encoding="utf-8")):
+    raise SystemExit("new payload file could still be created")
+print("  Existing-file write and new-file creation were denied.")
+PY
+    READ_ONLY_RC=$?
+    if [ "$READ_ONLY_RC" -eq 0 ]; then
+        timeout "$SMOKE_TIMEOUT" "$VERIFY_DIR/$APP_NAME" --ai-self-test \
+            --out "$READ_ONLY_AI_HOST" \
+            > "$VERIFY_ROOT/readonly_ai_self_test.stdout" \
+            2> "$VERIFY_ROOT/readonly_ai_self_test.stderr"
+        READ_ONLY_AI_RC=$?
+        if [ "$READ_ONLY_AI_RC" -eq 0 ] && [ -f "$READ_ONLY_AI_REPORT" ]; then
+            "$PY" - "$READ_ONLY_AI_REPORT" <<'PY'
+import json, sys
+with open(sys.argv[1], encoding="utf-8") as stream:
+    report = json.load(stream)
+if (report.get("ok") is not True or report.get("mode") != "frozen"
+        or report.get("qualification") != "offline-fixed-mock-transport"
+        or report.get("live_network_used") is not False
+        or report.get("provider_requests") != 4
+        or report.get("credential_sentinel_written") is not False
+        or report.get("worker_and_checks") != "passed"
+        or report.get("refinement") != "passed"):
+    raise SystemExit("fixed offline AI report was incomplete")
+PY
+            READ_ONLY_REPORT_RC=$?
+        else
+            READ_ONLY_REPORT_RC=1
+        fi
+        if [ "$READ_ONLY_AI_RC" -eq 0 ] && [ "$READ_ONLY_REPORT_RC" -eq 0 ]; then
+            READ_ONLY_WORKFLOW_STATUS="passed"
+        else
+            READ_ONLY_WORKFLOW_STATUS="UNPASSED: fixed offline AI workflow failed under write-denied payload"
+        fi
+    else
+        READ_ONLY_WORKFLOW_STATUS="UNPASSED: write-denial probe failed before workflow"
+    fi
+    set -e
+    chmod -R u+w -- "$VERIFY_DIR" || die "could not restore temporary extraction write permissions"
+    if [ "$READ_ONLY_RC" -ne 0 ]; then
+        printf '  Relocated payload read-only check: %s\n' "$READ_ONLY_STATUS"
+        printf '  Read-only frozen AI workflow: %s\n' "$READ_ONLY_WORKFLOW_STATUS"
+        die "relocated payload write-protection probe failed"
+    fi
+    READ_ONLY_STATUS="passed"
+    printf '  Relocated payload read-only check: %s\n' "$READ_ONLY_STATUS"
+    printf '  Read-only frozen AI workflow: %s\n' "$READ_ONLY_WORKFLOW_STATUS"
+    [ "$READ_ONLY_WORKFLOW_STATUS" = "passed" ] \
+        || die "fixed offline AI workflow failed while the relocated payload was write-denied"
+fi
+
+# Recompute after every acceptance and relocation check, then retain the
+# complete repository-relative input inventory beside (outside) the payload.
+SOURCE_DIGEST_FINAL="$($PY "$REPO_ROOT/scripts/build_input_digest.py" --root "$REPO_ROOT" --digest-only)"
+[ "$SOURCE_DIGEST_BEFORE" = "$SOURCE_DIGEST_FINAL" ] \
+    || die "build inputs changed during relocated acceptance"
+INPUT_MANIFEST="$REPO_ROOT/release/BUILD_INPUTS-linux.json"
+"$PY" "$REPO_ROOT/scripts/build_input_digest.py" --root "$REPO_ROOT" \
+    --write-manifest "$INPUT_MANIFEST" --digest-only >/dev/null
+LOCK_SHA256="$(sha256sum "$REPO_ROOT/requirements-lock-linux.txt" | cut -d' ' -f1)"
+cat >> "$REPO_ROOT/release/BUILD_PROVENANCE-linux.txt" <<EOF
+relocated CLI    : validation/build/malformed structured error passed
+relocated read-only write-denial: $READ_ONLY_STATUS
+read-only frozen AI workflow: $READ_ONLY_WORKFLOW_STATUS
+build inputs sha256: $SOURCE_DIGEST_FINAL
+input manifest   : release/BUILD_INPUTS-linux.json
+captured Linux lock sha256: $LOCK_SHA256
+qualification   : candidate build evidence only; no live provider, Windows 11, native Mint, or physical GPU claim
+candidate status: development candidate evidence; no release, store, or publication qualification
+EOF
+ok "Final source digest verified after relocation and read-only checks."
 
 info ""
 info "=== Build complete! ==="

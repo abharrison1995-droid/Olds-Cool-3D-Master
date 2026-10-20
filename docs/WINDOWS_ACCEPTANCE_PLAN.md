@@ -1,25 +1,45 @@
 # Windows acceptance plan
 
-Windows is outside the Linux Mint 22.3 preview-candidate scope. No Windows
-artifact is included or verified. For the later cross-platform release, the
-Windows gate in `docs/evidence/desktop-release/phase-e/acceptance-matrix.md`
-remains **BLOCKED** until a Windows machine or VM is available. This does not
-erase historical Windows packaging work recorded in the V3 evidence. This
-document is the route to a Windows artifact accepted on its native platform.
+Windows 11 x86-64 is an approved V1 target. The current implementation
+workstation is Windows 10 IoT Enterprise LTSC, build 19044, x86-64; it is not
+the selected target. No Windows 11 V1 qualification evidence is recorded.
+The current source declares `1.0.0.dev1` as a development test candidate,
+not a release candidate or stable V1 build. Candidate identity and check
+results belong in companion build provenance, inputs, checksum and acceptance
+reports; they do not alone establish V1 qualification. A supported Windows
+publication claim requires the actual target gates below. Historical
+Windows packaging work recorded in V3 remains evidence for its named artifact
+only.
+See the [active V1 plan](V1_MASTER_IMPLEMENTATION_PLAN.md).
 
-Nothing here marks a check as passed. Stage 0 is the work that could be done
-without a Windows host and **has been done**; stages 1–3 each say exactly
-which matrix rows they can close and which they cannot.
+Local Phase 10 tooling checks are source probes, not a Windows build or
+target-acceptance run. The initial tooling suite reported 10 passed and 4
+skipped. The later strict source acceptance passed its fixed offline mock
+flow, with 11 passed and 3 symlink-creation skips in the focused suite. The
+latest tooling/credential follow-up reported 30 passed and 4 symlink/reparse
+capability skips, plus two credential-notice metadata checks. Its separate
+Windows source-mode system-credential-store sentinel CRUD and cleanup probe
+passed without provider or network use. These source probes do not establish
+frozen credential-store behavior, a target build, platform-lock capture,
+frozen acceptance, Windows 11 qualification, or Windows CI results. Preparation
+and test input digests are snapshots, not candidate build identities. See the
+[initial tooling preparation](evidence/v1/phase-10/tooling-preparation.json),
+[strict source follow-up](evidence/v1/phase-10/strict-source-followup.json),
+and [latest tooling review follow-up](evidence/v1/phase-10/tooling-review-followup.json).
+
+The source checks above do not mark any Windows target row as passed. Stage 0
+is the preparation work that can be done before running the target build and
+**has been done**; stages 1–3 each say exactly which matrix rows they can
+close and which they cannot.
 
 ## Stage 0 — completed here, no Windows host required
 
-`build_windows.ps1` could not have succeeded on a clean Windows machine. It
-ran the ambient `python` with no isolated environment, installed only
-`requirements.txt` (the runtime set), and then called `pytest` and
-`PyInstaller` — neither of which is in that set. On any machine without
-those installed globally it died at step 3; on a machine that happened to
-have them, it built a release from whatever versions were lying around.
-Recorded as **PKG-06**.
+**PKG-06** records the initial `build_windows.ps1` defect: it used ambient
+`python` without an isolated environment, installed only `requirements.txt`
+(the runtime set), and then called `pytest` and `PyInstaller`, neither of which
+was in that set. A host with those tools installed globally could also have
+built from unpinned versions. The completed Stage 0 items below address that
+historical finding.
 
 Done:
 
@@ -49,12 +69,15 @@ Done:
   Windows-only long-path, drive-relative-path and `%LOCALAPPDATA%` checks)
   and `export_check.ps1`. `interactive_session_check.py` needs no port.
 
-None of it has been executed. It is reviewed code, not evidence.
+The source-mode helper checks above validate selected tooling paths; they do
+not establish a candidate's build, archive, lock capture, frozen checks or
+Windows 11 qualification. Candidate-specific outcomes are recorded with the
+companion artifact provenance and acceptance reports.
 
 ## Stage 1 — GitHub Actions `windows-latest`
 
-`.github/workflows/windows.yml` is prepared but has not run from this
-workspace. It invokes `build_windows.ps1`, the frozen acceptance harness with
+The `.github/workflows/windows.yml` acceptance stage invokes
+`build_windows.ps1`, the frozen acceptance harness with
 `-SkipInteractive`, and the independent export checker; on success it uploads
 the staged bundle, ZIP, checksum, provenance and Windows dependency lock. The
 build, acceptance and export logs travel with the artifact, and failure logs
@@ -82,10 +105,8 @@ short-path `TEMP`.
 
 ## Stage 2 — a clean Windows VM
 
-Before this stage, select and document the supported minimum Windows release.
-Test that minimum and the current supported Windows release; they may be the
-same version if that is the declared support range. This adds: a genuinely
-clean machine with no Python at all, first-run behaviour,
+The supported minimum is Windows 11 x86-64. Test a clean Windows 11 machine
+with no Python at all, first-run behaviour,
 SmartScreen on an unsigned executable, a real `Program Files` install,
 OneDrive-redirected `Documents`, per-monitor DPI at 100/125/150/200%, and
 the interactive pass via `interactive_session_check.py`.
@@ -96,7 +117,7 @@ software rasteriser. That row stays BLOCKED even after a clean VM run — a
 software frame is not evidence about a GPU path, and recording it as one is
 exactly the substitution this project has refused elsewhere.
 
-## Stage 3 — one real Windows machine
+## Stage 3 — one real Windows 11 machine
 
 The only thing that closes the last row: confirm the status bar reports
 `GPU (moderngl)` rather than the software fallback, run the interactive
@@ -113,6 +134,8 @@ CI or a VM standing in for hardware. `RELEASE_NOTES.md`,
 `SUPPORTED_PLATFORMS.md` and `CAPABILITY_MATRIX.md` are updated per stage
 as rows actually close, not in advance.
 
-Until stage 3, no Windows artifact is produced or claimed. This restriction
-applies to the current Mint preview and remains in force for a later
-cross-platform release until the Windows gates pass.
+Stages 1–3 may produce Windows test candidates and logs. A candidate is not a
+supported release. Publish Windows as a supported V1 target only after the
+required CI/build, clean-machine, interactive, scaling, and physical-GPU gates
+pass for the target Windows 11 configuration. This status is tracked
+separately from the Mint preview and from the historical MX artifact.

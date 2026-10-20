@@ -1,33 +1,21 @@
-"""3D MASTER:2005 — a pure spline-based 3D character animation suite.
+"""3D MASTER:2005 spline-patch editor and in-app AI development workflow.
 
-Inspired by the no-longer-updated Animation Master 2005, this is a
-complete, decoupled 3D content pipeline built around B-spline patch
-geometry — no polygon meshes anywhere.
+The editor stores spline-patch geometry and internally tessellates it for
+rendering and static OBJ/GLB exports. Projects also include scene, rig,
+material, and animation data. The in-app AI workflow is a development test
+candidate; stable release and target-platform gates remain pending.
 
-The application is divided into four progressive work modes:
-
-    1. Object Mode       — spline network modeling
-    2. Segment Mode      — rigging / skeletal framework
-    3. Material Mode     — shading pipeline
-    4. Choreography Mode — layout / animation / rendering
-
-This package exposes a clean, scriptable API designed so an external
-agentic pipeline (e.g. an AI assistant) can drive it via Python:
-calling, reading/modifying/writing project data and invoking tools the
-same way a user would through the UI.
-
-The canonical, public, scriptable API lives in :mod:`am3d.script` and is
-re-exported at the package top level so `import am3d` provides everything
-needed for automation.
+The public Python scripting API remains available for manual and external
+automation workflows. It lives in :mod:`am3d.script` and is re-exported at
+the package top level so `import am3d` provides the supported entry points.
 """
-
 from __future__ import annotations
 
 from . import spline  # noqa: F401  (geometry kernel)
 from . import core     # noqa: F401  (document data model)
 from .core.project import Project  # noqa: F401
 
-__version__ = "0.2.0b1"
+__version__ = "1.0.0.dev1"
 
 # Names re-exported from the scripting facade onto the package root.  An
 # explicit allowlist (rather than a blanket hasattr) keeps private helpers,

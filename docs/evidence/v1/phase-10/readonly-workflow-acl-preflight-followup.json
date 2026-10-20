@@ -1,0 +1,51 @@
+{
+  "format_version": 1,
+  "date": "2026-10-13",
+  "status": "source-gate preparation only; actual read-only execution remains UNPASSED",
+  "scope": "Bounded packaging/build-tooling ACL follow-up; no product runtime/UI edits, full build, lock capture, or lock mutation.",
+  "changes": {
+    "windows_acl": [
+      "Preflight restoration of the just-saved payload ACL from the payload parent before attempting any denial. If preflight fails, record write-denial and workflow as UNPASSED and skip all ACL mutation.",
+      "Use the required asterisk prefix for the current user's numeric SID in icacls /deny syntax.",
+      "Set the mutation-attempted flag before invoking /deny so partial failures still enter restoration.",
+      "Restore only after a mutation attempt, targeting the parent directory because /save paths are relative to the payload child directory.",
+      "If restoration after a mutation fails, fail the build and preserve the guarded extraction tree for recovery."
+    ],
+    "read_only_workflow": "Keep the fixed frozen offline AI workflow after verified write denial, writing reports outside the payload; report write-denial and workflow outcomes separately in provenance, and emit both statuses before a fatal gate error. Linux root execution remains explicitly UNPASSED.",
+    "failure_diagnostics": "On denial/workflow gate failures, print the two separate statuses before stopping, after restoring permissions where applicable."
+  },
+  "host_probe_context": {
+    "receipt": "docs/evidence/v1/phase-10/ROOT_ACL_PREFLIGHT.md",
+    "reported_result": "The root-owned Windows 10 IoT Enterprise LTSC 19044 probe saved ACLs, then unprefixed numeric-SID denial failed before applying a deny; its wrong-target cleanup restore failed due privileges not assigned. The unchanged generated payload was inspected for deny ACEs and removed with guarded cleanup. It did not test write-denial or frozen workflow and is not a PASS.",
+    "implication": "The corrected product script must prove correct-parent restoration capability before any ACL mutation; no ACL workflow execution was attempted during this source-only follow-up."
+  },
+  "verification": {
+    "targeted_command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short -k readonly_relocation",
+    "targeted_result": "1 passed, 27 deselected in 0.43s",
+    "suite_command": ".venv\\Scripts\\python.exe -m pytest scripts/test_phase10_tooling.py -q --tb=short",
+    "suite_result": "24 passed, 4 skipped in 49.77s",
+    "powershell_ast_command": "PowerShell Parser.ParseInput on build_windows.ps1; fail if parser errors are returned",
+    "powershell_ast_result": "PASS",
+    "linux_syntax_command": "bash -n build_linux.sh",
+    "linux_syntax_result": "exit 0",
+    "diff_check_command": "git diff --check -- build_windows.ps1 build_linux.sh scripts/test_phase10_tooling.py",
+    "diff_check_result": "exit 0; Git emitted only the existing LF-to-CRLF working-copy notice for build_linux.sh"
+  },
+  "source_identity": {
+    "build_input_digest": "7682e2085e84bd357fa15c64eccb4c87557e95e5b18d09f05c5d966c37cf5a2b",
+    "final_source_freeze": false,
+    "note": "The shared source tree is still changing; this digest is a source snapshot, not a built-candidate identity.",
+    "sha256": {
+      "build_windows.ps1": "5f11271015569c66655161ef28c0e54c30e9c3ecad503858140a93867f6975f9",
+      "build_linux.sh": "daf7f4e1b661a773c8d29219af0f1f8c2ee4f24647e1affb5baefc24af4799cd",
+      "scripts/test_phase10_tooling.py": "a0829e4924072857f25e303e2e928334c2edd800cb2abb90793d39cb85078d29"
+    }
+  },
+  "not_run": [
+    "full build or frozen execution",
+    "lock capture or lock mutation",
+    "actual Windows ACL write-denial/read-only workflow",
+    "Linux non-root chmod read-only workflow",
+    "Windows 11 or native Mint qualification"
+  ]
+}

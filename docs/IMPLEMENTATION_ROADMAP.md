@@ -1,10 +1,22 @@
 # Implementation roadmap: AI-generated 3D assets
 
-Updated: 2026-09-28
+> **Historical preview roadmap.** The V1 master plan was approved as the
+> active implementation plan on 2026-10-13 and supersedes this document's
+> future scheduling. The milestone results below remain evidence for their
+> named sources and artifacts. The accepted Mint preview was archive SHA-256
+> `4d41c0cf7cbf069edf907483cbf16ff4b0f8dcc54130aa791a16a049568d6433` with
+> build-input digest
+> `6e62c8cdf6ecfb578885f852391b5d8b50d118a6405b9f4817cb36aa0fd60283`;
+> it is not V1 platform qualification. See
+> [the active V1 plan](V1_MASTER_IMPLEMENTATION_PLAN.md). Windows test
+> candidates may be produced; supported publication requires the actual
+> target gates.
+
+Historical update: 2026-09-28
 Git head: `f35e4e5`; the candidate also includes the uncommitted build inputs
 enumerated in `release/BUILD_INPUTS-linux.json`.
 
-## Candidate scope decision (2026-09-28)
+## Historical candidate scope decision (2026-09-28)
 
 The active deliverable is a **Linux Mint 22.3 x86-64 preview candidate
 validated on this workstation**. It is not a claim of general Linux support,

@@ -182,15 +182,21 @@ def test_opening_example_clears_path_so_save_cannot_overwrite_bundled_asset():
 def test_quick_start_button_is_wired_and_does_not_raise(monkeypatch):
     """The Quick Start button previously emitted a signal nobody connected
     to -- a dead control. It must now open real guidance."""
-    from PySide6.QtWidgets import QMessageBox
+    from PySide6.QtWidgets import QDialog, QDialogButtonBox, QPlainTextEdit
     win = _make_main_window()
     try:
         shown = []
         monkeypatch.setattr(
-            QMessageBox, "information",
-            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+            QDialog, "exec", lambda dialog: shown.append(dialog) or QDialog.Accepted)
         win.home.action_quick_start.emit()
         assert len(shown) == 1
+        guide = shown[0].findChild(QPlainTextEdit)
+        buttons = shown[0].findChild(QDialogButtonBox)
+        assert guide is not None and guide.isReadOnly()
+        assert buttons is not None
+        assert buttons.button(QDialogButtonBox.Ok) is not None
+        assert "Create with AI…" in guide.toPlainText()
+        assert "no JSON is required" in guide.toPlainText()
     finally:
         win.viewport._timer.stop()
         win.close()
@@ -205,10 +211,12 @@ def test_diagnostics_button_is_wired_and_does_not_raise(monkeypatch):
     try:
         shown = []
         monkeypatch.setattr(
-            QMessageBox, "information",
-            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+            QMessageBox, "exec", lambda box: shown.append(box) or QMessageBox.Ok)
         win.home.action_diagnostics.emit()
         assert len(shown) == 1
+        assert shown[0].textFormat() == Qt.PlainText
+        assert "Renderer route:" in shown[0].text()
+        assert "App data directory" not in shown[0].text()
     finally:
         win.viewport._timer.stop()
         win.close()
@@ -221,15 +229,15 @@ def test_diagnostics_menu_action_is_wired_and_does_not_raise(monkeypatch):
     try:
         shown = []
         monkeypatch.setattr(
-            QMessageBox, "information",
-            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+            QMessageBox, "exec", lambda box: shown.append(box) or QMessageBox.Ok)
         win._show_diagnostics()
         assert len(shown) == 1
-        text = shown[0][2]
-        assert "Renderer backend" in text
+        text = shown[0].text()
+        assert shown[0].textFormat() == Qt.PlainText
+        assert "Renderer route" in text
         assert "Renderer preference" in text
         assert "Undo entries" in text
-        assert "App data directory" in text
+        assert "App data directory" not in text
     finally:
         win.viewport._timer.stop()
         win.close()
@@ -245,11 +253,11 @@ def test_diagnostics_reports_forced_software_backend(monkeypatch):
         win.viewport._render()
         shown = []
         monkeypatch.setattr(
-            QMessageBox, "information",
-            staticmethod(lambda *a, **k: shown.append(a) or QMessageBox.Ok))
+            QMessageBox, "exec", lambda box: shown.append(box) or QMessageBox.Ok)
         win._show_diagnostics()
-        text = shown[0][2]
-        assert "Renderer backend: software (toon)" in text
+        text = shown[0].text()
+        assert shown[0].textFormat() == Qt.PlainText
+        assert "Renderer route: software (toon)" in text
         assert "Renderer preference: Software only (forced in Settings)" in text
     finally:
         win.viewport._timer.stop()
@@ -264,7 +272,7 @@ def test_gpu_render_available_reflects_probe_cache():
     assert gpu_render_available() == (_get_gpu_render() is not None)
 
 
-def test_home_shown_gives_keyboard_focus_to_primary_action(monkeypatch):
+def test_home_shown_gives_keyboard_focus_to_create_with_ai(monkeypatch):
     """A keyboard-only user landing on Home (fresh launch or Close Editor)
     must not need a mouse click just to start tabbing through actions.
 
@@ -281,7 +289,7 @@ def test_home_shown_gives_keyboard_focus_to_primary_action(monkeypatch):
         win.show()
         calls.clear()
         win.show_home()
-        assert win.home._new_btn in calls
+        assert win.home._create_ai_btn in calls
     finally:
         win.viewport._timer.stop()
         win.close()

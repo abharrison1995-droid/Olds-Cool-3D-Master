@@ -1,0 +1,56 @@
+[
+  {
+    "module": "msvcp_win.dll",
+    "path": "C:\\Windows\\System32\\msvcp_win.dll",
+    "version": "10.0.19041.7725 (WinBuild.160101.0800)",
+    "sha256": "7d6840ab8847eda1c930beedb6da966888bdbe6cea9114b7613850dc9a598f8d"
+  },
+  {
+    "module": "python312.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\python312.dll",
+    "version": "3.12.14",
+    "sha256": "8bb70bceffd5877733a957b31c392ca027bd2f84230e00de1654f994422fa2af"
+  },
+  {
+    "module": "VCRUNTIME140.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\VCRUNTIME140.dll",
+    "version": "14.44.35211.0",
+    "sha256": "d5e4d9a3e835fa679450145d6a7d94e36573a509317111904d9b3712c30d9066"
+  },
+  {
+    "module": "python3.DLL",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\python3.DLL",
+    "version": "3.12.14",
+    "sha256": "0366ee3d630c26ffc27bfab162648ae8c5cadc74b4b46f3e179ca70f4436cab9"
+  },
+  {
+    "module": "VCRUNTIME140_1.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\VCRUNTIME140_1.dll",
+    "version": "14.44.35211.0",
+    "sha256": "1f2d41c4aa5db0bc33ebf7b66d72943a817d7ce6cbe880502a9403823633093f"
+  },
+  {
+    "module": "Shiboken.pyd",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\shiboken6\\Shiboken.pyd",
+    "version": null,
+    "sha256": "2f6f3a694f675b1dafdae26903191613c02866ab48e02591ae34ca1a3b1284f1"
+  },
+  {
+    "module": "shiboken6.abi3.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\shiboken6\\shiboken6.abi3.dll",
+    "version": null,
+    "sha256": "de3c6b2ed5f75c9ac0de4a6844b653b3b9d09263ce68c2b5fc25a96c5c3e8469"
+  },
+  {
+    "module": "MSVCP140.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\shiboken6\\MSVCP140.dll",
+    "version": "14.44.35211.0",
+    "sha256": "fd4a8c046fa3fea9ca6132f50cf8a56cf1e783b2d3093ba5c85fa063bc6b3845"
+  },
+  {
+    "module": "msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll",
+    "path": "<repo>\\release\\3D MASTER 2005 Beta\\_internal\\numpy.libs\\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll",
+    "version": "14.40.33810.0",
+    "sha256": "a4c2229bdc2a2a630acdc095b4d86008e5c3e3bc7773174354f3da4f5beb9cde"
+  }
+]

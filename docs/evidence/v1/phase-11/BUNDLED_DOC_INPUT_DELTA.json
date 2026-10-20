@@ -1,0 +1,52 @@
+{
+  "previous_source": "7f90f1092eff741a399397f540a5cf3a38bb0902d249f7d3aaa0cfb7d4022a92",
+  "replacement_source": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
+  "only_input_changes": [
+    {
+      "path": "docs/CAPABILITY_MATRIX.md",
+      "before": {
+        "path": "docs/CAPABILITY_MATRIX.md",
+        "kind": "file",
+        "sha256": "0075dd651b0691bdadf76fe0df06f33707e0cf62b7b906bdac619c358be8abc2",
+        "git_state": "tracked"
+      },
+      "after": {
+        "path": "docs/CAPABILITY_MATRIX.md",
+        "kind": "file",
+        "sha256": "d3f6d83690b9c83ed6ba479db5475a40b5c5e21efd2d85af20e17519c1222b40",
+        "git_state": "tracked"
+      }
+    },
+    {
+      "path": "docs/QUICK_START.md",
+      "before": {
+        "path": "docs/QUICK_START.md",
+        "kind": "file",
+        "sha256": "d8d3eeb9cd6adde6274fedcd9abdd5758f1f949154d622aa339b61b2024f619a",
+        "git_state": "tracked"
+      },
+      "after": {
+        "path": "docs/QUICK_START.md",
+        "kind": "file",
+        "sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+        "git_state": "tracked"
+      }
+    },
+    {
+      "path": "docs/USER_GUIDE.md",
+      "before": {
+        "path": "docs/USER_GUIDE.md",
+        "kind": "file",
+        "sha256": "c0d632d45187518b075e6de3bdc818bd08e71bb6b3645ec3e195fc6192f77f45",
+        "git_state": "tracked"
+      },
+      "after": {
+        "path": "docs/USER_GUIDE.md",
+        "kind": "file",
+        "sha256": "f0ce86b546f982b7e49d8d14eaacf9a38d4e34d1eb03331b4c000785ba006f2b",
+        "git_state": "tracked"
+      }
+    }
+  ],
+  "runtime_build_scripts_locks_tests_unchanged": true
+}

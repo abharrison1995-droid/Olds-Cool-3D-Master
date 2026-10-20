@@ -1,0 +1,63 @@
+{
+  "mode": "actual-local-pyinstaller-inventory",
+  "mapping_limit": "namespace candidates require manual inspection",
+  "analyses": [
+    {
+      "toc": "am3d/Analysis-00.toc",
+      "sha256": "16aabf7180941413ea2282286b4abdb1cedb90e52ca35b72be3b58df0cd9f855",
+      "module_count": 1437,
+      "distribution_candidates": [
+        "anyio",
+        "certifi",
+        "glcontext",
+        "h11",
+        "httpcore",
+        "httpx",
+        "idna",
+        "jaraco-classes",
+        "jaraco-context",
+        "jaraco-functools",
+        "keyring",
+        "moderngl",
+        "more-itertools",
+        "msgpack",
+        "numpy",
+        "packaging",
+        "pillow",
+        "pygments",
+        "pyside6",
+        "pyside6-addons",
+        "pyside6-essentials",
+        "pytest",
+        "pywin32-ctypes",
+        "setuptools",
+        "shiboken6",
+        "typing-extensions"
+      ]
+    },
+    {
+      "toc": "am3d_recipe/Analysis-00.toc",
+      "sha256": "80720436d91399b5c2d7b5cd37014c87dda067e42b251ff4dbe69f3504157f78",
+      "module_count": 685,
+      "distribution_candidates": [
+        "msgpack",
+        "numpy",
+        "pillow",
+        "typing-extensions"
+      ]
+    }
+  ],
+  "notice_manifest_sha256": "c3239eb3abec8c8f1105ec72dc2db37783c60bf8b6127b9f7a2b7de515f72539",
+  "missing_notice_candidates": [
+    "packaging",
+    "pygments",
+    "pytest",
+    "setuptools"
+  ],
+  "unexpected_test_modules": [
+    "_pytest",
+    "_pytest._version",
+    "_pytest.outcomes"
+  ],
+  "automatic_inventory_clear": false
+}

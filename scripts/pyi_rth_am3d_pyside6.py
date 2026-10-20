@@ -9,9 +9,9 @@
 
 """PySide6 setup hook that leaves fixed Qt-free entry paths untouched.
 
-The normal GUI setup below follows PyInstaller's pyi_rth_pyside6 hook. The
-fixed AI worker and offline acceptance entry points must reach the application's
-pre-Qt dispatch before PySide6 is imported, so those two argv forms skip Qt
+The normal GUI setup below follows PyInstaller's pyi_rth_pyside6 hook. Fixed
+AI worker and offline acceptance entry points must reach the application's
+pre-Qt dispatch before PySide6 is imported, so those argv forms skip Qt
 initialization here.
 """
 
@@ -19,8 +19,8 @@ initialization here.
 def _pyi_rthook():
     import sys
 
-    if (len(sys.argv) > 1
-            and sys.argv[1] in {"--internal-ai-worker", "--ai-self-test"}):
+    if (len(sys.argv) > 1 and sys.argv[1] in {
+            "--internal-ai-worker", "--am3d-generation-worker", "--ai-self-test"}):
         return
 
     import os

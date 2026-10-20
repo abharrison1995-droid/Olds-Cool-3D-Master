@@ -736,7 +736,8 @@ def test_linux_interpreter_notice_allows_only_an_exact_in_base_distro_alias(
     )
 
 
-@pytest.mark.parametrize("dispatch", ["--internal-ai-worker", "--ai-self-test"])
+@pytest.mark.parametrize("dispatch", [
+    "--internal-ai-worker", "--am3d-generation-worker", "--ai-self-test"])
 def test_guarded_pyside6_runtime_hook_skips_fixed_dispatch_without_qt(
         dispatch, monkeypatch):
     import runpy

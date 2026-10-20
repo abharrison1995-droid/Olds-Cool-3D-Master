@@ -2,6 +2,10 @@
 
 from __future__ import annotations
 
+import os
+
+import pytest
+
 from am3d.gpu import (
     ContextManager, GBuffer, ShaderProgram,
     tone_map, apply_fog, _software_render, render_frame,
@@ -47,18 +51,23 @@ def test_software_render_fallback():
     assert result[..., 3].max() > 0.5  # non-zero alpha in drawn area
 
 
-def test_render_frame_software_fallback():
-    """render_frame with no GL context falls back to software."""
+def test_render_frame_software_fallback(monkeypatch):
+    """render_frame falls back to software when context creation fails."""
+    import am3d.gpu as gpu
+
     verts = np.array([[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0]], dtype=np.float64)
     indices = np.array([[0, 1, 2], [1, 3, 2]], dtype=np.int64)
     normals = np.array([[0, 0, 1]] * 4, dtype=np.float64)
     mesh = MeshData(verts, indices, normals)
-    try:
-        result = render_frame(mesh, size=(16, 16))
-        assert result.shape == (16, 16, 4)
-    except Exception:
-        # Some CI environments may not support even the software path
-        pass
+
+    def no_context(*_args, **_kwargs):
+        raise RuntimeError("test forces context creation failure")
+
+    monkeypatch.setattr(gpu, "create_offscreen_context", no_context)
+    result, backend = gpu.render_frame(
+        mesh, size=(16, 16), return_backend=True)
+    assert result.shape == (16, 16, 4)
+    assert backend == "software (toon)"
 
 
 def test_render_frame_reports_context_fallback(monkeypatch):
@@ -112,8 +121,13 @@ def test_render_frame_reports_last_resort_software_fallback(monkeypatch):
     assert backend == "software (toon)"
 
 
+@pytest.mark.skipif(
+    os.environ.get("AM3D_TEST_REAL_GPU", "").strip() != "1",
+    reason=("real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a "
+            "qualified graphics host"),
+)
 def test_gbuffer_context_standalone():
-    """Try creating a standalone GL context (skip if not available)."""
+    """Try creating a standalone GL context on a qualified graphics host."""
     try:
         cm = ContextManager(64, 64)
         ctx = cm.create()

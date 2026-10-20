@@ -211,6 +211,23 @@ class _BoundedPipeReader(threading.Thread):
                 pass
 
 
+def _terminal_after_process_exit(
+    terminal: FailureCode | None, *, deadline_expired: bool,
+    stdout_reader_alive: bool, stderr_reader_alive: bool,
+    stdout_overflowed: bool,
+) -> FailureCode | None:
+    """Apply limits that can become visible as the child exits and pipes drain."""
+    if terminal is not None:
+        return terminal
+    if deadline_expired:
+        return FailureCode.TIMEOUT
+    if stdout_reader_alive or stderr_reader_alive:
+        return FailureCode.TRANSPORT_FAILURE
+    if stdout_overflowed:
+        return FailureCode.RESPONSE_TOO_LARGE
+    return None
+
+
 class CodexCliProvider:
     """A single `codex exec` provider using the user's existing ChatGPT login.
 
@@ -532,6 +549,10 @@ class CodexCliProvider:
                         terminal = FailureCode.CANCELLED
                         _terminate_process_tree(process, job_handle)
                         break
+                    if time.monotonic() - started >= deadline:
+                        terminal = FailureCode.TIMEOUT
+                        _terminate_process_tree(process, job_handle)
+                        break
                     if stdout.overflowed.is_set():
                         terminal = FailureCode.RESPONSE_TOO_LARGE
                         _terminate_process_tree(process, job_handle)
@@ -545,10 +566,6 @@ class CodexCliProvider:
                         terminal = FailureCode.INVALID_STRUCTURED_RESPONSE
                         _terminate_process_tree(process, job_handle)
                         break
-                    if time.monotonic() - started >= deadline:
-                        terminal = FailureCode.TIMEOUT
-                        _terminate_process_tree(process, job_handle)
-                        break
                     time.sleep(0.005)
                 try:
                     process.wait(timeout=2.0)
@@ -558,11 +575,8 @@ class CodexCliProvider:
                         process.wait(timeout=2.0)
                     except subprocess.TimeoutExpired:
                         pass
+                process_finished_at = time.monotonic()
                 writer.join(timeout=1.0)
-                stdout.join(timeout=1.0)
-                stderr.join(timeout=1.0)
-                with self._state_lock:
-                    self._active_process = None
                 if os.name == "nt" and job_handle is not None:
                     # Closing a kill-on-close job also cleans up descendants
                     # after a nominal CLI exit, before the workspace is removed.
@@ -570,6 +584,18 @@ class CodexCliProvider:
                     job_handle = None
                 elif os.name != "nt":
                     _kill_process_group_children(process)
+                stdout.join(timeout=1.0)
+                stderr.join(timeout=1.0)
+                terminal = _terminal_after_process_exit(
+                    terminal,
+                    deadline_expired=process_finished_at - started >= deadline,
+                    stdout_reader_alive=stdout.is_alive(),
+                    stderr_reader_alive=stderr.is_alive(),
+                    stdout_overflowed=stdout.overflowed.is_set())
+                if process.poll() is None:
+                    terminal = terminal or FailureCode.TRANSPORT_FAILURE
+                with self._state_lock:
+                    self._active_process = None
 
                 latency = time.monotonic() - started
                 if terminal is not None:
@@ -578,6 +604,7 @@ class CodexCliProvider:
                         FailureCode.TIMEOUT: "deadline_expired",
                         FailureCode.RESPONSE_TOO_LARGE: "response_file_limit",
                         FailureCode.INVALID_STRUCTURED_RESPONSE: "invalid_response_file",
+                        FailureCode.TRANSPORT_FAILURE: "event_stream_incomplete",
                     }.get(terminal, "process_limit")
                     return self._failure(terminal, latency,
                                          terminal_status)

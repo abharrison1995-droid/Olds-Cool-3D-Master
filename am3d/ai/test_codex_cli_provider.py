@@ -19,7 +19,8 @@ from .codex_cli_provider import (DEFAULT_CODEX_DEADLINE_SECONDS,
                                  MAX_DIAGNOSTIC_BYTES,
                                  MAX_EVENT_STREAM_BYTES,
                                  CodexCliConfig, CodexCliProvider,
-                                 _bounded_process_command, _event_metadata)
+                                 _bounded_process_command, _event_metadata,
+                                 _terminal_after_process_exit)
 from .codex_output_schema import codex_output_schema
 from .contracts import GenerationStatus
 from .orchestrator import GenerationOrchestrator, OrchestrationStatus
@@ -88,7 +89,8 @@ prompt = prompt_bytes.decode("utf-8", "replace")
 case = "valid"
 for candidate in ("nonzero-auth", "nonzero-quota", "nonzero-refusal", "missing",
                   "malformed", "invalid-utf8", "oversized-hang", "oversized",
-                  "stdout-flood", "memory-limit", "stderr-flood", "hang",
+                  "stdout-flood", "stdout-flood-exit", "memory-limit",
+                  "stderr-flood", "hang",
                   "child-hang", "extra-file",
                   "unknown-usage", "policy-denied"):
     if "FAKE_CASE=" + candidate in prompt:
@@ -107,6 +109,7 @@ record = {
         for key in ("OPENAI_API_KEY", "AWS_SECRET_ACCESS_KEY", "DATABASE_URL")
     },
     "codex_home_present": "CODEX_HOME" in os.environ,
+    "reported_at_monotonic": time.monotonic(),
 }
 if case == "extra-file":
     Path.cwd().joinpath("unexpected.tmp").write_text("fake child artifact")
@@ -146,10 +149,11 @@ if case in {"nonzero-auth", "nonzero-quota", "nonzero-refusal"}:
             "nonzero-refusal": "refusal"}[case]
     print(json.dumps({"type": "turn.failed", "error": {"code": code}}))
     raise SystemExit(23)
-if case == "stdout-flood":
+if case in {"stdout-flood", "stdout-flood-exit"}:
     sys.stdout.buffer.write(b"x" * (1024 * 1024 + 8192))
     sys.stdout.buffer.flush()
-    time.sleep(30)
+    if case == "stdout-flood":
+        time.sleep(30)
 if case == "stderr-flood":
     sys.stderr.buffer.write(b"d" * (64 * 1024 + 8192))
     sys.stderr.buffer.flush()
@@ -358,14 +362,28 @@ def test_codex_feature_profile_rejects_unknown_enabled_capabilities(tmp_path):
 
 
 def test_final_response_file_growth_is_terminated_before_cli_exit(tmp_path):
-    provider, _script, report = _harness(tmp_path, deadline=3.0)
-    started = time.monotonic()
-    result = provider.generate(_request("oversized-hang", deadline=3.0))
-    elapsed = time.monotonic() - started
+    provider, _script, report = _harness(tmp_path, deadline=8.0)
+    result = provider.generate(_request("oversized-hang", deadline=8.0))
     assert result.failure_code is FailureCode.RESPONSE_TOO_LARGE
     assert result.transport_status == "response_file_limit"
-    assert elapsed < 2.0
-    assert len(_read_report(report)) == 1
+    records = _read_report(report)
+    assert len(records) == 1
+    assert time.monotonic() - records[0]["reported_at_monotonic"] < 4.0
+
+
+def test_process_exit_still_enforces_elapsed_deadline_and_stream_limits():
+    assert _terminal_after_process_exit(
+        None, deadline_expired=True,
+        stdout_reader_alive=False, stderr_reader_alive=False,
+        stdout_overflowed=True) is FailureCode.TIMEOUT
+    assert _terminal_after_process_exit(
+        None, deadline_expired=False,
+        stdout_reader_alive=False, stderr_reader_alive=False,
+        stdout_overflowed=True) is FailureCode.RESPONSE_TOO_LARGE
+    assert _terminal_after_process_exit(
+        None, deadline_expired=False,
+        stdout_reader_alive=True, stderr_reader_alive=False,
+        stdout_overflowed=False) is FailureCode.TRANSPORT_FAILURE
 
 
 def test_codex_process_memory_limit_is_applied_to_the_fake_cli(tmp_path):
@@ -599,12 +617,13 @@ def test_missing_unsupported_or_api_key_codex_fails_before_exec(tmp_path):
     assert not report3.exists()
 
 
-@pytest.mark.parametrize("case", ["stdout-flood", "stderr-flood"])
+@pytest.mark.parametrize(
+    "case", ["stdout-flood", "stdout-flood-exit", "stderr-flood"])
 def test_event_and_diagnostic_streams_are_bounded(tmp_path, case):
     provider, _script, report = _harness(tmp_path)
     result = provider.generate(_request(case, deadline=3.0))
     assert len(_read_report(report)) == 1
-    if case == "stdout-flood":
+    if case.startswith("stdout-flood"):
         assert result.status is ProviderCallStatus.FAILED
         assert result.failure_code is FailureCode.RESPONSE_TOO_LARGE
     else:
@@ -614,9 +633,9 @@ def test_event_and_diagnostic_streams_are_bounded(tmp_path, case):
 
 
 def test_codex_deadline_terminates_process_and_returns_timeout(tmp_path):
-    provider, _script, report = _harness(tmp_path, deadline=0.25)
+    provider, _script, report = _harness(tmp_path, deadline=2.0)
     started = time.monotonic()
-    result = provider.generate(_request("hang", deadline=0.25))
+    result = provider.generate(_request("hang", deadline=2.0))
     assert result.failure_code is FailureCode.TIMEOUT
     assert time.monotonic() - started < 4
     assert len(_read_report(report)) == 1

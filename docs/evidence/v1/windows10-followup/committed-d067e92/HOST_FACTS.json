@@ -1,0 +1,12 @@
+{
+  "platform": "Windows",
+  "os_caption": "Microsoft Windows 10 IoT Enterprise LTSC",
+  "version": "10.0.19044",
+  "build_number": "19044",
+  "os_architecture": "64-bit",
+  "processor_architecture": 9,
+  "python": "Python 3.12.14",
+  "pyinstaller": "6.22.2",
+  "actual_v1_target_qualification": false,
+  "qualification_note": "Windows 10 host; no Windows 11 claim"
+}

@@ -1,0 +1,46 @@
+{
+  "ca_bundle": "present",
+  "child_project_sha256": "64ddda92a7a07e941d7870e29d49317a87a5e114fbbd87203742fe484611d441",
+  "child_run_id": "9fc770f3-7118-42fa-b7e3-32949da8679b",
+  "credential_backend_import": "windows-vault-imported",
+  "credential_sentinel_written": false,
+  "export_checks": {
+    "glb_parse": "passed",
+    "obj_parse": "passed",
+    "preview_nonblank": true,
+    "preview_png": "passed",
+    "spritesheet_png": "passed"
+  },
+  "history_store": "passed",
+  "identity": {
+    "build_id": "build-input-sha256:a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+    "capability_version": "recipe-v1-policy-v1-prompt-v1",
+    "version": "1.0.0.dev1"
+  },
+  "live_network_used": false,
+  "live_provider_or_network_qualification": false,
+  "mode": "frozen",
+  "ok": true,
+  "output_files_are_confined_to_fixed_self_test_directory": true,
+  "parent_project_sha256": "a29f033d9496521d2204a305e5bab1d27e72492cb4afb41fde7d268b00b712e8",
+  "parent_run_id": "01baffcf-091b-4b12-95d6-621e7f6a2b67",
+  "provider_requests": 4,
+  "qt_loaded_before_dispatch": false,
+  "qualification": "offline-fixed-mock-transport",
+  "refinement": "passed",
+  "refinement_parent_id": "01baffcf-091b-4b12-95d6-621e7f6a2b67",
+  "reopened_dimensions": {
+    "child": [
+      1.0,
+      1.5,
+      1.0
+    ],
+    "parent": [
+      1.0,
+      1.0,
+      1.0
+    ]
+  },
+  "transport": "httpx.MockTransport",
+  "worker_and_checks": "passed"
+}

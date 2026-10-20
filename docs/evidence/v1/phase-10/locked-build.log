@@ -1,0 +1,702 @@
+{"platform": "windows", "version": "1.0.0.dev1", "build_id": "build-input-sha256:a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d"}
+........................................................................ [  6%]
+........................................................................ [ 13%]
+........................................................................ [ 20%]
+...........s.......s.................................................... [ 27%]
+........................................................................ [ 34%]
+........................................................................ [ 41%]
+........................................................................ [ 47%]
+........................................................................ [ 54%]
+........................................................................ [ 61%]
+........................................................................ [ 68%]
+........................................................................ [ 75%]
+........................................................................ [ 82%]
+........................................................................ [ 89%]
+........................................................................ [ 95%]
+...........................................                              [100%]
+============================== warnings summary ===============================
+am3d/ui/test_dopesheet.py::test_ruler_click_seeks
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\am3d\ui\test_dopesheet.py:97: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    ev = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x, 5),
+
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\am3d\ui\test_dopesheet.py:152: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    return QMouseEvent(kind, QPointF(x_, y_), Qt.LeftButton,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+1049 passed, 2 skipped, 4 warnings in 744.71s (0:12:24)
+635 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.8
+636 INFO: Python: 3.12.14
+711 INFO: Platform: Windows-10-10.0.19044-SP0
+711 INFO: Python environment: C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\venv
+731 INFO: Removing temporary files and cleaning cache in C:\Users\Alex\AppData\Local\pyinstaller
+754 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python312.zip',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\DLLs',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92']
+2343 INFO: Appending 'datas' from .spec
+2349 INFO: checking Analysis
+2350 INFO: Building Analysis because Analysis-00.toc is non existent
+2350 INFO: Looking for Python shared library...
+2350 INFO: Using Python shared library: C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python312.dll
+2350 INFO: Running Analysis Analysis-00.toc
+2350 INFO: Target bytecode optimization level: 0
+2350 INFO: Initializing module dependency graph...
+2358 INFO: Initializing module graph hook caches...
+2463 INFO: Analyzing modules for base_library.zip ...
+5744 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+6026 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+9891 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10471 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+18272 INFO: Caching module dependency graph...
+18408 INFO: Analyzing C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\am3d\ui\__main__.py
+18511 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+19364 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+19371 INFO: SetuptoolsInfo: initializing cached setuptools info...
+24186 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24906 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+27166 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+28901 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+30042 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+30270 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31697 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+35367 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+35751 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+36991 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+37476 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+38540 INFO: Processing standard module hook 'hook-keyring.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+40535 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+40544 INFO: Setuptools: 'jaraco' appears to be a partial setuptools-vendored copy - extending search paths to ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\jaraco', 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco']!
+40544 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+40610 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+40620 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+40628 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+40705 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+41169 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+41169 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+41231 INFO: Processing standard module hook 'hook-win32ctypes.core.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+43220 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+43498 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+46997 INFO: Processing standard module hook 'hook-PySide6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+47561 INFO: Processing standard module hook 'hook-shiboken6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+48006 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+54828 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+62677 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+69986 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+111488 INFO: Processing module hooks (post-graph stage)...
+111954 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+112692 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+113164 INFO: Performing binary vs. data reclassification (149 entries)
+114715 INFO: Looking for ctypes DLLs
+114823 INFO: Analyzing run-time hooks ...
+114825 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+114825 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+114842 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+114842 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+114857 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+114857 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+114900 INFO: Creating base_library.zip...
+114947 INFO: Looking for dynamic libraries
+118011 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\shiboken6', 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\numpy.libs']
+118011 INFO: Extra DLL search directories (PATH): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PySide6']
+121337 INFO: Warnings written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d\warn-am3d.txt
+121523 INFO: Graph cross-reference written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d\xref-am3d.html
+121616 INFO: checking PYZ
+121616 INFO: Building PYZ because PYZ-00.toc is non existent
+121616 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d\PYZ-00.pyz
+123005 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d\PYZ-00.pyz completed successfully.
+123092 INFO: checking PKG
+123093 INFO: Building PKG because PKG-00.toc is non existent
+123093 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg
+123141 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg completed successfully.
+123161 INFO: Bootloader C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+123162 INFO: checking EXE
+123162 INFO: Building EXE because EXE-00.toc is non existent
+123162 INFO: Building EXE from EXE-00.toc
+123163 INFO: Copying bootloader EXE to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d\3D MASTER 2005.exe
+123397 INFO: Copying icon to EXE
+123503 INFO: Copying 0 resources to EXE
+123504 INFO: Embedding manifest in EXE
+123584 INFO: Appending PKG archive to EXE
+123765 INFO: Fixing EXE headers
+124334 INFO: Building EXE from EXE-00.toc completed successfully.
+124359 INFO: checking COLLECT
+124359 INFO: Building COLLECT because COLLECT-00.toc is non existent
+124361 INFO: Building COLLECT COLLECT-00.toc
+125834 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+125854 INFO: Build complete! The results are available in: C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\dist
+479 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.8
+479 INFO: Python: 3.12.14
+564 INFO: Platform: Windows-10-10.0.19044-SP0
+564 INFO: Python environment: C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\venv
+564 INFO: Removing temporary files and cleaning cache in C:\Users\Alex\AppData\Local\pyinstaller
+578 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python312.zip',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\DLLs',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92']
+2093 INFO: Appending 'datas' from .spec
+2094 INFO: checking Analysis
+2094 INFO: Building Analysis because Analysis-00.toc is non existent
+2094 INFO: Looking for Python shared library...
+2094 INFO: Using Python shared library: C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python312.dll
+2094 INFO: Running Analysis Analysis-00.toc
+2095 INFO: Target bytecode optimization level: 0
+2095 INFO: Initializing module dependency graph...
+2102 INFO: Initializing module graph hook caches...
+2150 INFO: Analyzing modules for base_library.zip ...
+5613 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+5854 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10259 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10753 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+14466 INFO: Caching module dependency graph...
+14591 INFO: Analyzing C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\am3d\recipes\__main__.py
+14673 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+15417 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+15417 INFO: SetuptoolsInfo: initializing cached setuptools info...
+17693 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+18091 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+19285 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+20612 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+21679 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+21900 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+23067 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26510 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26803 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+28343 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+28806 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+30500 INFO: Processing module hooks (post-graph stage)...
+31308 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31544 INFO: Performing binary vs. data reclassification (5 entries)
+31557 INFO: Looking for ctypes DLLs
+31636 INFO: Analyzing run-time hooks ...
+31644 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31652 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31653 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+31679 INFO: Creating base_library.zip...
+31741 INFO: Looking for dynamic libraries
+33382 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\build\\windows\\venv\\Lib\\site-packages\\numpy.libs']
+33382 INFO: Extra DLL search directories (PATH): []
+34587 INFO: Warnings written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d_recipe\warn-am3d_recipe.txt
+34769 INFO: Graph cross-reference written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d_recipe\xref-am3d_recipe.html
+34855 INFO: checking PYZ
+34855 INFO: Building PYZ because PYZ-00.toc is non existent
+34855 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d_recipe\PYZ-00.pyz
+36078 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\work\am3d_recipe\PYZ-00.pyz completed successfully.
+36159 INFO: checking PKG
+36159 INFO: Building PKG because PKG-00.toc is non existent
+36159 INFO: Building PKG (CArchive) am3d-recipe.pkg
+51955 INFO: Building PKG (CArchive) am3d-recipe.pkg completed successfully.
+51972 INFO: Bootloader C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+51972 INFO: checking EXE
+51972 INFO: Building EXE because EXE-00.toc is non existent
+51978 INFO: Building EXE from EXE-00.toc
+51978 INFO: Copying bootloader EXE to C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\dist\am3d-recipe.exe
+52186 INFO: Copying icon to EXE
+52334 INFO: Copying 0 resources to EXE
+52334 INFO: Embedding manifest in EXE
+52470 INFO: Appending PKG archive to EXE
+52755 INFO: Fixing EXE headers
+54116 INFO: Building EXE from EXE-00.toc completed successfully.
+54134 INFO: Build complete! The results are available in: C:\Users\Alex\Desktop\Olds-Cool-3D-Master-v1-committed-d067e92\build\windows\dist
+Wrote notices for 22 runtime packages and 2 bundled components.
+{"ok": true, "validated": true, "name": "minimal_cube", "version": 1, "error_records": []}
+error: error reading recipe: Expecting property name enclosed in double quotes: line 1 column 14 (char 13)
+No forbidden build path found across all payload files.
+{"ok": true, "validated": true, "name": "minimal_cube", "version": 1, "error_records": []}
+error: error reading recipe: Expecting property name enclosed in double quotes: line 1 column 14 (char 13)
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\3D MASTER 2005.exe
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\am3d-recipe.exe
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\CAPABILITY_MATRIX.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\QUICK_START.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\README.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\SUPPORTED_PLATFORMS.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\USER_GUIDE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\icon.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\recipes
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\vase_demo.am3d
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\walk.am3a
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight.glb
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight.obj
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight_project.am3d
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight_sprite_shield.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight_sprite_torso.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight_toon_shield.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\knight_toon_torso.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\shield_atlas.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\demo\torso_atlas.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\recipes\knight_full.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\recipes\minimal.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\examples\recipes\recipe-v1.schema.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\interpreter
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\NOTICE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\pyinstaller
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\THIRD_PARTY_LICENSES.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\interpreter\CPython-LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\pyinstaller\PyInstaller-COPYING.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\anyio
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\certifi
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\glcontext
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\h11
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpcore
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpx
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\idna
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-classes
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-context
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-functools
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\keyring
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\moderngl
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\more-itertools
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\msgpack
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pillow
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-addons
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-essentials
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pywin32-ctypes
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\shiboken6
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\typing-extensions
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\anyio\anyio-4.15.1.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\anyio\anyio-4.15.1.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\anyio\anyio-4.15.1.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\certifi\certifi-2026.7.22.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\certifi\certifi-2026.7.22.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\certifi\certifi-2026.7.22.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\glcontext\glcontext-3.1.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\glcontext\glcontext-3.1.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\glcontext\glcontext-3.1.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\h11\h11-0.16.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\h11\h11-0.16.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\h11\h11-0.16.0.dist-info\licenses\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpcore\httpcore-1.0.9.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpcore\httpcore-1.0.9.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpcore\httpcore-1.0.9.dist-info\licenses\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpx\httpx-0.28.1.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpx\httpx-0.28.1.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\httpx\httpx-0.28.1.dist-info\licenses\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\idna\idna-3.20.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\idna\idna-3.20.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\idna\idna-3.20.dist-info\licenses\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-classes\jaraco.classes-3.4.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-classes\jaraco.classes-3.4.0.dist-info\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-context\jaraco_context-6.1.2.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-context\jaraco_context-6.1.2.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-context\jaraco_context-6.1.2.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-functools\jaraco_functools-4.6.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-functools\jaraco_functools-4.6.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\jaraco-functools\jaraco_functools-4.6.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\keyring\keyring-25.7.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\keyring\keyring-25.7.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\keyring\keyring-25.7.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\moderngl\moderngl-5.12.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\moderngl\moderngl-5.12.0.dist-info\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\more-itertools\more_itertools-11.2.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\more-itertools\more_itertools-11.2.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\more-itertools\more_itertools-11.2.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\msgpack\msgpack-1.2.1.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\msgpack\msgpack-1.2.1.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\msgpack\msgpack-1.2.1.dist-info\licenses\COPYING
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\ma
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\random
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\_core
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\ma\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\random\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\_core\include
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\_core\include\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\_core\include\numpy\random
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy\_core\include\numpy\random\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\fft
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\linalg
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\ma
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\fft\pocketfft
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\fft\pocketfft\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\linalg\lapack_lite
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\linalg\lapack_lite\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\ma\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\distributions
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\mt19937
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\pcg64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\philox
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\sfc64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\splitmix64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\distributions\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\mt19937\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\pcg64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\philox\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\sfc64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\random\src\splitmix64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\include
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy\libdivide
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy\libdivide\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\highway
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\multiarray
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common\pythoncapi-compat
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common\pythoncapi-compat\COPYING
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\highway\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\multiarray\dragon4_LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort\x86-simd-sort
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort\x86-simd-sort\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath\svml
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\numpy\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath\svml\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pillow\pillow-12.3.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pillow\pillow-12.3.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pillow\pillow-12.3.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6\pyside6-6.11.2.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6\pyside6-6.11.2.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6\pyside6-6.11.2.dist-info\licenses\LicenseRef-Qt-Commercial.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-addons\pyside6_addons-6.11.2.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-addons\pyside6_addons-6.11.2.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-addons\pyside6_addons-6.11.2.dist-info\licenses\LicenseRef-Qt-Commercial.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-essentials\pyside6_essentials-6.11.2.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-essentials\pyside6_essentials-6.11.2.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pyside6-essentials\pyside6_essentials-6.11.2.dist-info\licenses\LicenseRef-Qt-Commercial.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pywin32-ctypes\pywin32_ctypes-0.2.3.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\pywin32-ctypes\pywin32_ctypes-0.2.3.dist-info\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\shiboken6\shiboken6-6.11.2.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\shiboken6\shiboken6-6.11.2.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\shiboken6\shiboken6-6.11.2.dist-info\licenses\LicenseRef-Qt-Commercial.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\typing-extensions\typing_extensions-4.16.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\typing-extensions\typing_extensions-4.16.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\LICENSES\third_party\typing-extensions\typing_extensions-4.16.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\am3d
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\base_library.zip
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\certifi
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\docs
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\glcontext
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\libcrypto-3-x64.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\libffi-8.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\libssl-3-x64.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\moderngl
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\msgpack
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy.libs
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\pyexpat.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\python3.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\python312.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\select.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\unicodedata.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\VCRUNTIME140.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\VCRUNTIME140_1.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_asyncio.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_bz2.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_ctypes.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_decimal.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_elementtree.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_hashlib.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_lzma.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_multiprocessing.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_overlapped.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_queue.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_socket.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_ssl.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_uuid.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\_wmi.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\am3d\build_identity.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\am3d\ui
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\am3d\ui\theme_am2005.qss
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\icon.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\vase_demo.am3d
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\walk.am3a
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight.glb
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight.obj
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight_project.am3d
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight_sprite_shield.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight_sprite_torso.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight_toon_shield.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\knight_toon_torso.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\shield_atlas.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\assets\demo\torso_atlas.png
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\certifi\cacert.pem
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\certifi\py.typed
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\docs\QUICK_START.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\docs\recipes
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\docs\recipes\EXTERNAL_AGENT_GUIDE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\docs\recipes\recipe-v1.schema.json
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\glcontext\wgl.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\entry_points.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\INSTALLER
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\METADATA
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\RECORD
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\REQUESTED
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\top_level.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\WHEEL
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\keyring-25.7.0.dist-info\licenses\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\moderngl\mgl.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\msgpack\_cmsgpack.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\fft
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\linalg
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\_core
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\fft\_pocketfft_umath.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\linalg\_umath_linalg.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\bit_generator.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\mtrand.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_bounded_integers.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_common.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_generator.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_mt19937.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_pcg64.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_philox.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\random\_sfc64.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\_core\_multiarray_tests.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy\_core\_multiarray_umath.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\DELVEWHEEL
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\entry_points.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\INSTALLER
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\METADATA
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\RECORD
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\REQUESTED
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\WHEEL
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\fft
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\linalg
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\ma
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\fft\pocketfft
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\fft\pocketfft\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\linalg\lapack_lite
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\linalg\lapack_lite\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\ma\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\distributions
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\mt19937
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\pcg64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\philox
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\sfc64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\splitmix64
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\distributions\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\mt19937\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\pcg64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\philox\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\sfc64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\random\src\splitmix64\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\include
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy\libdivide
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\include\numpy\libdivide\LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\highway
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\multiarray
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common\pythoncapi-compat
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\common\pythoncapi-compat\COPYING
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\highway\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\multiarray\dragon4_LICENSE.txt
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort\x86-simd-sort
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\npysort\x86-simd-sort\LICENSE.md
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath\svml
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy-2.4.6.dist-info\licenses\numpy\_core\src\umath\svml\LICENSE
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy.libs\libscipy_openblas64_-63c857e738469261263c764a36be9436.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\numpy.libs\msvcp140-a4c2229bdc2a2a630acdc095b4d86008.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_avif.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_imaging.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_imagingcms.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_imagingmath.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_imagingtk.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PIL\_webp.cp312-win_amd64.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\MSVCP140.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\MSVCP140_1.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\MSVCP140_2.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\opengl32sw.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\pyside6.abi3.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Core.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Gui.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Network.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6OpenGL.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Pdf.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Qml.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6QmlMeta.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6QmlModels.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6QmlWorkerScript.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Quick.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Svg.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6VirtualKeyboard.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\Qt6Widgets.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\QtCore.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\QtGui.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\QtNetwork.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\QtWidgets.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\VCRUNTIME140.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\VCRUNTIME140_1.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\generic
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\iconengines
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\networkinformation
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforminputcontexts
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforms
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\styles
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\tls
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\generic\qtuiotouchplugin.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\iconengines\qsvgicon.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qgif.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qicns.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qico.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qjpeg.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qpdf.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qsvg.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qtga.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qtiff.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qwbmp.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\imageformats\qwebp.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\networkinformation\qnetworklistmanager.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforminputcontexts\qtvirtualkeyboardplugin.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforms\qdirect2d.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforms\qminimal.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforms\qoffscreen.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\platforms\qwindows.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\styles\qmodernwindowsstyle.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\tls\qcertonlybackend.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\tls\qopensslbackend.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\plugins\tls\qschannelbackend.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ar.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_bg.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ca.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_cs.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_da.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_de.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_en.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_es.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_fa.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_fi.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_fr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_gd.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_he.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_hr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_hu.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_it.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ja.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ka.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ko.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_lg.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_lv.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_nl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_nn.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_pl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_pt_BR.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_ru.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_sk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_sv.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_tr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_uk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_zh_CN.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qtbase_zh_TW.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ar.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_bg.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ca.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_cs.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_da.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_de.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_en.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_es.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_fa.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_fi.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_fr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_gd.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_gl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_he.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ar.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_bg.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ca.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_cs.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_da.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_de.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_en.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_es.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_fr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_gl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_hr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_hu.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_it.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ja.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ka.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ko.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_nl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_nn.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_pl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_pt_BR.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_ru.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_sk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_sl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_sv.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_tr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_uk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_zh_CN.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_help_zh_TW.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_hr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_hu.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_it.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ja.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ka.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ko.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_lg.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_lt.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_lv.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_nl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_nn.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_pl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_pt_BR.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_pt_PT.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_ru.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_sk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_sl.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_sv.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_tr.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_uk.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_zh_CN.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\PySide6\translations\qt_zh_TW.qm
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6\MSVCP140.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6\Shiboken.pyd
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6\shiboken6.abi3.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6\VCRUNTIME140.dll
+processed file: C:\Users\Alex\AppData\Local\Temp\am3d verify �� c30bd016\3D MASTER 2005 Beta\_internal\shiboken6\VCRUNTIME140_1.dll
+Successfully processed 480 files; Failed processing 0 files
+Not all privileges or groups referenced are assigned to the caller.
+Successfully processed 0 files; Failed processing 0 files
+a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d

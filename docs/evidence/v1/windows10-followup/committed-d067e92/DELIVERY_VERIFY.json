@@ -1,0 +1,92 @@
+{
+  "source_commit": "d067e921cb8f6b767c6faa526553ae28d20fd71c",
+  "source_worktree_clean": true,
+  "source_worktree_status": [],
+  "source_worktree": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92",
+  "output_directory": "C:\\Users\\Alex\\Documents\\Codex\\2026-10-13\\create\\outputs",
+  "main_repository_release": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\release",
+  "clean_build_worktree_release": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master-v1-committed-d067e92\\release",
+  "files": {
+    "3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip": {
+      "sha256": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
+      "size": 95052016,
+      "path": "C:\\Users\\Alex\\Documents\\Codex\\2026-10-13\\create\\outputs\\3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip",
+      "matches_build_worktree_release": true,
+      "matches_main_repository_release": true,
+      "hashes": {
+        "repository": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
+        "output": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
+        "build": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce"
+      }
+    },
+    "3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip.sha256": {
+      "sha256": "4a3a156765bf8d6690237e69c4628d1cfaf1f6879520d0d54003011cba078a6b",
+      "size": 106,
+      "path": "C:\\Users\\Alex\\Documents\\Codex\\2026-10-13\\create\\outputs\\3D-MASTER-2005-Beta-1.0.0.dev1-win64.zip.sha256",
+      "matches_build_worktree_release": true,
+      "matches_main_repository_release": true,
+      "hashes": {
+        "repository": "4a3a156765bf8d6690237e69c4628d1cfaf1f6879520d0d54003011cba078a6b",
+        "output": "4a3a156765bf8d6690237e69c4628d1cfaf1f6879520d0d54003011cba078a6b",
+        "build": "4a3a156765bf8d6690237e69c4628d1cfaf1f6879520d0d54003011cba078a6b"
+      }
+    },
+    "BUILD_INPUTS-windows.json": {
+      "sha256": "6d40d424c8368b88e638c2330ed3bc67be7b7fee304ce7b7b80866f266c37f53",
+      "size": 38347,
+      "path": "C:\\Users\\Alex\\Documents\\Codex\\2026-10-13\\create\\outputs\\BUILD_INPUTS-windows.json",
+      "matches_build_worktree_release": true,
+      "matches_main_repository_release": true,
+      "hashes": {
+        "repository": "6d40d424c8368b88e638c2330ed3bc67be7b7fee304ce7b7b80866f266c37f53",
+        "output": "6d40d424c8368b88e638c2330ed3bc67be7b7fee304ce7b7b80866f266c37f53",
+        "build": "6d40d424c8368b88e638c2330ed3bc67be7b7fee304ce7b7b80866f266c37f53"
+      }
+    },
+    "BUILD_PROVENANCE-windows.txt": {
+      "sha256": "66bf358025df26bf3d0110d9dae2166860a5147b86889e6e2009ca97702b9626",
+      "size": 2250,
+      "path": "C:\\Users\\Alex\\Documents\\Codex\\2026-10-13\\create\\outputs\\BUILD_PROVENANCE-windows.txt",
+      "matches_build_worktree_release": true,
+      "matches_main_repository_release": true,
+      "hashes": {
+        "repository": "66bf358025df26bf3d0110d9dae2166860a5147b86889e6e2009ca97702b9626",
+        "output": "66bf358025df26bf3d0110d9dae2166860a5147b86889e6e2009ca97702b9626",
+        "build": "66bf358025df26bf3d0110d9dae2166860a5147b86889e6e2009ca97702b9626"
+      }
+    }
+  },
+  "staged_payload": {
+    "main_repository_file_count": 314,
+    "clean_build_worktree_file_count": 314,
+    "missing_from_main_release": [],
+    "extra_in_main_release": [],
+    "different_files": [],
+    "all_314_files_byte_identical": true
+  },
+  "sidecar_archive_hash_match": true,
+  "input_manifest_digest": "a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+  "input_manifest_sha256": "6d40d424c8368b88e638c2330ed3bc67be7b7fee304ce7b7b80866f266c37f53",
+  "input_count": 189,
+  "tracked_input_count": 189,
+  "untracked_input_count": 0,
+  "regenerated_manifest_exact_match": true,
+  "embedded_build_identity": {
+    "build_id": "build-input-sha256:a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+    "capability_version": "recipe-v1-policy-v1-prompt-v1",
+    "source_sha256": "a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+    "version": "1.0.0.dev1"
+  },
+  "embedded_identity_matches_manifest": true,
+  "provenance_contains_current_commit_and_archive": true,
+  "zip_crc_test": "passed for this exact SHA-256",
+  "zip_entry_count": 384,
+  "zip_file_count": 314,
+  "zip_directory_count": 70,
+  "zip_top_level_folders": [
+    "3D MASTER 2005 Beta"
+  ],
+  "zip_duplicate_or_unsafe_paths": 0,
+  "all_output_files_match_main_repository_release": true,
+  "all_output_files_match_clean_build_worktree": true
+}

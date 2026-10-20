@@ -1,0 +1,17 @@
+{
+  "queried_at": "2026-10-20T15:44:39Z",
+  "video_controllers": [
+    {
+      "name": "Intel(R) HD Graphics 4000",
+      "adapter_ram_bytes": 2214592512,
+      "driver_version": "10.18.10.4252",
+      "video_processor": "Intel(R) HD Graphics Family",
+      "status": "OK",
+      "current_horizontal_resolution": 1366,
+      "current_vertical_resolution": 768,
+      "current_refresh_rate": 49
+    }
+  ],
+  "native_interactive_rendering_qualified": false,
+  "note": "Inventory only; offscreen/software rendering checks do not establish physical GPU, DPI, or native desktop qualification."
+}

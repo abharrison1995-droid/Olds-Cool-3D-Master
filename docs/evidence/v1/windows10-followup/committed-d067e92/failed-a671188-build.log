@@ -1,0 +1,14 @@
+{"platform": "windows", "version": "1.0.0.dev1", "build_id": "build-input-sha256:f211f6167f5062e0028cf481a3aaaccabffd06f7f531f3f73e2c2c96cc7f0df0"}
+F
+================================== FAILURES ===================================
+__ test_fixture_id_hash_revision_and_independent_requirements_are_unchanged ___
+am3d\ai\test_benchmark.py:107: in test_fixture_id_hash_revision_and_independent_requirements_are_unchanged
+    assert benchmark.sha256_file(REPO_ROOT / "benchmarks/v1/prompts.json") == (
+E   AssertionError: assert 'b8d0aa32c45a...63a01d68ca192' == '0ef3291a7cb5...5c478e119e560'
+E     
+E     - 0ef3291a7cb5818091a1a22ebdbfe75dc9cb4118274f32fe6395c478e119e560
+E     + b8d0aa32c45aa2b6190860dbd5e7a723014f0618a80444215f063a01d68ca192
+=========================== short test summary info ===========================
+FAILED am3d/ai/test_benchmark.py::test_fixture_id_hash_revision_and_independent_requirements_are_unchanged
+!!!!!!!!!!!!!!!!!!!!!!!!!! stopping after 1 failures !!!!!!!!!!!!!!!!!!!!!!!!!!
+1 failed in 17.29s

@@ -1,0 +1,116 @@
+{
+  "reader": "trimesh",
+  "reader_version": "5.1.1",
+  "qualification": "independent static parse of exact committed-candidate frozen offline workflow outputs",
+  "source_workflow_report": "C:/Users/Alex/AppData/Local/Temp/am3d-v1-offline-acceptance-14936b0fee014d0587fb86b998c1b54d/phase10-ai-self-test/acceptance.json",
+  "runs": {
+    "parent": {
+      "run_id": "01baffcf-091b-4b12-95d6-621e7f6a2b67",
+      "formats": {
+        "obj": {
+          "path": "C:\\Users\\Alex\\AppData\\Local\\Temp\\am3d-v1-offline-acceptance-14936b0fee014d0587fb86b998c1b54d\\phase10-ai-self-test\\records\\generations\\01baffcf-091b-4b12-95d6-621e7f6a2b67\\export_01.obj",
+          "sha256": "6da6719c4963912f2ba28cb5a1d26427e3cf34cf3ce46a53f0bf41ae7c6ad23c",
+          "mesh_count": 1,
+          "face_count": 2700,
+          "bounds": [
+            [
+              -0.5,
+              -0.5,
+              -0.5
+            ],
+            [
+              0.5,
+              0.5,
+              0.5
+            ]
+          ],
+          "dimensions": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "finite_bounds": true
+        },
+        "glb": {
+          "path": "C:\\Users\\Alex\\AppData\\Local\\Temp\\am3d-v1-offline-acceptance-14936b0fee014d0587fb86b998c1b54d\\phase10-ai-self-test\\records\\generations\\01baffcf-091b-4b12-95d6-621e7f6a2b67\\export_02.glb",
+          "sha256": "09385cb288ab189c3f4f0d8d9fabc8f60eeebdaa48aa6fa0a9a3e973458cb2a4",
+          "mesh_count": 1,
+          "face_count": 2700,
+          "bounds": [
+            [
+              -0.5,
+              -0.5,
+              -0.5
+            ],
+            [
+              0.5,
+              0.5,
+              0.5
+            ]
+          ],
+          "dimensions": [
+            1.0,
+            1.0,
+            1.0
+          ],
+          "finite_bounds": true
+        }
+      },
+      "obj_glb_dimensions_match": true
+    },
+    "child": {
+      "run_id": "9fc770f3-7118-42fa-b7e3-32949da8679b",
+      "formats": {
+        "obj": {
+          "path": "C:\\Users\\Alex\\AppData\\Local\\Temp\\am3d-v1-offline-acceptance-14936b0fee014d0587fb86b998c1b54d\\phase10-ai-self-test\\records\\generations\\9fc770f3-7118-42fa-b7e3-32949da8679b\\export_01.obj",
+          "sha256": "ef375d607682529740b8fa71276955ecb65aec01109b9a83ee4cf0c911cf32bd",
+          "mesh_count": 1,
+          "face_count": 2700,
+          "bounds": [
+            [
+              -0.5,
+              -0.75,
+              -0.5
+            ],
+            [
+              0.5,
+              0.75,
+              0.5
+            ]
+          ],
+          "dimensions": [
+            1.0,
+            1.5,
+            1.0
+          ],
+          "finite_bounds": true
+        },
+        "glb": {
+          "path": "C:\\Users\\Alex\\AppData\\Local\\Temp\\am3d-v1-offline-acceptance-14936b0fee014d0587fb86b998c1b54d\\phase10-ai-self-test\\records\\generations\\9fc770f3-7118-42fa-b7e3-32949da8679b\\export_02.glb",
+          "sha256": "460dad3cd8d25f416df03ce52f4d63f4a0e3da3cc1d694684d7689881dec567d",
+          "mesh_count": 1,
+          "face_count": 2700,
+          "bounds": [
+            [
+              -0.5,
+              -0.75,
+              -0.5
+            ],
+            [
+              0.5,
+              0.75,
+              0.5
+            ]
+          ],
+          "dimensions": [
+            1.0,
+            1.5,
+            1.0
+          ],
+          "finite_bounds": true
+        }
+      },
+      "obj_glb_dimensions_match": true
+    }
+  }
+}

@@ -1,0 +1,32 @@
+{
+  "source_sha256": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
+  "archive_sha256": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
+  "local_development_acceptance": true,
+  "cross_platform_v1_accepted": false,
+  "rc_accepted": false,
+  "source_and_lock_committed": false,
+  "review_receipts": {
+    "docs/evidence/v1/phase-10/PACKAGING_REOPENED_REVIEW.md": "557c0b493e40128f0d4b7aed4980f3793793031b1bf7ef79648d1b2c59bc0817",
+    "docs/evidence/v1/phase-11/PRODUCT_PLATFORM_REVIEW.md": "1c32ad89f5610c8a8b87a324f56cc2243af8032a77d6aceccaa6f22351e26bc7",
+    "docs/evidence/v1/phase-11/ARCHITECTURE_REVIEW.md": "d56ea079ebb0c0e7c3c0cb88131d0b67e167f898ec753e37ef4f52faeebf2cd2",
+    "docs/evidence/v1/phase-11/ARCHITECTURE_SOURCE_REUSE.json": "5c02647c2ce56411778bd5dc2ac06a0b1f2eaee9f1e76d9723148c6d471feb30",
+    "docs/evidence/v1/phase-10/LOCKED_ROOT_BINDING.json": "7af460336a2e2ec9e8b28f04298b1c347f32e17d6bc8daddf35f73123523e5d3",
+    "docs/evidence/v1/phase-10/ROOT_LOCKED_ACCEPTANCE.md": "3efc70e93a637a2cc220309fc7e0a39c233021c6d01eb283c3265516d381b701"
+  },
+  "dispositions": {
+    "architecture": "local source findings independently closed; seven unchanged hashes bound by root evidence-only reuse",
+    "packaging": "independent exact-final focused verification found no material local packaging blocker",
+    "product_platform": "independent focused verification closed three bundled-doc status findings for exact replacement; local Windows10 development checks only"
+  },
+  "unpassed": [
+    "live provider and two release benchmark runs with human scores and style refinements",
+    "Windows11 and Mint22.3 complete target ladders",
+    "clean no-Python target hosts",
+    "native desktop keyboard/manual recovery/100-150-200 percent scaling",
+    "physical GPU and forced-software targets",
+    "live TLS/auth/network/cancel and credential locked-unavailable cases",
+    "read-only installation/ACL restoration capability",
+    "committed-source/lock RC identity and release signoff"
+  ],
+  "publication_performed": false
+}

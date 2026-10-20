@@ -1,11 +1,11 @@
-# Full locked Windows build start
+# Locked Windows build — committed final development candidate
 
-Source input2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d, complete LOCKED_SOURCE_INPUTS.json; version1.0.0.dev1; baseline HEAD3f6f7f03d32b4d1a3af06af4fdc0724bf0436945 with authorized uncommitted changes. Windows10 IoT Enterprise LTSC19044 x64, explicit Python3.12.14. Source Windows lock SHA0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6 has all38 application/build dependencies. Bootstrap failure and supplemental capture are described precisely in BOOTSTRAP_RETRY2_TAIL_FAILURE.md. The prior successful local candidate is preserved in development-candidate-1; the only input delta is three bundled documentation status corrections, independently found by the product reviewer. Runtime/build scripts/lock are unchanged. This replacement candidate gets a fresh full build and exact frozen output checks.
+Build input identity: `a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d` (`LOCKED_SOURCE_INPUTS.json`); version `1.0.0.dev1`; source/Windows lock committed in `d067e921cb8f6b767c6faa526553ae28d20fd71c`. The build ran in a clean detached worktree on Microsoft Windows 10 IoT Enterprise LTSC `10.0.19044`, x64, using explicit host Python `3.12.14`. Windows 11 is not claimed. The locked Windows dependency set contained 38 packages and its source lock SHA-256 is `0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6`.
 
-Exact command:
+Exact command: `& .\build_windows.ps1` (default explicit host Python).
 
-```powershell
-& ./build_windows.ps1 -HostPython 'C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python.exe' *> docs/evidence/v1/phase-10/locked-build.log
-```
+Final result: exit 0; full suite **1,049 passed, 2 skipped, 4 warnings in 744.71s**. The retained build log records the skip count but no reasons. GUI smoke passed 14/14 in Qt offscreen mode; recipe CLI validation/build/structured-error and relocation checks passed; frozen fixed MockTransport offline workflow passed; payload path scan passed. Exact candidate credential-store sentinel CRUD/cleanup and independent external-reader checks are separately bound in this directory. The read-only ACL workflow is **UNPASSED**: restore capability unavailable; payload ACL was not changed.
 
-No CaptureLock or SkipTests. The script creates a fresh isolated environment, validates the complete installed set against source lock, runs the full regression and both builds/frozen/relocation/end-identity gates. Start status running, not PASS. No source/bundled edits during the run. Final archive/payload/OS credential/independent export-reader and review evidence remains necessary. Read-only capability and external Win11/Mint/live/human/native desktop/GPU gates remain unpassed. No push/publication/release authorized or performed.
+The first committed candidate attempt at `a671188` failed because frozen fixture text hashes differed on Windows CRLF checkouts. Its log is preserved at `windows10-followup/committed-d067e92/failed-a671188-build.log`. The narrow `d067e92` correction normalizes CRLF for the four frozen text inputs; raw generated-artifact and receipt hashes remain byte-exact. The full corrected committed candidate was rebuilt from a clean checkout and is the only current artifact binding.
+
+No provider credentials or spending authorization were available. No live provider request, ACL denial, push, publication or release was made. Windows 11 and Mint 22.3 remain unqualified/deferred.

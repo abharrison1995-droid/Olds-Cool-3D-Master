@@ -1,7 +1,7 @@
 {
   "ca_bundle": "present",
-  "child_project_sha256": "3febe582339630c14fdc8b3e179ad6f7752a6c171c62a16bf54531b65e8d22b1",
-  "child_run_id": "044bf7f6-7c48-478c-836b-816b6f890580",
+  "child_project_sha256": "64ddda92a7a07e941d7870e29d49317a87a5e114fbbd87203742fe484611d441",
+  "child_run_id": "9fc770f3-7118-42fa-b7e3-32949da8679b",
   "credential_backend_import": "windows-vault-imported",
   "credential_sentinel_written": false,
   "export_checks": {
@@ -13,7 +13,7 @@
   },
   "history_store": "passed",
   "identity": {
-    "build_id": "build-input-sha256:2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
+    "build_id": "build-input-sha256:a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
     "capability_version": "recipe-v1-policy-v1-prompt-v1",
     "version": "1.0.0.dev1"
   },
@@ -22,13 +22,13 @@
   "mode": "frozen",
   "ok": true,
   "output_files_are_confined_to_fixed_self_test_directory": true,
-  "parent_project_sha256": "39b0e829e0b78be7bfeda1cbd23cece87d22fd4b50320ca690036c637d9704d6",
-  "parent_run_id": "3b9108fd-686f-419b-998d-769704377271",
+  "parent_project_sha256": "a29f033d9496521d2204a305e5bab1d27e72492cb4afb41fde7d268b00b712e8",
+  "parent_run_id": "01baffcf-091b-4b12-95d6-621e7f6a2b67",
   "provider_requests": 4,
   "qt_loaded_before_dispatch": false,
   "qualification": "offline-fixed-mock-transport",
   "refinement": "passed",
-  "refinement_parent_id": "3b9108fd-686f-419b-998d-769704377271",
+  "refinement_parent_id": "01baffcf-091b-4b12-95d6-621e7f6a2b67",
   "reopened_dimensions": {
     "child": [
       1.0,

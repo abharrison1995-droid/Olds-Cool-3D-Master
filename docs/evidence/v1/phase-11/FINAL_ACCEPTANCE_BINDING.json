@@ -1,32 +1,50 @@
 {
-  "source_sha256": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
-  "archive_sha256": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
+  "candidate": "Windows 10 committed development candidate",
+  "source_commit": "d067e921cb8f6b767c6faa526553ae28d20fd71c",
+  "build_input_digest": "a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+  "archive_sha256": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
   "local_development_acceptance": true,
   "cross_platform_v1_accepted": false,
   "rc_accepted": false,
-  "source_and_lock_committed": false,
+  "source_and_lock_committed": true,
+  "windows_11_qualified": false,
+  "mint_22_3_qualified": false,
+  "repository_release_copy_reconciled": true,
+  "all_314_repository_stage_files_match_clean_build": true,
   "review_receipts": {
     "docs/evidence/v1/phase-10/PACKAGING_REOPENED_REVIEW.md": "557c0b493e40128f0d4b7aed4980f3793793031b1bf7ef79648d1b2c59bc0817",
     "docs/evidence/v1/phase-11/PRODUCT_PLATFORM_REVIEW.md": "1c32ad89f5610c8a8b87a324f56cc2243af8032a77d6aceccaa6f22351e26bc7",
     "docs/evidence/v1/phase-11/ARCHITECTURE_REVIEW.md": "d56ea079ebb0c0e7c3c0cb88131d0b67e167f898ec753e37ef4f52faeebf2cd2",
     "docs/evidence/v1/phase-11/ARCHITECTURE_SOURCE_REUSE.json": "5c02647c2ce56411778bd5dc2ac06a0b1f2eaee9f1e76d9723148c6d471feb30",
-    "docs/evidence/v1/phase-10/LOCKED_ROOT_BINDING.json": "7af460336a2e2ec9e8b28f04298b1c347f32e17d6bc8daddf35f73123523e5d3",
-    "docs/evidence/v1/phase-10/ROOT_LOCKED_ACCEPTANCE.md": "3efc70e93a637a2cc220309fc7e0a39c233021c6d01eb283c3265516d381b701"
+    "docs/evidence/v1/phase-10/LOCKED_ROOT_BINDING.json": "94b2c425f1e11e2d2eadafc1b79acd65e0c719317303c8ebff3d38eb0a832f30",
+    "docs/evidence/v1/phase-10/ROOT_LOCKED_ACCEPTANCE.md": "01e27b62025de62907ede1140eff5fb90899947202d3bc0407be5f44a2675e22",
+    "docs/evidence/v1/phase-11/FINAL_ACCEPTANCE.md": "b9c269c7ffc8e646a7401089e41601f8c57830ae8b780da587978db7450d7209",
+    "docs/evidence/v1/windows10-followup/committed-d067e92/INDEPENDENT_PACKAGING_REVIEW.md": "e94dcdfd29b520b5dcab2b19cbfa7f31871eb6955690aadcf8ee998150ad5627",
+    "docs/evidence/v1/windows10-followup/committed-d067e92/INDEPENDENT_SCOPE_REVIEW.md": "80e2fb9a4423f9935878a7059f27ebd10e23e4ca2af268db00b215da55def151",
+    "docs/evidence/v1/windows10-followup/committed-d067e92/INDEPENDENT_ACL_REVIEW.md": "771e5d40910ce6b70128329478ec3767a80ae6a86067e2cc9ce6612497f57d7d",
+    "docs/evidence/v1/windows10-followup/committed-d067e92/INDEPENDENT_SOURCE_REVIEW.md": "0d23ea951b3cd58189149866d3510f1418d0a8c159ecb694022bba383ed2fff7",
+    "docs/evidence/v1/windows10-followup/committed-d067e92/DELIVERY_VERIFY.json": "6f783f54ca5d2238e78dd54fa309f068ddb879aa950807da24860da5421c00fd"
   },
   "dispositions": {
-    "architecture": "local source findings independently closed; seven unchanged hashes bound by root evidence-only reuse",
-    "packaging": "independent exact-final focused verification found no material local packaging blocker",
-    "product_platform": "independent focused verification closed three bundled-doc status findings for exact replacement; local Windows10 development checks only"
+    "source": "fresh committed-source review found no blocker in the reviewed AI/provider/credential/worker/history/refinement/editor areas; review ran no tests",
+    "packaging": "independent review found no candidate ZIP blocker; its stale main release-copy finding was reconciled by copying and byte-checking exact candidate artifacts and 314 staged files",
+    "scope": "no CRLF hash-fix blocker; one nonblocking docstring precision note",
+    "acl": "safe restore-before-deny preflight reviewed, but no live ACL restoration proof; ACL gate remains open",
+    "product_platform": "prior review reused only for byte-identical bundled text, not runtime or target qualification"
   },
   "unpassed": [
-    "live provider and two release benchmark runs with human scores and style refinements",
-    "Windows11 and Mint22.3 complete target ladders",
-    "clean no-Python target hosts",
-    "native desktop keyboard/manual recovery/100-150-200 percent scaling",
-    "physical GPU and forced-software targets",
-    "live TLS/auth/network/cancel and credential locked-unavailable cases",
-    "read-only installation/ACL restoration capability",
-    "committed-source/lock RC identity and release signoff"
+    "native Windows editing, interaction, recovery, keyboard and DPI",
+    "physical GPU and forced software rendering",
+    "restore-capable elevated ACL/read-only installation",
+    "approved live provider/model, spending limits and privately configured credentials",
+    "two live 30-case benchmark runs, refinements and original human scores",
+    "Windows 11 x64 clean no-Python full target ladder",
+    "final release signoffs"
   ],
-  "publication_performed": false
+  "no_live_network_or_billable_request": true,
+  "no_acl_denial_or_mutation": true,
+  "publication_performed": false,
+  "model_runtime_disclosure": "Root model and reasoning effort were not inspectable; user authorized continuation. Reviewer dispatch accepted GPT-6 Luna, xhigh, fresh contexts.",
+  "final_acceptance_document_sha256": "b9c269c7ffc8e646a7401089e41601f8c57830ae8b780da587978db7450d7209",
+  "root_binding_sha256": "94b2c425f1e11e2d2eadafc1b79acd65e0c719317303c8ebff3d38eb0a832f30"
 }

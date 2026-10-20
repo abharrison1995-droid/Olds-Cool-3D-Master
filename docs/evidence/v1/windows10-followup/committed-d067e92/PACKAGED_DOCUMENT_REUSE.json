@@ -1,0 +1,52 @@
+{
+  "purpose": "Bound reuse of independent packaged-document status review for current exact ZIP when shipped text differs only by CRLF versus LF encoding.",
+  "historical_archive_sha256": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
+  "current_archive_sha256": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
+  "comparison": "raw bytes and CRLF-to-LF-normalized bytes",
+  "all_selected_documents_lf_normalized_equal": true,
+  "documents": [
+    {
+      "path": "CAPABILITY_MATRIX.md",
+      "historical_raw_sha256": "d3f6d83690b9c83ed6ba479db5475a40b5c5e21efd2d85af20e17519c1222b40",
+      "current_raw_sha256": "7db1c6038f99780b68046acd6d29811efbd53886f8a0217af7d6d5810bca5c6b",
+      "lf_normalized_sha256": "d3f6d83690b9c83ed6ba479db5475a40b5c5e21efd2d85af20e17519c1222b40",
+      "historical_and_current_lf_normalized_content_equal": true
+    },
+    {
+      "path": "QUICK_START.md",
+      "historical_raw_sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+      "current_raw_sha256": "df448a5af47028563ab4506f23f71d0f9be0d9aea84f782d21a1486fe67f60b6",
+      "lf_normalized_sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+      "historical_and_current_lf_normalized_content_equal": true
+    },
+    {
+      "path": "README.txt",
+      "historical_raw_sha256": "94e7d6306be3f75028bd9056967bd10376858d36fbc4e5670a41c2b974a0a3f6",
+      "current_raw_sha256": "fef9395c3a3a459211cb70b2e7893b60c30598b1d250b68eee58deaeae990466",
+      "lf_normalized_sha256": "94e7d6306be3f75028bd9056967bd10376858d36fbc4e5670a41c2b974a0a3f6",
+      "historical_and_current_lf_normalized_content_equal": true
+    },
+    {
+      "path": "USER_GUIDE.md",
+      "historical_raw_sha256": "f0ce86b546f982b7e49d8d14eaacf9a38d4e34d1eb03331b4c000785ba006f2b",
+      "current_raw_sha256": "08c19d5edd9c1035d8252ba5817c6f3c0fcc429f9842740d5807b9afe9c06e78",
+      "lf_normalized_sha256": "f0ce86b546f982b7e49d8d14eaacf9a38d4e34d1eb03331b4c000785ba006f2b",
+      "historical_and_current_lf_normalized_content_equal": true
+    },
+    {
+      "path": "SUPPORTED_PLATFORMS.md",
+      "historical_raw_sha256": "321bfea94b5b4684b7fa68413cf3a01edec5e526c0bcee1e19487cfa05ffc77d",
+      "current_raw_sha256": "321bfea94b5b4684b7fa68413cf3a01edec5e526c0bcee1e19487cfa05ffc77d",
+      "lf_normalized_sha256": "fcb95734a8dcbd803ac99a8ffe7fbcbddc9a4492117c929c12813be84281d444",
+      "historical_and_current_lf_normalized_content_equal": true
+    },
+    {
+      "path": "_internal/docs/QUICK_START.md",
+      "historical_raw_sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+      "current_raw_sha256": "df448a5af47028563ab4506f23f71d0f9be0d9aea84f782d21a1486fe67f60b6",
+      "lf_normalized_sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+      "historical_and_current_lf_normalized_content_equal": true
+    }
+  ],
+  "review_reuse_disposition": "The historical independent product/platform review is reusable only for the verified identical shipped document content; it does not qualify runtime/UI/platform gates."
+}

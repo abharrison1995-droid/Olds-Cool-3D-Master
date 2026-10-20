@@ -1,22 +1,26 @@
 {
-  "target_platform_qualification": false,
-  "live_provider_qualification": false,
-  "archive_sha256": "36970e05116bd691ee1b80e3431e82987c0dc2547fbcdfc485d4b5b743340afe",
-  "mode": "exact-locked-frozen-retained-QA",
-  "gui_exe_sha256": "81799caca49de2d558512c846ea1641c41db1078ea9b134429fcd0a8d9ae2e42",
-  "runs": [
-    {
-      "check": "fixed-workflow",
-      "host_directory": "work/v1/locked-final-fixed-workflow-host",
-      "finished": true,
-      "exit_code": 0
-    },
-    {
-      "check": "credential-store",
-      "host_directory": "work/v1/locked-final-credential-store-host",
-      "finished": true,
-      "exit_code": 0
-    }
-  ],
-  "source_sha256": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d"
+  "source_commit": "d067e921cb8f6b767c6faa526553ae28d20fd71c",
+  "build_input_digest": "a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
+  "archive_sha256": "229ccb5292b74823ee1d274f3170a175ac40716821e87da938507174af7c04ce",
+  "qualification": "offline-fixed-mock-transport",
+  "frozen_acceptance_report": "LOCKED_FROZEN_ACCEPTANCE.json",
+  "frozen_acceptance_report_sha256": "a60fdfcf7f68773476bb0174a3f1cba762552b4b3a3c9468fccd1f5a0e00685f",
+  "credential_store_report": "LOCKED_CREDENTIAL_STORE.json",
+  "credential_store_report_sha256": "be58b0b0b375fa119665812f8849533175146fec0c160020a029e9c1dd430756",
+  "external_reader_report": "LOCKED_EXTERNAL_READER.json",
+  "payload_inventory": "LOCKED_PAYLOAD_INVENTORY.json",
+  "test_results": {
+    "full_locked_build_exit_code": 0,
+    "source_tests_passed": 1049,
+    "source_tests_skipped": 2,
+    "source_warnings": 4,
+    "source_test_seconds": 744.71,
+    "tooling_tests_passed": 44,
+    "tooling_tests_skipped": 4,
+    "tooling_test_seconds": 40.47
+  },
+  "live_network_used": false,
+  "credential_sentinel_written": false,
+  "target_qualification": false,
+  "release_accepted": false
 }

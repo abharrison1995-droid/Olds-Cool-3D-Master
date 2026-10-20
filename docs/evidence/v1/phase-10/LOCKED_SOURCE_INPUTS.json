@@ -44,9 +44,9 @@
     "symlink_identity": "repository-relative path plus literal relative target or hashed absolute target; targets are not followed"
   },
   "input_file_count": 189,
-  "tracked_file_count": 144,
-  "untracked_file_count": 45,
-  "build_input_digest": "2be687b3249db162c9c04081ab77eea9f6c966210317da147d9ebcd34b79924d",
+  "tracked_file_count": 189,
+  "untracked_file_count": 0,
+  "build_input_digest": "a109c4a8c50365ea155b0356282b1b1745d2758b18af751492e59ae9a4af9b7d",
   "inputs": [
     {
       "path": ".github/workflows/windows.yml",
@@ -57,13 +57,13 @@
     {
       "path": "PRODUCT.md",
       "kind": "file",
-      "sha256": "453080ecdb4f4597d5965ae1a9359b48695c72cdde7f1cb26f62bf199b7f90e5",
+      "sha256": "cdf6b476bca8e4181f0d590db803703c7308d7259854ac5abdfa82f419153354",
       "git_state": "tracked"
     },
     {
       "path": "README.md",
       "kind": "file",
-      "sha256": "94e7d6306be3f75028bd9056967bd10376858d36fbc4e5670a41c2b974a0a3f6",
+      "sha256": "fef9395c3a3a459211cb70b2e7893b60c30598b1d250b68eee58deaeae990466",
       "git_state": "tracked"
     },
     {
@@ -81,146 +81,146 @@
     {
       "path": "am3d/ai/__init__.py",
       "kind": "file",
-      "sha256": "35685b1b6063359dd15fdfee2e6d5e348d5b259dbd611583d51c7a738ab917d7",
-      "git_state": "untracked"
+      "sha256": "7345adb28a801e03bdb47490217cf64c6d8daeeecfa7290faf50a8c1d328e34e",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/benchmark.py",
       "kind": "file",
-      "sha256": "9b1940cb95975337edc63e569128bd1717b5c70ddc03918442cae8080941c1df",
-      "git_state": "untracked"
+      "sha256": "acd0d1e8d9be5a3c7bdc7c00a4bf31ac936c5f977b065f10949defeb76b692de",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/checks.py",
       "kind": "file",
-      "sha256": "2c610c348e71d1311854ee9e3618db2e62164067c87fec2a84ca011708f27421",
-      "git_state": "untracked"
+      "sha256": "0e797e44b32f3e5a9c5051e60c760ac7cd32cd09c6e2434f4c8fde6b14fb25b9",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/contracts.py",
       "kind": "file",
-      "sha256": "a161b0995d1937a526165c4bc96b03736f584aebb9546e844e7c1b23916d600a",
-      "git_state": "untracked"
+      "sha256": "24e9b8857be17996be8867c994d2caa0d60ae542409c0a2984b5cc086fcbd9af",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/credentials.py",
       "kind": "file",
-      "sha256": "af019cedb840eae9b5cfde00073af07ef00d1f058a690273f8f2996e233a40f2",
-      "git_state": "untracked"
+      "sha256": "4e5c782a41952deef7f63ade1fb553ef7f5024362cb53dccf026c8c16cf28516",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/frozen_acceptance.py",
       "kind": "file",
-      "sha256": "af8d386de4973e3bda9071a138689e792ebce9c2663146eb3087b885f7e01568",
-      "git_state": "untracked"
+      "sha256": "ed5751adc5683aca076ecad95522845ebbebbf93a78c57beebb7b200d9c5f379",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/orchestrator.py",
       "kind": "file",
-      "sha256": "162c043dc2fc710ae5f7eab75088336e82415e692f0d46ef487d53699c5623d0",
-      "git_state": "untracked"
+      "sha256": "a4bbbccaf76866cdf4fe84d3efe52513e6420a411f7291a2215ec0b50c8da652",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/policy.py",
       "kind": "file",
-      "sha256": "9d80cf3174b491191e577811b97e5a2389d90796319065cce4978e08c0ae962e",
-      "git_state": "untracked"
+      "sha256": "867e542db8a4327bcc8a9384c36f0a3ab3b72d6c201565eda3bcaf0347524753",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/prompts.py",
       "kind": "file",
-      "sha256": "44353f454e18ca107b9f88815d8d89e79996a84e11b88839706b03ce03f2fcf7",
-      "git_state": "untracked"
+      "sha256": "6b6ab0bcc811504d0816a4b6d86f9ef4a7610921da5550f5591fde4231faf506",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/providers.py",
       "kind": "file",
-      "sha256": "bf1acc782ecade0de4d585a47e1e3fb73c04520e52b52118271e745270887ba4",
-      "git_state": "untracked"
+      "sha256": "7faf3ce1ac98e4f2b44a8d87ce463013db1b6bcdc42bf271b41ac444de494a36",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/records.py",
       "kind": "file",
-      "sha256": "d11eb513b64a8c5a92f5271dc184be919ddab50390787336b2f5d085472ed2ae",
-      "git_state": "untracked"
+      "sha256": "fd23f5dce464928c263d0f9de9d3c15bf4d4433a8342b485d4a975abbae3f672",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_benchmark.py",
       "kind": "file",
-      "sha256": "2cda61885af700cd9347ea9847bf6db5d9a36e3a70320665e7682f8aa213e1b1",
-      "git_state": "untracked"
+      "sha256": "a07c182db03e81df35b7d716268ff131da67a715d96bdf346d84624f591a9f23",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_checks.py",
       "kind": "file",
-      "sha256": "eb837eaed63ff3e1f18ff89fb70395cf36ab90023ee37e68a472f88902a5d687",
-      "git_state": "untracked"
+      "sha256": "47bd99d2591f0e859249f8c3e0264b952167842348c5e8d794886b51cf78eda6",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_contracts.py",
       "kind": "file",
-      "sha256": "fdc9a9261283deb13f7fae383e13b069db6bc6752d7dfd6a62642837d618a95c",
-      "git_state": "untracked"
+      "sha256": "070d7881bb9923479b41199e3864b6c2fb738e7d1f94754aff7e100de62a0efc",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_credentials.py",
       "kind": "file",
-      "sha256": "331f62ad879e4dafa33af46bd1e1592ec4a85e001876978f5d3f0499f56f7fae",
-      "git_state": "untracked"
+      "sha256": "6844160d25ac3c1d7c58c7de0cd712d62d9dbabdeea47cfa62b0ce52ca09638a",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_orchestrator.py",
       "kind": "file",
-      "sha256": "55708e6c2a013976ee81813b5329c3a3d956b9c12d9d5196a87f3bd10efc5483",
-      "git_state": "untracked"
+      "sha256": "9076c1758523dc68872336b237ab70470b0fee1487842e9f512ee8e14a3918f5",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_policy.py",
       "kind": "file",
-      "sha256": "c54d7a541c97779042633f64dc07d3376f23f514cd5fbf48c33e32008f2a2941",
-      "git_state": "untracked"
+      "sha256": "32d50e0bcd687c7f78a3fbacaa43a5649f4736b51fa2f34f1506d6c4327d46fd",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_prompts.py",
       "kind": "file",
-      "sha256": "63c61f535ead5b32d48e0a9053b0a36d4e6a2f8150d7fdfc62bbdd72a04045de",
-      "git_state": "untracked"
+      "sha256": "8878284919226cd928be8a6e842bceb8e0e15c062853b30268e4297f8c517492",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_providers.py",
       "kind": "file",
-      "sha256": "973448b1173e4e6e9c7d06ec4301d1b04382b3e52d4b60d7696ff12180ddb146",
-      "git_state": "untracked"
+      "sha256": "cc54eac84cb3cfee37b20243b6b9b2170e222b105cc47fc908428214798d749c",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_records.py",
       "kind": "file",
-      "sha256": "3c95110ab21d76821911892392f99790a0335128b8cd68ab403fbeccf4d620e7",
-      "git_state": "untracked"
+      "sha256": "e10e4313df3b5d0b627ffa72958d6132f8a8e73c5068992ad1aeb2273c64b623",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_refinement.py",
       "kind": "file",
-      "sha256": "01ea4ade8b5b613de4d183e3710282d9a0c13165f77d94827e7d933580138ac5",
-      "git_state": "untracked"
+      "sha256": "9ee64bb14b51274fe2f03cec10e2cf10ec76e62761e59d96a4bef061eb4df705",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_sheet_contract.py",
       "kind": "file",
-      "sha256": "0216adba98804d9bf1fbf5ee29d2969667c48152ac237fbfe4beefe48c0976b7",
-      "git_state": "untracked"
+      "sha256": "b5b751e6ae227a1b265b1bec99152e23e6e8d83c49e62a96cc31ccc66a459049",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/test_worker.py",
       "kind": "file",
-      "sha256": "43623bbbc26c10b753e21b79e9d6ae10249a8dd8b1cf111dc87159d327804db9",
-      "git_state": "untracked"
+      "sha256": "5ea036cae4943445191b40e13d79a8c7c14dc153894d4c039d95dfdfe34db583",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ai/worker.py",
       "kind": "file",
-      "sha256": "184df9bf7555ee9496120e30ae4aab3bb1a9e3807326721e092b2313ced7fae7",
-      "git_state": "untracked"
+      "sha256": "941ae7031d1bb5597646a1c7b091a239ecf492d658dcaf01126f74014ec544bd",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/core/__init__.py",
@@ -315,8 +315,8 @@
     {
       "path": "am3d/core/test_generation_provenance.py",
       "kind": "file",
-      "sha256": "721485ff89ccb05865898139aa6be271be997f97b9570948c4883b0ab7dc72f1",
-      "git_state": "untracked"
+      "sha256": "dfac2c243abe30d0933cb847c66ede07c2b48b62958a359703be075001f95ac6",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/core/test_material_graph.py",
@@ -579,8 +579,8 @@
     {
       "path": "am3d/renderer/test_color_scene_preview.py",
       "kind": "file",
-      "sha256": "57f87ec306621de81daa8229c8d21ecd647b650a3a346a90e34543758e551699",
-      "git_state": "untracked"
+      "sha256": "bd9be94d9b508fd251e353f2b54057ae0a51a2b946bc384dd66e27e4fa873a1c",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/renderer/test_materials.py",
@@ -645,26 +645,26 @@
     {
       "path": "am3d/ui/ai_controller.py",
       "kind": "file",
-      "sha256": "082408a848f239a604ec41d57b106d9b8ff9ca594d023f56efd45f10fc7ac4fb",
-      "git_state": "untracked"
+      "sha256": "714b043ca04c0f248261bb842aeb668b8edd7393aa67976152966d3489280b6b",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/ai_history.py",
       "kind": "file",
-      "sha256": "e8f2193669ea72538297f9c3de53b1a77e783774130db2adf682743b11e49275",
-      "git_state": "untracked"
+      "sha256": "20c4696521635811b1bb4f006b1e276a82a9bda349b24d586dde4b4e16aab2e1",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/ai_settings.py",
       "kind": "file",
-      "sha256": "571f9653583500d00516527cb2c8e5a4e5476f110de6648182b1b6038ae4b076",
-      "git_state": "untracked"
+      "sha256": "f705831d163a0d508a6433f43da0ade36224d0cff522fc8d408b4fd5e3c7c6d7",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/ai_workspace.py",
       "kind": "file",
-      "sha256": "097397c217abcadd7307a3583cb8cbd0c706b9bb900cc2a5e717c3099adc10da",
-      "git_state": "untracked"
+      "sha256": "3a68a20fa3cb87b435a02f901fbfdfacf015fbaac3efe831396116bd5aaa2de6",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/app.py",
@@ -765,14 +765,14 @@
     {
       "path": "am3d/ui/test_ai_history.py",
       "kind": "file",
-      "sha256": "5ea33d68bb8922b71d61a04a2471fbeef4b199476b0cbd05e0128615825effb9",
-      "git_state": "untracked"
+      "sha256": "faafe038262f0e59b7932ec4db753aad3f3bee1a7b4bc51f8ed6afe47cf6e87d",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/test_ai_workspace.py",
       "kind": "file",
-      "sha256": "a230eec3f6999423f670bd6f8ff7461a4921c61705f2b0f3440f684475ccd61e",
-      "git_state": "untracked"
+      "sha256": "f7290d90037def3f4f5cd1d75bf02ee86f616085fb307ce4765ff2aeabe43d00",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/test_camera.py",
@@ -801,8 +801,8 @@
     {
       "path": "am3d/ui/test_generated_profile_edit.py",
       "kind": "file",
-      "sha256": "1ef27d090ce27fa739c1b056ad41b09404bc20bda33853bd21db677a8fcb51cd",
-      "git_state": "untracked"
+      "sha256": "48bd94a107321df325239197109d44bde0387e2aa05c5015e808a8a1f73de608",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/test_gizmos.py",
@@ -843,8 +843,8 @@
     {
       "path": "am3d/ui/test_phase9_ui.py",
       "kind": "file",
-      "sha256": "f945286674f76b49bb0dc24aed1067e74aa24d31d47bf3ade220b73412fcd3e2",
-      "git_state": "untracked"
+      "sha256": "b1ab06ab6e82b9bcf89b698b3cd9c809f31ecae4c80957da662b212f3ef977e9",
+      "git_state": "tracked"
     },
     {
       "path": "am3d/ui/test_render_dialog.py",
@@ -1005,25 +1005,25 @@
     {
       "path": "benchmarks/v1/discovery.json",
       "kind": "file",
-      "sha256": "6483ccc038853cc50e7c9edc7c50e56cfef717151482aa84f1dcbf055177875b",
-      "git_state": "untracked"
+      "sha256": "165766d7fda1749f60918bdf5610ae9905d0caf507a0089ca52a1455f41c89ea",
+      "git_state": "tracked"
     },
     {
       "path": "benchmarks/v1/prompts.json",
       "kind": "file",
-      "sha256": "0ef3291a7cb5818091a1a22ebdbfe75dc9cb4118274f32fe6395c478e119e560",
-      "git_state": "untracked"
+      "sha256": "b8d0aa32c45aa2b6190860dbd5e7a723014f0618a80444215f063a01d68ca192",
+      "git_state": "tracked"
     },
     {
       "path": "benchmarks/v1/rubric.md",
       "kind": "file",
-      "sha256": "b7c84a93d638bf46a0ac3223702abba7870997a89793b6b33b39a19d8b92026b",
-      "git_state": "untracked"
+      "sha256": "11ec8c496d8cb55ecf4310be59626e6b08cc5665c86e96d9053af0bc09c30658",
+      "git_state": "tracked"
     },
     {
       "path": "build_linux.sh",
       "kind": "file",
-      "sha256": "daf7f4e1b661a773c8d29219af0f1f8c2ee4f24647e1affb5baefc24af4799cd",
+      "sha256": "54614e94acb49ad1c7c9119685cba4cfaa6b2b7e28f71e7c992a9e63b9cc44ec",
       "git_state": "tracked"
     },
     {
@@ -1035,13 +1035,13 @@
     {
       "path": "docs/CAPABILITY_MATRIX.md",
       "kind": "file",
-      "sha256": "d3f6d83690b9c83ed6ba479db5475a40b5c5e21efd2d85af20e17519c1222b40",
+      "sha256": "7db1c6038f99780b68046acd6d29811efbd53886f8a0217af7d6d5810bca5c6b",
       "git_state": "tracked"
     },
     {
       "path": "docs/QUICK_START.md",
       "kind": "file",
-      "sha256": "a7981b218694cf7525fe57c01d7d31b2fa2f10ec30c2434c7c7fdcd3288cc801",
+      "sha256": "df448a5af47028563ab4506f23f71d0f9be0d9aea84f782d21a1486fe67f60b6",
       "git_state": "tracked"
     },
     {
@@ -1053,7 +1053,7 @@
     {
       "path": "docs/USER_GUIDE.md",
       "kind": "file",
-      "sha256": "f0ce86b546f982b7e49d8d14eaacf9a38d4e34d1eb03331b4c000785ba006f2b",
+      "sha256": "08c19d5edd9c1035d8252ba5817c6f3c0fcc429f9842740d5807b9afe9c06e78",
       "git_state": "tracked"
     },
     {
@@ -1095,14 +1095,14 @@
     {
       "path": "requirements-lock-linux.txt",
       "kind": "file",
-      "sha256": "e54845b55de19f734b8177ca8f5c27c3c6a927ef7abd5106c3363ea1c1de84c3",
+      "sha256": "eafd98928ab341e647fb78e47fc467b3e648e52b86790f10eaf1cedff693cb99",
       "git_state": "tracked"
     },
     {
       "path": "requirements-lock-windows.txt",
       "kind": "file",
       "sha256": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
-      "git_state": "untracked"
+      "git_state": "tracked"
     },
     {
       "path": "requirements.txt",
@@ -1113,13 +1113,13 @@
     {
       "path": "scripts/audit_build_payload.py",
       "kind": "file",
-      "sha256": "8dfc7ceb8b7d63c5e4670d4d48b8310a16564c84746d762a4c5a57102fb24a69",
-      "git_state": "untracked"
+      "sha256": "e8d1a585d947344fc017131bb085dd62391c558371432583237ec1682adb676d",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/build_input_digest.py",
       "kind": "file",
-      "sha256": "6b45db17c94b2cc8c391193d1a92d759ee9e9008b95258b0c2afa745feb9be1a",
+      "sha256": "0ce3d99127af4ead483aafc2b55394445c4766ca8a5437625874a0713572e46e",
       "git_state": "tracked"
     },
     {
@@ -1143,14 +1143,14 @@
     {
       "path": "scripts/phase10_safety.ps1",
       "kind": "file",
-      "sha256": "96ffcd2aeb3a12a6303e6a2a7e59b537f82b980c8da665b2f4f41b5393ac2264",
-      "git_state": "untracked"
+      "sha256": "f5fc423ec2a2cfabd03ae6aa05c3d49be62454357f696d6109c4f99dea988b16",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/pyi_rth_am3d_pyside6.py",
       "kind": "file",
-      "sha256": "7de0d05b4abd1aa3024b0f17afa6666dc9522318ec1ebdeda8533bb2c531725d",
-      "git_state": "untracked"
+      "sha256": "5aac525e6e998e6a7545cda9466b3aa6f485d5cd8f0e59fc1937f84ca8b5ed5e",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/render_roundtrip_evidence.py",
@@ -1161,26 +1161,26 @@
     {
       "path": "scripts/run_ai_benchmark.py",
       "kind": "file",
-      "sha256": "dffa2dd2886ff6298303c8aee1691c6d7ef83735fb95b0488763b1016f13f13b",
-      "git_state": "untracked"
+      "sha256": "0e4f3432500670c5d93a3c6e17633cf6212f154d0c5d36f032222e6af56e6721",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/test_phase10_tooling.py",
       "kind": "file",
-      "sha256": "302b720b5b5bd2a146b34c951bdeacbe7bbb8657b1cb681237824c0502c23072",
-      "git_state": "untracked"
+      "sha256": "98fd3a9d71ee09d3850f0b568e3d8a6cbff3a7a02238340dc6626ff27f883eb4",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/write_build_identity.py",
       "kind": "file",
-      "sha256": "c667ee9d2367c3cabd6e0a7ce24a2fdc8651d611c8f700bd6f5d2f32f4664090",
-      "git_state": "untracked"
+      "sha256": "cfe87f1f6632fa5a62c25579861dc99d74b03f332046967c6e14bcd2c9661227",
+      "git_state": "tracked"
     },
     {
       "path": "scripts/write_runtime_licenses.py",
       "kind": "file",
-      "sha256": "1f91c31d336a691bb13ba992233721d2aadaec7537db763fc86d71efa23a5f15",
-      "git_state": "untracked"
+      "sha256": "cc80df43f7115d72b6cb8c672186be60c03f1b67bc0658d82b4c500d0bb3a04c",
+      "git_state": "tracked"
     }
   ]
 }

@@ -69,6 +69,12 @@ def sha256_file(path: str | Path) -> str:
     return digest.hexdigest()
 
 
+def sha256_text_file(path: str | Path) -> str:
+    """Hash UTF-8 text with universal newlines for checkout-independent inputs."""
+    raw = Path(path).read_bytes()
+    return sha256_bytes(raw.replace(b"\r\n", b"\n"))
+
+
 def utc_now() -> str:
     return datetime.now(timezone.utc).isoformat(timespec="seconds").replace("+00:00", "Z")
 
@@ -250,10 +256,10 @@ def source_snapshot(repo_root: str | Path) -> dict[str, Any]:
 
 def _file_hashes(repo_root: Path) -> dict[str, str]:
     return {
-        "benchmarks/v1/prompts.json": sha256_file(repo_root / "benchmarks/v1/prompts.json"),
-        "benchmarks/v1/discovery.json": sha256_file(repo_root / "benchmarks/v1/discovery.json"),
-        "benchmarks/v1/rubric.md": sha256_file(repo_root / "benchmarks/v1/rubric.md"),
-        "docs/recipes/recipe-v1.schema.json": sha256_file(
+        "benchmarks/v1/prompts.json": sha256_text_file(repo_root / "benchmarks/v1/prompts.json"),
+        "benchmarks/v1/discovery.json": sha256_text_file(repo_root / "benchmarks/v1/discovery.json"),
+        "benchmarks/v1/rubric.md": sha256_text_file(repo_root / "benchmarks/v1/rubric.md"),
+        "docs/recipes/recipe-v1.schema.json": sha256_text_file(
             repo_root / "docs/recipes/recipe-v1.schema.json"),
     }
 

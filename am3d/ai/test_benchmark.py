@@ -104,7 +104,7 @@ def test_fixture_id_hash_revision_and_independent_requirements_are_unchanged():
     assert tuple(item["id"] for item in fixtures) == benchmark.RELEASE_IDS
     assert [item["tier"] for item in fixtures].count("static") == 25
     assert [item["tier"] for item in fixtures].count("rig") == 5
-    assert benchmark.sha256_file(REPO_ROOT / "benchmarks/v1/prompts.json") == (
+    assert benchmark.sha256_text_file(REPO_ROOT / "benchmarks/v1/prompts.json") == (
         "0ef3291a7cb5818091a1a22ebdbfe75dc9cb4118274f32fe6395c478e119e560")
     fixture = fixtures[22]
     expected = {key: deepcopy(value) for key, value in fixture.items()
@@ -114,6 +114,13 @@ def test_fixture_id_hash_revision_and_independent_requirements_are_unchanged():
     fixture_with_disclosure = next(item for item in fixtures
                                    if "requirements" in item)
     assert benchmark.fixture_requirements(fixture_with_disclosure)["requirements"] == fixture_with_disclosure["requirements"]
+
+
+def test_sha256_text_file_normalizes_windows_newlines(tmp_path):
+    source = tmp_path / "fixture.json"
+    source.write_bytes(b'{"items":[]}\r\n')
+    assert benchmark.sha256_text_file(source) == benchmark.sha256_bytes(
+        b'{"items":[]}\n')
 
 
 def test_manifest_freezes_denominator_source_build_inputs_and_provider_disclosure():

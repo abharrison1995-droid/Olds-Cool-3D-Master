@@ -112,6 +112,13 @@ class MainWindow(QMainWindow):
 
         # Document controller owns the session, dirty state, and file ops.
         self.doc_ctrl = DocumentController(self)
+        from am3d.ai.m3.runner import GenerationRunner
+        self._generation_runner = GenerationRunner()
+        self._generation_poll_timer = QTimer(self)
+        self._generation_poll_timer.setInterval(100)
+        self._generation_poll_timer.timeout.connect(self._poll_generation_worker)
+        self._generation_poll_timer.start()
+        self._close_after_generation = False
 
         # One lifecycle-owned autosave timer, created once and reused for
         # the life of the window; only its interval changes when the user
@@ -333,6 +340,7 @@ class MainWindow(QMainWindow):
         _add("&New", self._file_new, "Ctrl+N")
         _add("&Open .am3d...", self._file_open, "Ctrl+O")
         _add("Create with &AI...", self.show_ai_workspace)
+        _add("Generate from &recipe...", self._file_generate_from_recipe)
         fm.addSeparator()
         _add("&Save .am3d", self._file_save, "Ctrl+S")
         _add("Save &As .am3d...", self._file_save_as)
@@ -752,6 +760,60 @@ class MainWindow(QMainWindow):
         except Exception as exc:
             QMessageBox.critical(self, "Open failed", str(exc))
 
+    def _file_generate_from_recipe(self):
+        """Open the M2 local-generation bridge for an authored recipe-v1."""
+        from .generation_dialog import GenerationDialog
+        dialog = GenerationDialog(self._generation_runner,
+                                  self._open_generated_generation, self)
+        dialog.exec()
+
+    def _poll_generation_worker(self):
+        """Keep child cleanup progressing even when its dialog is hidden."""
+        self._generation_runner.poll()
+        if self._close_after_generation and not self._generation_runner.running:
+            self._close_after_generation = False
+            QTimer.singleShot(0, self.close)
+
+    def _open_generated_generation(self, run_id: str) -> bool:
+        """Open only a verified writable copy through the normal document path."""
+        working_copy = self._generation_runner.create_writable_project_copy(run_id)
+        try:
+            if not self.doc_ctrl.maybe_abandon_document():
+                working_copy.unlink(missing_ok=True)
+                return False
+            self.doc_ctrl.do_open(str(working_copy))
+            self.doc_ctrl.add_recent(str(working_copy))
+            self._reset_document_ui_state()
+            self._refresh_all()
+            self._fit_viewport_to_scene()
+            self.show_editor()
+            return True
+        except Exception:
+            if self.doc_ctrl.path != str(working_copy):
+                working_copy.unlink(missing_ok=True)
+            raise
+
+    def _fit_viewport_to_scene(self):
+        """Center the orbit camera on the newly opened generated scene."""
+        try:
+            import numpy as np
+            scene = self.session.evaluate_scene(visible_only=True,
+                                                apply_transforms=True)
+            low, high = scene.bounds
+            low = np.asarray(low, dtype=np.float64)
+            high = np.asarray(high, dtype=np.float64)
+            if not (np.isfinite(low).all() and np.isfinite(high).all()):
+                return
+            radius = max(float(np.linalg.norm(high - low)) * 0.5, 0.1)
+            camera = self.viewport.camera
+            camera.target = (low + high) * 0.5
+            camera.distance = min(200.0, max(
+                radius / np.tan(np.radians(camera.fov) * 0.5), 0.5))
+            self.viewport._dirty = True
+            self.viewport.update()
+        except Exception:
+            return
+
     def _reset_document_ui_state(self):
         """Reset viewport, selection, panels, and playback after doc replacement."""
         # Stop playback. setChecked(False) runs _on_play_toggled, which
@@ -1018,6 +1080,13 @@ class MainWindow(QMainWindow):
 
     def closeEvent(self, event):
         """Warn about unsaved changes on close."""
+        if self._generation_runner.running:
+            self._close_after_generation = True
+            self._generation_runner.cancel()
+            self.statusBar().showMessage(
+                "Cancelling local recipe generation before closing…")
+            event.ignore()
+            return
         if self.ai_controller.busy and not self._allow_deferred_close:
             self._close_after_ai = True
             self.ai_controller.request_shutdown()
@@ -1026,6 +1095,7 @@ class MainWindow(QMainWindow):
         self._allow_deferred_close = False
         if self.doc_ctrl.maybe_abandon_document():
             self.doc_ctrl.clear_autosave()
+            self._generation_poll_timer.stop()
             event.accept()
         else:
             self._close_after_ai = False

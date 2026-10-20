@@ -20,7 +20,8 @@ from dataclasses import dataclass, field
 import numpy as np
 
 from ..core.paths import (classify_portable_relative_path,
-                          is_absolute_any_platform, normalize_separators)
+                          is_absolute_any_platform, normalize_separators,
+                          sanitize_filename_component)
 from .animation import generate_action
 from .primitives import build_primitive
 from .schema import (Recipe, RecipeValidationError, recipe_from_dict,
@@ -88,13 +89,30 @@ def _with_ext(path: str, ext: str) -> str:
     return path if current.lower() == ext.lower() else root + ext
 
 
+def _destination_key(path: str) -> str:
+    """Portable identity for a final destination, including Windows casing."""
+    absolute = os.path.realpath(os.path.abspath(os.fspath(path)))
+    return os.path.normcase(os.path.normpath(absolute)).replace("\\", "/").casefold()
+
+
+def _has_duplicate_destinations(staged_items) -> bool:
+    destinations = set()
+    for _, final_path, _, _ in staged_items:
+        key = _destination_key(final_path)
+        if key in destinations:
+            return True
+        destinations.add(key)
+    return False
+
+
 def _atlas_outdir(export_specs) -> str:
-    """Where to write baked atlases: the first export's directory."""
+    """Where to write atlas sidecars for the first OBJ export."""
     for spec in export_specs:
+        if str(spec.format).lower() != "obj":
+            continue
         parent = os.path.dirname(spec.path)
-        if parent:
-            return parent
-    return "." if export_specs else ""
+        return parent or "."
+    return ""
 
 
 def _artifact_object_name(name: str, index: int, safe_artifact_names: bool) -> str:
@@ -117,6 +135,15 @@ def _artifact_object_names(recipe_names, mesh_names, safe_artifact_names: bool) 
     names.extend(name for name in mesh_names if name not in known)
     return {name: _artifact_object_name(name, index, safe_artifact_names)
             for index, name in enumerate(names)}
+
+
+def _named_sheet_path(path: str, object_name: str) -> str:
+    """Derive a portable per-object PNG path while preserving the full stem."""
+    stem, suffix = os.path.splitext(path)
+    if suffix.lower() != ".png":
+        stem = path
+    safe_name = sanitize_filename_component(object_name)
+    return f"{stem}_{safe_name}.png"
 
 
 def _recipe_profile_generator(obj, primitive, params, session):
@@ -218,7 +245,8 @@ class RecipeExecutor:
 
     def __init__(self, session=None, *, output_root: str | None = None,
                  base_dir: str | None = None,
-                 safe_artifact_names: bool = False):
+                 safe_artifact_names: bool = False,
+                 ai_mode: bool = False):
         if session is None:
             from am3d.core.script import Session
             session = Session()
@@ -228,6 +256,7 @@ class RecipeExecutor:
         self.base_dir = (os.path.abspath(os.fspath(base_dir))
                          if base_dir is not None else None)
         self.safe_artifact_names = bool(safe_artifact_names)
+        self.ai_mode = bool(ai_mode)
 
     @staticmethod
     def _commit_session(target, candidate) -> None:
@@ -293,6 +322,26 @@ class RecipeExecutor:
                     "invalid_type", "export path must be a string or path-like value",
                     path=f"recipe.exports[{index}].path") from exc
 
+    def _recheck_final_path(self, path: str, index: int) -> None:
+        """Recheck a derived destination immediately before publication."""
+        if self.output_root is None:
+            return
+        root = os.path.realpath(os.path.abspath(self.output_root))
+        candidate = os.path.realpath(os.path.abspath(os.fspath(path)))
+        try:
+            common = os.path.commonpath((root, candidate))
+        except ValueError as exc:
+            raise RecipeValidationError(
+                "output_path_escape",
+                f"derived export path escapes the output root: {exc}",
+                path=f"recipe.exports[{index}].path", stage="resource") from exc
+        if candidate == root or common != root:
+            raise RecipeValidationError(
+                "output_path_escape",
+                "derived export path escapes the output root",
+                path=f"recipe.exports[{index}].path", stage="resource",
+                hint="Use a relative path within the host-chosen output root.")
+
     @staticmethod
     def _record_artifact(res: ExecutionResult, fmt: str, path: str,
                          metadata: dict | None = None) -> None:
@@ -334,7 +383,7 @@ class RecipeExecutor:
             else:
                 recipe = copy.deepcopy(recipe)
 
-            problems = validate_recipe(recipe)
+            problems = validate_recipe(recipe, ai_mode=self.ai_mode)
             if problems:
                 for problem in problems:
                     if hasattr(problem, "to_record"):
@@ -347,6 +396,25 @@ class RecipeExecutor:
                                          stage="schema")
                 return result
 
+            if self.ai_mode and recipe.exports and self.output_root is None:
+                result.add_error(
+                    "AI-mode exports require a host-chosen output root",
+                    code="missing_output_root", stage="resource", path="--out",
+                    hint="Provide a private output_root when creating the executor.")
+                return result
+
+            if self.ai_mode:
+                from .resources import (estimate_recipe_resources,
+                                        resource_limit_issues)
+                estimate = estimate_recipe_resources(recipe)
+                for issue in resource_limit_issues(estimate):
+                    result.add_error(
+                        issue["message"], code=issue["code"],
+                        stage=issue["stage"], path=issue["path"],
+                        hint=issue.get("hint"))
+                if not result.ok:
+                    return result
+
             self._prepare_output_paths(recipe)
             from am3d.core.script import Session
             candidate = Session()
@@ -355,6 +423,16 @@ class RecipeExecutor:
             self._build_objects(recipe, result)
             self._build_materials(recipe, result)
             self._build_actions(recipe, result)
+            if self.ai_mode:
+                from .resources import built_scene_limit_issues
+                for issue in built_scene_limit_issues(self.session, recipe):
+                    result.add_error(
+                        issue["message"], code=issue["code"],
+                        stage=issue["stage"], path=issue["path"],
+                        hint=issue.get("hint"))
+                if not result.ok:
+                    return result
+            self._check_action_effects(recipe, result)
             if not result.ok:
                 return result
             self._run_exports(recipe, result)
@@ -364,9 +442,14 @@ class RecipeExecutor:
             if isinstance(exc, RecipeValidationError):
                 result.add_error(str(exc), code=exc.code, stage=exc.stage,
                                  path=exc.path, hint=exc.hint)
+            elif isinstance(exc, MemoryError):
+                result.add_error(
+                    "generation exceeded the available memory limit",
+                    code="resource_exhausted", stage="resource",
+                    path="recipe",
+                    hint="Reduce geometry, texture, or render sizes and retry.")
             elif isinstance(exc, FileNotFoundError):
-                target_file = exc.filename or str(exc)
-                result.add_error(f"resource file not found: {target_file}",
+                result.add_error("resource file not found",
                                  code="missing_resource", stage="resource",
                                  path="recipe.materials",
                                  hint="Check that all texture or image resource paths exist relative to base_dir or project root.")
@@ -382,7 +465,7 @@ class RecipeExecutor:
         from am3d.core.rigging import auto_weight_object
 
         s = self.session
-        for spec in recipe.objects:
+        for object_index, spec in enumerate(recipe.objects):
             s.create_object(spec.name)
             obj = s.get_object(spec.name)
 
@@ -402,8 +485,8 @@ class RecipeExecutor:
             built = (build_primitive(spec.primitive, prim_params)
                      if spec.primitive else {"patches": [], "splines": []})
 
-            for idx, sr in enumerate(spec.splines):
-                name = sr.name if sr.name != "spline" else f"spline_{idx}"
+            for spline_index, sr in enumerate(spec.splines):
+                name = sr.name if sr.name != "spline" else f"spline_{spline_index}"
                 s.add_spline(spec.name, sr.points, degree=sr.degree,
                              name=name, closed=sr.closed)
 
@@ -423,7 +506,7 @@ class RecipeExecutor:
                     f"bone {br.name!r} on object {spec.name!r} names a parent "
                     f"{br.parent!r} that is not defined on the same object",
                     code="missing_reference", stage="schema",
-                    path=f"recipe.objects[{idx}].bones",
+                    path=f"recipe.objects[{object_index}].bones",
                     hint="Every bone parent must be another bone of the same "
                          "object, and the parent chain must not be circular.")
             for br in ordered_bones:
@@ -560,6 +643,74 @@ class RecipeExecutor:
                 s.set_active_action(act.name)
             res.actions.append(act.name)
 
+    def _check_action_effects(self, recipe: Recipe, res: ExecutionResult) -> None:
+        """Report actions that are assigned but move no bound geometry."""
+        if not recipe.actions:
+            return
+        for index, spec in enumerate(recipe.actions):
+            action = self.session.actions.get(spec.name)
+            if action is None:
+                continue
+            if not any(action_name == spec.name
+                       for action_name in self.session.action_assignments.values()):
+                continue
+            bound_names = {
+                obj.name for obj in recipe.objects
+                if (obj.name == spec.character or
+                    (isinstance(obj.params, dict) and
+                     obj.params.get("skeleton") == spec.character))
+                and (obj.primitive or obj.splines)
+                and any(getattr(bone, "cp_weights", None)
+                        for bone in self.session.get_bones(obj.name))
+            }
+            if not bound_names:
+                self._record_action_effect_failure(res, index, spec.name)
+                continue
+            duration = float(getattr(action, "duration", spec.duration) or spec.duration)
+            key_times = sorted({float(key.time)
+                                for channel in action.channels
+                                for key in channel.keys})
+            if len(key_times) > 32:
+                key_times = [key_times[round(i * (len(key_times) - 1) / 31)]
+                             for i in range(32)]
+            sample_times = sorted({0.0, duration * 0.25, duration * 0.5,
+                                   duration * 0.75, duration, *key_times})
+            baseline = self.session.evaluate_scene(
+                action_name=spec.name, time=0.0, visible_only=False,
+                nu=8, nv=8, apply_transforms=True)
+            moved = False
+            for sample_time in sample_times:
+                if abs(sample_time) <= 1e-12:
+                    continue
+                sampled = self.session.evaluate_scene(
+                    action_name=spec.name, time=sample_time,
+                    visible_only=False, nu=8, nv=8, apply_transforms=True)
+                for object_name in bound_names:
+                    mesh = baseline.meshes.get(object_name)
+                    other = sampled.meshes.get(object_name)
+                    if (mesh is not None and other is not None and
+                            mesh.vertices.shape == other.vertices.shape and
+                            mesh.vertices.size and
+                            not np.allclose(mesh.vertices, other.vertices,
+                                            rtol=1e-7, atol=1e-8)):
+                        moved = True
+                        break
+                if moved:
+                    break
+            if not moved:
+                self._record_action_effect_failure(res, index, spec.name)
+
+    def _record_action_effect_failure(self, res: ExecutionResult, index: int,
+                                      action_name: str) -> None:
+        message = f"action {action_name!r} changes no bound geometry"
+        path = f"recipe.actions[{index}]"
+        if self.ai_mode:
+            res.add_error(message, code="no_action_effect", stage="check",
+                          path=path,
+                          hint="Bind geometry to this character and ensure the action moves its weighted bones.")
+        else:
+            res.warnings.append(f"{path}: {message}")
+
     def _bake_atlases(self, recipe):
         """Per-object baked texture atlases from the recipe materials.
 
@@ -637,7 +788,10 @@ class RecipeExecutor:
         from am3d.renderer.sprite import save_sprite_sheet
         from am3d.renderer.tessellate import tessellate_project
 
-        atlases = self._bake_atlases(recipe)
+        mesh_formats = {normalize_export_format(spec.format)
+                        for spec in recipe.exports}
+        atlases = (self._bake_atlases(recipe)
+                   if mesh_formats.intersection({"obj", "glb"}) else {})
         atlas_dir = _atlas_outdir(recipe.exports)
 
         # Stage all exports into a temporary directory first.
@@ -655,6 +809,8 @@ class RecipeExecutor:
                     try:
                         self.session.save_project(staged_path)
                         staged_items.append((staged_path, final_path, fmt, {"format": "am3d", "version": 2}))
+                    except (MemoryError, RecipeValidationError):
+                        raise
                     except Exception as exc:
                         res.add_error(
                             f"failed to export .am3d project: {exc}",
@@ -677,7 +833,10 @@ class RecipeExecutor:
                     # write_obj derives the sidecar filename and the OBJ's
                     # `mtllib` reference from this path's stem, and both
                     # must match what actually lands next to final_path.
-                    staged_path = os.path.join(stage_dir, os.path.basename(final_path))
+                    obj_stage_dir = os.path.join(stage_dir, f"export_{index}")
+                    os.makedirs(obj_stage_dir, exist_ok=True)
+                    staged_path = os.path.join(
+                        obj_stage_dir, os.path.basename(final_path))
                     # Baked atlases carry pattern/texture appearance into
                     # the export instead of collapsing to a flat colour
                     # (finding MAT-01). Only objects actually in this export.
@@ -713,10 +872,12 @@ class RecipeExecutor:
                         for obj_name in obj_textures:
                             img = texture_filename(stem, obj_name)
                             staged_items.append((
-                                os.path.join(stage_dir, img),
+                                os.path.join(obj_stage_dir, img),
                                 os.path.join(os.path.dirname(final_path), img),
                                 "png",
                                 {"format": "png", "sidecar_of": final_path}))
+                    except (MemoryError, RecipeValidationError):
+                        raise
                     except Exception as exc:
                         res.add_error(
                             f"failed to write OBJ: {exc}",
@@ -745,6 +906,8 @@ class RecipeExecutor:
                                   textures={object_ids[n]: a for n, a in atlases.items()
                                             if n in meshes} or None)
                         staged_items.append((staged_path, final_path, fmt, {"format": "glb", "mesh_count": len(meshes)}))
+                    except (MemoryError, RecipeValidationError):
+                        raise
                     except Exception as exc:
                         res.add_error(
                             f"failed to write GLB: {exc}",
@@ -761,8 +924,9 @@ class RecipeExecutor:
                     p = dict(spec.params)
                     for object_index, (oname, mesh) in enumerate(meshes.items()):
                         artifact_name = _artifact_object_name(
-                            oname, object_index, self.safe_artifact_names)
-                        final_path = _with_ext(f"{base}_{artifact_name}", ".png")
+                            oname, object_index, True) if self.safe_artifact_names else (
+                                sanitize_filename_component(oname))
+                        final_path = _named_sheet_path(base, artifact_name)
                         staged_path = os.path.join(stage_dir,
                                                    f"export_{index}_{artifact_name}.png")
                         views = int(p.get("views", 8))
@@ -786,6 +950,8 @@ class RecipeExecutor:
                                                 bands=int(p.get("bands", 4)),
                                                 ink=bool(p.get("ink", True)))
                             staged_items.append((staged_path, final_path, fmt, meta))
+                        except (MemoryError, RecipeValidationError):
+                            raise
                         except Exception as exc:
                             res.add_error(
                                 f"failed to generate {fmt} for {oname!r}: {exc}",
@@ -852,6 +1018,8 @@ class RecipeExecutor:
                                 "columns": cols, "rows": rows, "size": size,
                                 "action": action_name, "start": t_start, "end": t_end}
                         staged_items.append((staged_path, final_path, fmt, meta))
+                    except (MemoryError, RecipeValidationError):
+                        raise
                     except Exception as exc:
                         res.add_error(
                             f"failed to render animation_sheet: {exc}",
@@ -878,27 +1046,59 @@ class RecipeExecutor:
                     final_path = _with_ext(
                         os.path.join(atlas_dir, f"{artifact_name}_atlas"), ".png")
                     staged_path = os.path.join(stage_dir, f"atlas_{artifact_name}.png")
-                    meta = {"format": "png", "object": oname, "width": getattr(atlas, "width", 256), "height": getattr(atlas, "height", 256)}
+                    if hasattr(atlas, "shape") and len(atlas.shape) >= 2:
+                        height, width = int(atlas.shape[0]), int(atlas.shape[1])
+                    else:
+                        width = int(getattr(atlas, "width", 256))
+                        height = int(getattr(atlas, "height", 256))
+                    meta = {"object": oname, "width": width, "height": height}
                     try:
                         save_image(atlas, staged_path)
                         staged_items.append((staged_path, final_path, "atlas", meta))
+                    except (MemoryError, RecipeValidationError):
+                        raise
                     except Exception as exc:
                         res.add_error(
                             f"atlas for {oname!r} not saved: {exc}",
                             code="write_error", stage="write",
                             path="recipe.materials")
 
-            # Only publish if ALL staged exports succeeded without errors
+            # Only publish if ALL staged exports succeeded without errors.
             if not res.ok:
                 return
 
-            # Publish staged artifacts safely to final paths
+            if self.ai_mode:
+                from .resources import LIMITS
+                staged_bytes = sum(
+                    os.path.getsize(item[0]) for item in staged_items
+                    if os.path.isfile(item[0]))
+                if staged_bytes > LIMITS["published_bytes"]:
+                    res.add_error(
+                        f"staged output is {staged_bytes} bytes; AI-mode limit is {LIMITS['published_bytes']} bytes",
+                        code="resource_limit", stage="resource",
+                        path="recipe.exports",
+                        hint="Reduce the number or size of exports and retry.")
+                    return
+
+            if _has_duplicate_destinations(staged_items):
+                res.add_error(
+                    "multiple staged artifacts target the same final destination; no files were published",
+                    code="duplicate_export_destination", stage="resource",
+                    path="recipe.exports",
+                    hint="Choose distinct paths for each export and derived sidecar.")
+                return
+
+            # Publish staged artifacts safely to final paths.
             for staged_path, final_path, fmt, meta in staged_items:
+                self._recheck_final_path(final_path, 0)
                 _ensure_parent(final_path)
                 try:
+                    self._recheck_final_path(final_path, 0)
                     shutil.copy2(staged_path, final_path)
                     res.exports.append((fmt, final_path))
                     self._record_artifact(res, fmt, final_path, metadata=meta)
+                except (MemoryError, RecipeValidationError):
+                    raise
                 except Exception as exc:
                     res.add_error(
                         f"failed to publish artifact to {final_path!r}: {exc}",

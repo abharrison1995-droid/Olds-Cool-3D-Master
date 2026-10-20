@@ -1,6 +1,7 @@
 """Packaged smoke mode: drive the real MainWindow through a representative
 workflow so a broken packaged build fails at build time, not at a user's
-first launch.  See docs/V3_FUNCTIONAL_IMPLEMENTATION_PLAN.md Phase 6
+first launch. See docs/V1_PLAN.md M0/M6 for the active documentation and
+release qualification gates.
 bullet 4.
 
 Invoked via ``3D MASTER 2005.exe --smoke-test --out <manifest.json>``

@@ -22,6 +22,13 @@ if len(sys.argv) >= 2 and sys.argv[1] == "--internal-ai-worker":
 
     raise SystemExit(internal_worker_main(sys.argv[2:]))
 
+# The earlier M3 local-generation worker remains namespaced so it can coexist
+# with the V1 AI workflow under am3d.ai.
+if len(sys.argv) >= 2 and sys.argv[1] == "--am3d-generation-worker":
+    from am3d.ai.m3.worker import main as generation_worker_main
+
+    raise SystemExit(generation_worker_main(sys.argv[2:]))
+
 # The build's fixed AI acceptance harness is also data-only and must start
 # before importing the Qt application. It accepts only a host output folder;
 # the implementation owns its provider mock, prompts, recipes and checks.

@@ -1,0 +1,5 @@
+{
+  "name": "legacy_mix",
+  "objects": [{"name": "ball", "primitive": "sphere"}],
+  "materials": [{"name": "legacy_material", "graph": [{"type": "mix"}]}]
+}

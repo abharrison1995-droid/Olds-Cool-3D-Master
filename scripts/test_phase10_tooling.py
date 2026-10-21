@@ -1037,6 +1037,11 @@ def test_readonly_relocation_checks_workflow_while_payload_writes_are_denied():
     assert restore_positions[0] < windows_block.index("$aclMutationAttempted = $true") < deny_position
     assert deny_position < workflow_position < restore_positions[1]
     assert '"*$($currentSid):(OI)(CI)(W)"' in windows_block
+    assert "$denyOutput = @(Invoke-Native {" in windows_block
+    assert '(?im)Successfully processed\\s+(\\d+)\\s+files?;\\s*Failed processing\\s+(\\d+)\\s+files?' in windows_block
+    assert '$denyFailedCount -ne 0' in windows_block
+    assert '"UNPASSED: Windows ACL denial could not be applied completely"' in windows_block
+    assert windows_block.index("$denyFailedCount -ne 0") < windows_block.index("$blockedWrites = 0")
     assert '"UNPASSED: Windows ACL restore capability unavailable"' in windows_block
     assert '"UNPASSED: restore capability not proven; payload ACL was not changed"' in windows_block
     assert 'if ($aclMutationAttempted) {' in windows_block

@@ -823,87 +823,111 @@ try {
                 # Set this before invoking icacls: a failing command can still
                 # have applied some of the recursive deny entries.
                 $aclMutationAttempted = $true
-                Invoke-Native { & $icacls.Source $verifiedReleaseDir /deny "*$($currentSid):(OI)(CI)(W)" /t /c }
-                if ($LASTEXITCODE -ne 0) { throw "Could not apply the relocated payload write denial." }
-                $blockedWrites = 0
-                try {
-                    Add-Content -LiteralPath (Join-Path $verifiedReleaseDir "README.txt") -Value "phase10-write-probe"
-                    $writeWasAllowed = $true
-                } catch { $blockedWrites++ }
-                try {
-                    [System.IO.File]::WriteAllText((Join-Path $verifiedReleaseDir "phase10-write-probe.txt"), "probe")
-                    $writeWasAllowed = $true
-                } catch { $blockedWrites++ }
-                if (-not $writeWasAllowed -and $blockedWrites -eq 2) {
-                    $script:readOnlyStatus = "passed"
-                }
-                if ($script:readOnlyStatus -eq "passed") {
-                    # Keep evidence writable outside the denied payload, then
-                    # exercise the fixed frozen AI path while its files reject
-                    # writes.
-                    $readOnlyAiHost = Join-Path $verifyRoot "readonly_ai_self_test_host"
-                    if (Test-Path -LiteralPath $readOnlyAiHost) {
-                        throw "Read-only AI acceptance output path already exists."
+                $denyOutput = @(Invoke-Native {
+                    & $icacls.Source $verifiedReleaseDir /deny "*$($currentSid):(OI)(CI)(W)" /t /c 2>&1
+                })
+                $denyOutputText = ($denyOutput | ForEach-Object { "$_" }) -join "`n"
+                $denySummary = [regex]::Match(
+                    $denyOutputText,
+                    "(?im)Successfully processed\s+(\d+)\s+files?;\s*Failed processing\s+(\d+)\s+files?")
+                $denyFailedCount = if ($denySummary.Success) { [int]$denySummary.Groups[2].Value } else { -1 }
+                $denySucceededCount = if ($denySummary.Success) { [int]$denySummary.Groups[1].Value } else { 0 }
+                $denyReportedAccessError = $denyOutputText -match "(?i)Access is denied"
+                if ($LASTEXITCODE -ne 0 -or -not $denySummary.Success -or
+                    $denyFailedCount -ne 0 -or $denySucceededCount -eq 0 -or
+                    $denyReportedAccessError) {
+                    $script:readOnlyStatus = "UNPASSED: Windows ACL denial could not be applied completely"
+                    $script:readOnlyWorkflowStatus = "UNPASSED: payload write denial could not be proven"
+                    foreach ($line in ($denyOutputText -split "`r?`n" | Where-Object {
+                                $_ -match "(?i)Access is denied|Successfully processed|Failed processing"
+                            })) {
+                        Write-Host "  icacls denial result: $line" -ForegroundColor Yellow
                     }
-                    Assert-Phase10PathWithinRoot -Target $readOnlyAiHost `
-                        -AllowedRoot $verifyRoot | Out-Null
-                    $readOnlyAiHostFull = [System.IO.Path]::GetFullPath($readOnlyAiHost)
-                    $readOnlyPayloadFull = [System.IO.Path]::GetFullPath($verifiedReleaseDir.FullName).TrimEnd('\') + '\'
-                    if ($readOnlyAiHostFull.StartsWith(
-                            $readOnlyPayloadFull,
-                            [System.StringComparison]::OrdinalIgnoreCase)) {
-                        throw "Read-only AI acceptance output must stay outside the payload."
-                    }
-                    New-Item -ItemType Directory -Path $readOnlyAiHost | Out-Null
-                    $readOnlyAiReportPath = Join-Path $readOnlyAiHost `
-                        "phase10-ai-self-test\acceptance.json"
-                    $readOnlyAiStdout = Join-Path $readOnlyAiHost "readonly_ai_self_test_stdout.txt"
-                    $readOnlyAiStderr = Join-Path $readOnlyAiHost "readonly_ai_self_test_stderr.txt"
-                    $prevQtPlatformReadOnly = $env:QT_QPA_PLATFORM
-                    $env:QT_QPA_PLATFORM = "offscreen"
+                } else {
+                    $blockedWrites = 0
                     try {
-                        $readOnlyAiPsi = New-Object System.Diagnostics.ProcessStartInfo
-                        $readOnlyAiPsi.FileName = $verifiedExe
-                        $readOnlyAiPsi.Arguments = "--ai-self-test --out `"$readOnlyAiHost`""
-                        $readOnlyAiPsi.UseShellExecute = $false
-                        $readOnlyAiPsi.CreateNoWindow = $true
-                        $readOnlyAiPsi.RedirectStandardOutput = $true
-                        $readOnlyAiPsi.RedirectStandardError = $true
-                        $readOnlyAiProc = [System.Diagnostics.Process]::Start($readOnlyAiPsi)
-                        $readOnlyAiStdoutTask = $readOnlyAiProc.StandardOutput.ReadToEndAsync()
-                        $readOnlyAiStderrTask = $readOnlyAiProc.StandardError.ReadToEndAsync()
-                        $readOnlyAiFinished = $readOnlyAiProc.WaitForExit(120000)
-                        if (-not $readOnlyAiFinished) {
-                            Stop-Process -Id $readOnlyAiProc.Id -Force -ErrorAction SilentlyContinue
-                            $readOnlyAiWorkflowPassed = $false
-                        } else {
-                            $readOnlyAiStdoutTask.Result | Out-File -FilePath $readOnlyAiStdout -Encoding utf8
-                            $readOnlyAiStderrTask.Result | Out-File -FilePath $readOnlyAiStderr -Encoding utf8
-                            $readOnlyAiWorkflowPassed = $false
-                            if ($readOnlyAiProc.ExitCode -eq 0 -and
-                                (Test-Path -LiteralPath $readOnlyAiReportPath)) {
-                                $readOnlyAiReport = Get-Content -LiteralPath $readOnlyAiReportPath -Raw |
-                                    ConvertFrom-Json
-                                $readOnlyAiWorkflowPassed = (
-                                    $readOnlyAiReport.ok -eq $true -and
-                                    $readOnlyAiReport.mode -eq "frozen" -and
-                                    $readOnlyAiReport.qualification -eq "offline-fixed-mock-transport" -and
-                                    $readOnlyAiReport.live_network_used -eq $false -and
-                                    $readOnlyAiReport.provider_requests -eq 4 -and
-                                    $readOnlyAiReport.credential_sentinel_written -eq $false -and
-                                    $readOnlyAiReport.worker_and_checks -eq "passed" -and
-                                    $readOnlyAiReport.refinement -eq "passed")
+                        Add-Content -LiteralPath (Join-Path $verifiedReleaseDir "README.txt") -Value "phase10-write-probe"
+                        $writeWasAllowed = $true
+                    } catch { $blockedWrites++ }
+                    try {
+                        [System.IO.File]::WriteAllText((Join-Path $verifiedReleaseDir "phase10-write-probe.txt"), "probe")
+                        $writeWasAllowed = $true
+                    } catch { $blockedWrites++ }
+                    if (-not $writeWasAllowed -and $blockedWrites -eq 2) {
+                        $script:readOnlyStatus = "passed"
+                    }
+                    if ($script:readOnlyStatus -eq "passed") {
+                        # Keep evidence writable outside the denied payload, then
+                        # exercise the fixed frozen AI path while its files reject
+                        # writes.
+                        $readOnlyAiHost = Join-Path $verifyRoot "readonly_ai_self_test_host"
+                        if (Test-Path -LiteralPath $readOnlyAiHost) {
+                            throw "Read-only AI acceptance output path already exists."
+                        }
+                        Assert-Phase10PathWithinRoot -Target $readOnlyAiHost `
+                            -AllowedRoot $verifyRoot | Out-Null
+                        $readOnlyAiHostFull = [System.IO.Path]::GetFullPath($readOnlyAiHost)
+                        $readOnlyPayloadFull = [System.IO.Path]::GetFullPath($verifiedReleaseDir.FullName).TrimEnd('\') + '\'
+                        if ($readOnlyAiHostFull.StartsWith(
+                                $readOnlyPayloadFull,
+                                [System.StringComparison]::OrdinalIgnoreCase)) {
+                            throw "Read-only AI acceptance output must stay outside the payload."
+                        }
+                        New-Item -ItemType Directory -Path $readOnlyAiHost | Out-Null
+                        $readOnlyAiReportPath = Join-Path $readOnlyAiHost `
+                            "phase10-ai-self-test\acceptance.json"
+                        $readOnlyAiStdout = Join-Path $readOnlyAiHost "readonly_ai_self_test_stdout.txt"
+                        $readOnlyAiStderr = Join-Path $readOnlyAiHost "readonly_ai_self_test_stderr.txt"
+                        $prevQtPlatformReadOnly = $env:QT_QPA_PLATFORM
+                        $env:QT_QPA_PLATFORM = "offscreen"
+                        try {
+                            $readOnlyAiPsi = New-Object System.Diagnostics.ProcessStartInfo
+                            $readOnlyAiPsi.FileName = $verifiedExe
+                            $readOnlyAiPsi.Arguments = "--ai-self-test --out `"$readOnlyAiHost`""
+                            $readOnlyAiPsi.UseShellExecute = $false
+                            $readOnlyAiPsi.CreateNoWindow = $true
+                            $readOnlyAiPsi.RedirectStandardOutput = $true
+                            $readOnlyAiPsi.RedirectStandardError = $true
+                            $readOnlyAiProc = [System.Diagnostics.Process]::Start($readOnlyAiPsi)
+                            $readOnlyAiStdoutTask = $readOnlyAiProc.StandardOutput.ReadToEndAsync()
+                            $readOnlyAiStderrTask = $readOnlyAiProc.StandardError.ReadToEndAsync()
+                            $readOnlyAiFinished = $readOnlyAiProc.WaitForExit(120000)
+                            if (-not $readOnlyAiFinished) {
+                                Stop-Process -Id $readOnlyAiProc.Id -Force -ErrorAction SilentlyContinue
+                                $readOnlyAiWorkflowPassed = $false
+                            } else {
+                                $readOnlyAiStdoutTask.Result | Out-File -FilePath $readOnlyAiStdout -Encoding utf8
+                                $readOnlyAiStderrTask.Result | Out-File -FilePath $readOnlyAiStderr -Encoding utf8
+                                $readOnlyAiWorkflowPassed = $false
+                                if ($readOnlyAiProc.ExitCode -eq 0 -and
+                                    (Test-Path -LiteralPath $readOnlyAiReportPath)) {
+                                    $readOnlyAiReport = Get-Content -LiteralPath $readOnlyAiReportPath -Raw |
+                                        ConvertFrom-Json
+                                    $readOnlyAiWorkflowPassed = (
+                                        $readOnlyAiReport.ok -eq $true -and
+                                        $readOnlyAiReport.mode -eq "frozen" -and
+                                        $readOnlyAiReport.qualification -eq "offline-fixed-mock-transport" -and
+                                        $readOnlyAiReport.live_network_used -eq $false -and
+                                        $readOnlyAiReport.provider_requests -eq 4 -and
+                                        $readOnlyAiReport.credential_sentinel_written -eq $false -and
+                                        $readOnlyAiReport.worker_and_checks -eq "passed" -and
+                                        $readOnlyAiReport.refinement -eq "passed")
+                                }
                             }
+                            if ($readOnlyAiWorkflowPassed) {
+                                $script:readOnlyWorkflowStatus = "passed"
+                            } else {
+                                $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow failed under write-denied payload"
+                            }
+                        } catch {
+                            $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow could not be verified"
+                        } finally {
+                            $env:QT_QPA_PLATFORM = $prevQtPlatformReadOnly
                         }
-                        if ($readOnlyAiWorkflowPassed) {
-                            $script:readOnlyWorkflowStatus = "passed"
-                        } else {
-                            $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow failed under write-denied payload"
-                        }
-                    } catch {
-                        $script:readOnlyWorkflowStatus = "UNPASSED: fixed offline AI workflow could not be verified"
-                    } finally {
-                        $env:QT_QPA_PLATFORM = $prevQtPlatformReadOnly
+                    } elseif ($writeWasAllowed) {
+                        $script:readOnlyStatus = "UNPASSED: payload write was allowed despite ACL denial"
+                    } else {
+                        $script:readOnlyStatus = "UNPASSED: payload write denial could not be proven"
                     }
                 }
             }

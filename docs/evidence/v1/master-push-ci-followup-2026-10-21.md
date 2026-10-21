@@ -50,5 +50,17 @@ python -m pytest -q am3d/gpu/test_gpu.py am3d/gpu/test_scene_render.py am3d/ui/t
 35 passed, 3 skipped in 67.10s
 ```
 
-The next master push is required to rerun the full Windows candidate build. This focused result
-does not qualify physical GPU rendering or Windows 11.
+The Windows candidate on `80e54b2af18b727888e73b98d9b2aba63b35298e` then reached its relocated
+CLI checks and failed in the ACL probe (run `39527699200`). The `icacls` recursive deny output
+reported `Access is denied` and `Failed processing 1 files`, even though the command's exit code
+did not stop the script. The script proceeded to write probes without proving the deny, and the
+candidate job failed before frozen acceptance and independent export verification.
+
+The ACL gate now captures the `icacls` output and requires a clean per-file summary with zero
+failures before probing writes. If the recursive deny is partial or cannot be verified, the
+script restores the saved ACLs and records an explicit `UNPASSED` result while continuing the
+other candidate checks. A successful deny followed by an allowed payload write remains a hard
+failure. Local verification after this correction: `scripts/test_phase10_tooling.py` passed
+(45 passed, 4 skipped), `build_windows.ps1` parsed successfully, and `git diff --check` passed.
+Fresh GitHub CI is required to verify the corrected frozen Windows candidate. This does not
+qualify physical GPU rendering or Windows 11.

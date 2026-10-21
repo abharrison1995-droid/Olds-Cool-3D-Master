@@ -62,5 +62,23 @@ script restores the saved ACLs and records an explicit `UNPASSED` result while c
 other candidate checks. A successful deny followed by an allowed payload write remains a hard
 failure. Local verification after this correction: `scripts/test_phase10_tooling.py` passed
 (45 passed, 4 skipped), `build_windows.ps1` parsed successfully, and `git diff --check` passed.
-Fresh GitHub CI is required to verify the corrected frozen Windows candidate. This does not
-qualify physical GPU rendering or Windows 11.
+
+## Corrected candidate rerun
+
+Commit `60a2bf15bbe86e340f6dd350fde449a5a2b7840d` is pushed to `master`. The first attempt in
+run `39528735123` stopped during pytest at
+`test_real_offline_worker_store_receipt_is_anchored_once_and_rechecked` (84 passed before the
+failure). The same test passed standalone and in the local full Windows suite, so the failed
+attempt was rerun without source changes. The rerun passed the frozen build, frozen acceptance,
+and independent export verification. Linux fast tests (run `39528735076`) and the Windows
+local-generation worker (run `39528735156`) also passed for this commit.
+
+The candidate log explicitly records `UNPASSED: Windows ACL denial could not be applied
+completely` because `icacls` reported one failed item. The build restored the saved ACLs and
+continued through frozen acceptance and export verification; the ACL and fixed-workflow
+write-denial gates remain unpassed. The candidate job's success does not turn that explicit
+unpassed gate into a pass. Full local Windows source-suite verification completed with 1,180
+passed, 6 skipped, and 4 deprecation warnings in 605.43 seconds.
+
+Windows 11 qualification, native GPU rendering, live-provider qualification, and human scoring
+remain unpassed. The candidate CI run does not qualify those gates.

@@ -22,7 +22,7 @@ jobs:
       - name: Set up Python for independent export verification
         uses: actions/setup-python@v7
         with:
-          python-version: "3.12.14"
+          python-version: "3.12"
 
       - name: Build the frozen Windows candidate
         shell: pwsh

@@ -17,6 +17,7 @@ earlier state) is visible as incomplete rather than silently absent.
 
 from __future__ import annotations
 
+import os
 import time
 import traceback
 from pathlib import Path
@@ -197,6 +198,11 @@ def run_smoke_test(tmp_dir: Path) -> dict:
         # uniformly blank frame while every software test passed). When no
         # GL context can be created the comparison is recorded as skipped
         # rather than quietly counted as a pass.
+        if os.environ.get("AM3D_TEST_REAL_GPU", "").strip() != "1":
+            manifest["artifacts"]["gpu_parity"] = (
+                "skipped: real GPU tests disabled; set "
+                "AM3D_TEST_REAL_GPU=1 on a qualified graphics host")
+            return
         try:
             from am3d.gpu import create_offscreen_context
             probe = create_offscreen_context(16, 16)

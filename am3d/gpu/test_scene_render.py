@@ -9,6 +9,8 @@ mesh.
 
 from __future__ import annotations
 
+import os
+
 import numpy as np
 import pytest
 
@@ -229,6 +231,12 @@ def test_gbuffer_is_not_released_twice_when_release_itself_fails(
 # --- GPU-04: matrices must reach GL in the order GL reads them --------------
 
 def _has_gl():
+    # Creating a native GL context can crash some headless Windows runners at
+    # the C-extension boundary, before Python can catch an exception. These
+    # tests qualify real GPU rendering and therefore run only when explicitly
+    # enabled on a host selected for that gate.
+    if os.environ.get("AM3D_TEST_REAL_GPU", "").strip() != "1":
+        return False
     try:
         from am3d.gpu import create_offscreen_context
         ctx = create_offscreen_context(16, 16)
@@ -269,7 +277,11 @@ def test_matrix_uniforms_are_transposed_for_gl():
                        np.arange(16, dtype="f4").reshape(4, 4).T)
 
 
-@pytest.mark.skipif(not _has_gl(), reason="no offscreen GL context available")
+@pytest.mark.skipif(
+    not _has_gl(),
+    reason=("real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a "
+            "qualified graphics host"),
+)
 def test_the_gpu_pipeline_actually_draws_on_real_hardware(two_objects):
     """Regression: on a machine with a working GL 4.6 context the deferred
     pipeline produced a uniformly blank frame -- the G-buffer held nothing
@@ -281,7 +293,11 @@ def test_the_gpu_pipeline_actually_draws_on_real_hardware(two_objects):
     assert lit > 100, f"the GPU frame is blank ({lit} lit pixels)"
 
 
-@pytest.mark.skipif(not _has_gl(), reason="no offscreen GL context available")
+@pytest.mark.skipif(
+    not _has_gl(),
+    reason=("real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a "
+            "qualified graphics host"),
+)
 def test_gpu_and_software_renders_agree_on_where_the_geometry_is(two_objects):
     """GPU and forced-software output must place the scene in the same part
     of the frame; they shade differently, so only coverage is compared."""

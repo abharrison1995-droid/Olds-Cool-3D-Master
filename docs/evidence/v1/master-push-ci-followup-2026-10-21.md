@@ -26,3 +26,29 @@ The correction requires a new Windows candidate run. Until that run finishes, th
 not claim the candidate CI gate passed. The Windows 10 local evidence and unpassed Windows 11,
 native interaction, graphics, ACL, live-provider, and human-scoring gates remain governed by
 `ACCEPTANCE_LEDGER.md`.
+
+## Second push runs and native-context failure
+
+The corrected setup selected CPython `3.12.10` on Windows 2025. Linux fast tests and the
+Windows local-generation worker passed for commit `4e27ce81d833b776172d771392b18e17fce762bd`
+(runs `39527234842` and `39527234847`). The Windows candidate then reached pytest collection
+and failed at `am3d/gpu/test_scene_render.py::_has_gl` with a native ModernGL access violation
+(run `39527234862`). This is a separate failure from the unavailable exact Python patch; the
+build, frozen acceptance, and export verification did not run.
+
+The CI-only safety boundary was then applied from the independently reviewed GPU-gate change
+(`132ce3c`) and smoke-probe change (`87579da`), without importing their unrelated M3.2 adapter
+files. Unless a qualified test host sets `AM3D_TEST_REAL_GPU=1`, the test suite now uses the
+software fallback, skips real-context tests before context creation, and records GPU parity as
+skipped in smoke evidence. The native GPU gate remains unpassed.
+
+Focused verification on the Windows 10 execution host, with Qt offscreen and real-GPU opt-in
+unset:
+
+```text
+python -m pytest -q am3d/gpu/test_gpu.py am3d/gpu/test_scene_render.py am3d/ui/test_smoke.py
+35 passed, 3 skipped in 67.10s
+```
+
+The next master push is required to rerun the full Windows candidate build. This focused result
+does not qualify physical GPU rendering or Windows 11.

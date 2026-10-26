@@ -1,0 +1,78 @@
+918 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.8
+919 INFO: Python: 3.12.14
+1052 INFO: Platform: Windows-10-10.0.19044-SP0
+1053 INFO: Python environment: C:\Users\Alex\Desktop\Olds-Cool-3D-Master\build\windows\venv
+1058 INFO: Removing temporary files and cleaning cache in C:\Users\Alex\AppData\Local\pyinstaller
+1067 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python312.zip',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\DLLs',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source']
+2761 INFO: Appending 'datas' from .spec
+2762 INFO: checking Analysis
+2763 INFO: Building Analysis because Analysis-00.toc is non existent
+2763 INFO: Looking for Python shared library...
+2763 INFO: Using Python shared library: C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python312.dll
+2763 INFO: Running Analysis Analysis-00.toc
+2763 INFO: Target bytecode optimization level: 0
+2763 INFO: Initializing module dependency graph...
+2766 INFO: Initializing module graph hook caches...
+2822 INFO: Analyzing modules for base_library.zip ...
+7955 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+10327 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+13506 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+16061 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+17418 INFO: Caching module dependency graph...
+17555 INFO: Analyzing C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-source\am3d\recipes\__main__.py
+17673 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+18660 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+18660 INFO: SetuptoolsInfo: initializing cached setuptools info...
+21399 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+21869 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+23302 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+24895 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26170 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+26444 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+27740 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+31746 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+32108 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+33457 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+34050 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+35755 INFO: Processing module hooks (post-graph stage)...
+36558 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+36822 INFO: Performing binary vs. data reclassification (5 entries)
+36833 INFO: Looking for ctypes DLLs
+36917 INFO: Analyzing run-time hooks ...
+36920 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+36936 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+36945 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+36976 INFO: Creating base_library.zip...
+37064 INFO: Looking for dynamic libraries
+38669 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\numpy.libs']
+38669 INFO: Extra DLL search directories (PATH): []
+39786 INFO: Warnings written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d_recipe\warn-am3d_recipe.txt
+40019 INFO: Graph cross-reference written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d_recipe\xref-am3d_recipe.html
+40160 INFO: checking PYZ
+40160 INFO: Building PYZ because PYZ-00.toc is non existent
+40160 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d_recipe\PYZ-00.pyz
+42004 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d_recipe\PYZ-00.pyz completed successfully.
+42088 INFO: checking PKG
+42088 INFO: Building PKG because PKG-00.toc is non existent
+42089 INFO: Building PKG (CArchive) am3d-recipe.pkg
+57982 INFO: Building PKG (CArchive) am3d-recipe.pkg completed successfully.
+57983 INFO: Bootloader C:\Users\Alex\Desktop\Olds-Cool-3D-Master\build\windows\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\run.exe
+57983 INFO: checking EXE
+57983 INFO: Building EXE because EXE-00.toc is non existent
+57983 INFO: Building EXE from EXE-00.toc
+57983 INFO: Copying bootloader EXE to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-dist\am3d-recipe.exe
+58169 INFO: Copying icon to EXE
+58270 INFO: Copying 0 resources to EXE
+58270 INFO: Embedding manifest in EXE
+58353 INFO: Appending PKG archive to EXE
+58536 INFO: Fixing EXE headers
+59427 INFO: Building EXE from EXE-00.toc completed successfully.
+59440 INFO: Build complete! The results are available in: C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-dist

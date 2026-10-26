@@ -1,0 +1,23 @@
+{
+  "baseline_digest": "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa",
+  "optimized_digest": "294e131a5cfedb0fc20bd68a10a9f418779b02c71c8ac76c2a0263b01e51f2ec",
+  "changed_build_inputs": [
+    "am3d/ai/_animation_checks.py",
+    "am3d/ai/_generation_reports.py",
+    "am3d/ai/test_checks.py",
+    "am3d/ai/test_orchestrator.py",
+    "am3d/ai/test_worker.py",
+    "am3d/ai/worker.py",
+    "am3d/recipes/_export_staging.py",
+    "am3d/recipes/test_executor.py"
+  ],
+  "unchanged_writer_methods": [
+    "_stage_native",
+    "_stage_obj",
+    "_stage_glb",
+    "_stage_orbit_sheet",
+    "_stage_animation_sheet",
+    "stage_atlases"
+  ],
+  "author_review": "No independent reviewer. Reviewed shared-render failure fan-out, component ordering, sampling options, sample lifetime, save invalidation, animation bypass, staging/publication ownership and sanitized audit metadata. Existing guards remain distinct; live containment race reproduced using real NTFS handles for deletion and replacement; retry validates current links/containment once; final audit remains strict; original unclassified failure cannot be retrospectively attributed with certainty."
+}

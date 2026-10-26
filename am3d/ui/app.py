@@ -11,7 +11,6 @@ workspace.
 
 from __future__ import annotations
 
-import copy
 import sys
 from pathlib import Path
 
@@ -112,13 +111,9 @@ class MainWindow(QMainWindow):
 
         # Document controller owns the session, dirty state, and file ops.
         self.doc_ctrl = DocumentController(self)
-        from am3d.ai.m3.runner import GenerationRunner
-        self._generation_runner = GenerationRunner()
-        self._generation_poll_timer = QTimer(self)
-        self._generation_poll_timer.setInterval(100)
-        self._generation_poll_timer.timeout.connect(self._poll_generation_worker)
-        self._generation_poll_timer.start()
-        self._close_after_generation = False
+        from .generation_integration import GenerationIntegration
+        self._generation_ui = GenerationIntegration(self)
+        self._generation_ui.setup_legacy()
 
         # One lifecycle-owned autosave timer, created once and reused for
         # the life of the window; only its interval changes when the user
@@ -149,18 +144,7 @@ class MainWindow(QMainWindow):
         self.home = HomeWidget()
         self._connect_home()
         self.editor_widget = self._editor_widget  # built by _build_central
-        from .ai_controller import AIController
-        from .ai_workspace import AIWorkspace
-        self.ai_controller = AIController(self)
-        self.ai_controller.busy_changed.connect(self._on_ai_busy_changed)
-        self.ai_workspace = AIWorkspace(self.ai_controller, self)
-        self.ai_workspace.back_home.connect(self.show_home)
-        self.ai_workspace.settings_requested.connect(self._file_ai_settings)
-        self.ai_workspace.adoption_requested.connect(self._adopt_ai_project)
-        self.ai_workspace.refinement_requested.connect(
-            self._prepare_ai_refinement)
-        self.ai_controller.lifecycle_quiescent.connect(
-            self._continue_deferred_close)
+        self._generation_ui.setup_ai()
         self.stack = QStackedWidget()
         self.stack.addWidget(self.home)         # index 0
         self.stack.addWidget(self.editor_widget) # index 1
@@ -761,38 +745,11 @@ class MainWindow(QMainWindow):
             QMessageBox.critical(self, "Open failed", str(exc))
 
     def _file_generate_from_recipe(self):
-        """Open the M2 local-generation bridge for an authored recipe-v1."""
-        from .generation_dialog import GenerationDialog
-        dialog = GenerationDialog(self._generation_runner,
-                                  self._open_generated_generation, self)
-        dialog.exec()
-
+        return self._generation_ui.show_recipe_dialog()
     def _poll_generation_worker(self):
-        """Keep child cleanup progressing even when its dialog is hidden."""
-        self._generation_runner.poll()
-        if self._close_after_generation and not self._generation_runner.running:
-            self._close_after_generation = False
-            QTimer.singleShot(0, self.close)
-
+        return self._generation_ui.poll_legacy_worker()
     def _open_generated_generation(self, run_id: str) -> bool:
-        """Open only a verified writable copy through the normal document path."""
-        working_copy = self._generation_runner.create_writable_project_copy(run_id)
-        try:
-            if not self.doc_ctrl.maybe_abandon_document():
-                working_copy.unlink(missing_ok=True)
-                return False
-            self.doc_ctrl.do_open(str(working_copy))
-            self.doc_ctrl.add_recent(str(working_copy))
-            self._reset_document_ui_state()
-            self._refresh_all()
-            self._fit_viewport_to_scene()
-            self.show_editor()
-            return True
-        except Exception:
-            if self.doc_ctrl.path != str(working_copy):
-                working_copy.unlink(missing_ok=True)
-            raise
-
+        return self._generation_ui.open_legacy_generation(run_id)
     def _fit_viewport_to_scene(self):
         """Center the orbit camera on the newly opened generated scene."""
         try:
@@ -907,100 +864,11 @@ class MainWindow(QMainWindow):
             self.setMinimumSize(0, 0)
 
     def _on_ai_busy_changed(self, busy: bool):
-        """Keep provider configuration read-only during generation or copy."""
-        action = getattr(self, "_ai_settings_action", None)
-        if action is not None:
-            action.setEnabled(not busy)
-
+        return self._generation_ui.on_ai_busy_changed(busy)
     def _adopt_ai_project(self, project_path: str, history_available: bool):
-        """Adopt only a worker-created copy, after the normal dirty guard."""
-        if not self.doc_ctrl.maybe_abandon_document():
-            self.ai_workspace.adoption_finished(False, history_available)
-            return
-        try:
-            self.doc_ctrl.do_open(project_path)
-        except Exception:
-            from PySide6.QtWidgets import QMessageBox
-            QMessageBox.critical(
-                self, "Open generated project failed",
-                "The writable project copy could not be loaded. Your current project remains active.")
-            self.ai_workspace.adoption_finished(False, history_available)
-            return
-        self.doc_ctrl.add_recent(project_path)
-        self._reset_document_ui_state()
-        self._refresh_all()
-        self.ai_workspace.adoption_finished(True, history_available)
-        self.show_editor()
-
+        return self._generation_ui.adopt_ai_project(project_path, history_available)
     def _prepare_ai_refinement(self, parent_id: str, instruction: str):
-        """Resolve manual divergence before authorizing a recipe-only child."""
-        from PySide6.QtWidgets import QMessageBox
-        detail = self.ai_workspace._history_detail
-        record = detail.get("record") if isinstance(detail, dict) else None
-        authority_digest = detail.get("project_digest") if isinstance(detail, dict) else None
-        if (not isinstance(record, dict) or record.get("run_id") != parent_id
-                or record.get("status") != "complete"
-                or not isinstance(authority_digest, str)):
-            self.ai_workspace.history_status.setText(
-                "Select and verify the completed parent again before refining.")
-            return
-        try:
-            from am3d.core.serializer import project_content_digest
-            # Session.actions may contain unsaved action/keyframe edits that
-            # are not yet mirrored onto Project.actions. Include the explicit
-            # Session state in the authored digest.
-            project = self.session.project
-            generation_envelope = getattr(project, "generation", None)
-            generation_before = (copy.deepcopy(generation_envelope)
-                                 if isinstance(generation_envelope, dict)
-                                 else generation_envelope)
-            try:
-                current_digest = project_content_digest(
-                    project, actions=self.session.actions)
-            finally:
-                # The serializer's save path updates provenance divergence.
-                # A comparison is read-only, including when the user cancels.
-                if isinstance(generation_envelope, dict):
-                    generation_envelope.clear()
-                    generation_envelope.update(generation_before)
-                project.generation = generation_envelope
-        except Exception:
-            self.ai_workspace.history_status.setText(
-                "Current project changes could not be compared safely. No refinement was started.")
-            return
-        if current_digest != authority_digest:
-            box = QMessageBox(self)
-            box.setWindowTitle("Manual edits differ from the saved generation")
-            box.setIcon(QMessageBox.Warning)
-            box.setTextFormat(Qt.PlainText)
-            box.setText(
-                "Refinement uses the selected generation's saved recipe. It does not include or merge the current project's manual edits.")
-            box.setInformativeText(
-                "Save manual copy writes the current session through the ordinary Save As path, then refines the original saved generation. Refine original keeps the current session open and starts from the selected immutable recipe. Cancel leaves the session and undo history untouched.")
-            save_copy = box.addButton("Save manual copy", QMessageBox.ActionRole)
-            refine_original = box.addButton(
-                "Refine original generation", QMessageBox.AcceptRole)
-            cancel = box.addButton("Cancel", QMessageBox.RejectRole)
-            box.setDefaultButton(cancel)
-            box.exec()
-            clicked = box.clickedButton()
-            if clicked is save_copy:
-                try:
-                    saved_path = self.doc_ctrl.do_save_as()
-                except Exception:
-                    self.ai_workspace.history_status.setText(
-                        "The manual copy could not be saved. The current session remains open and no refinement was started.")
-                    return
-                if saved_path is None:
-                    self.ai_workspace.history_status.setText(
-                        "Save As was cancelled. The current session and undo history remain active; no refinement was started.")
-                    return
-            elif clicked is not refine_original:
-                self.ai_workspace.history_status.setText(
-                    "Refinement cancelled. The current session and undo history are unchanged.")
-                return
-        self.ai_workspace.launch_refinement(parent_id, instruction)
-
+        return self._generation_ui.prepare_ai_refinement(parent_id, instruction)
     def _connect_home(self):
         """Wire HomeWidget signals to MainWindow actions."""
         h = self.home
@@ -1103,13 +971,7 @@ class MainWindow(QMainWindow):
             event.ignore()
 
     def _continue_deferred_close(self):
-        """Finish close on the GUI thread after the owned worker has stopped."""
-        if not self._close_after_ai:
-            return
-        self._close_after_ai = False
-        self._allow_deferred_close = True
-        QTimer.singleShot(0, self.close)
-
+        return self._generation_ui.continue_deferred_close()
     def _on_index_changed(self, *args):
         """Refresh all panels on undo/redo."""
         self._refresh_all()

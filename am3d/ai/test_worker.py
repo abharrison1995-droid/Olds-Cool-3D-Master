@@ -589,3 +589,191 @@ def test_minimal_environment_does_not_copy_provider_credentials(tmp_path, monkey
     assert "OPENAI_API_KEY" not in env
     assert "HOME" not in env
     assert env["TEMP"] == extended_io_path(tmp_path / "private-temp")
+
+
+@pytest.mark.parametrize(("filename", "reason"), [
+    ("bad.txt", "unexpected_file"), ("CON.png", "reserved_name"),
+    ("trailing .png.", "path_syntax")])
+def test_audit_reasons_are_fixed_and_path_safe(tmp_path, filename, reason):
+    root = tmp_path / "private-output"
+    root.mkdir()
+    # Enumerate the name independently of filesystem normalization on Windows.
+    with pytest.MonkeyPatch.context() as patch:
+        patch.setattr(worker.os, "walk", lambda *a, **kw: iter([(str(root), [], [filename])]))
+        with pytest.raises(worker.PolicyError) as raised:
+            worker._verify_tree(root)
+    record = worker._audit_error_record(raised.value, "live")
+    assert record["code"] == "unsafe_output_tree"
+    assert record["audit_reason"] == reason
+    assert record["audit_phase"] == "live"
+    assert str(root) not in json.dumps(record)
+    assert worker._audit_error_record(raised.value, "final")["code"] == "worker_protocol"
+
+
+def test_audit_reason_does_not_trust_exception_attributes():
+    error = worker.PolicyError("unsafe_output_tree", "credential sentinel")
+    error.reason = "credential sentinel"
+    record = worker._audit_error_record(error, "live")
+    assert record["audit_reason"] == "audit_policy"
+    assert "sentinel" not in json.dumps(record)
+
+
+@pytest.mark.parametrize("phase", ["live", "final"])
+def test_parent_audit_reason_reaches_worker_result_without_paths(tmp_path, monkeypatch, phase):
+    original = worker._verify_tree
+
+    def deny(root, **kwargs):
+        live = bool(kwargs.get("include_scratch"))
+        if live == (phase == "live"):
+            raise worker._TreeAuditError("unsafe_output_tree", "private sentinel", "collision")
+        return original(root, **kwargs)
+
+    monkeypatch.setattr(worker, "_verify_tree", deny)
+    result = worker.run_worker(_recipe(), tmp_path / "worker-output", _deadline(), CancellationToken())
+    assert result["status"] == "worker_error"
+    record = result["error_records"][0]
+    assert record["audit_reason"] == "collision"
+    assert record["audit_phase"] == phase
+    assert record["code"] == ("unsafe_output_tree" if phase == "live" else "worker_protocol")
+    assert "sentinel" not in json.dumps(result)
+    assert str(tmp_path) not in json.dumps(result)
+
+
+@pytest.mark.parametrize("kind", ["file", "directory"])
+@pytest.mark.parametrize("missing", [False, True])
+def test_live_containment_race_ignores_only_confirmed_vanished_entries(tmp_path, monkeypatch, kind, missing):
+    root = tmp_path / "attempt"
+    root.mkdir()
+    candidate = root / ("staging.png" if kind == "file" else "staging")
+    if not missing:
+        if kind == "file":
+            candidate.write_bytes(b"present")
+        else:
+            candidate.mkdir()
+    realpath = worker.os.path.realpath
+    candidate_key = worker.os.path.normcase(str(candidate))
+
+    def relocated(path):
+        if worker.os.path.normcase(str(path)) == candidate_key:
+            return str(tmp_path / "outside" / candidate.name)
+        return realpath(path)
+
+    monkeypatch.setattr(worker.os.path, "realpath", relocated)
+    monkeypatch.setattr(worker.os, "walk", lambda *a, **kw: iter([
+        (str(root), [candidate.name] if kind == "directory" else [],
+         [candidate.name] if kind == "file" else [])]))
+    if missing:
+        assert worker._verify_tree(root, include_scratch=True) == ([], 0)
+    else:
+        with pytest.raises(worker.PolicyError, match="escaped"):
+            worker._verify_tree(root, include_scratch=True)
+    # A final audit must reject even a missing entry with an escaped resolution.
+    with pytest.raises(worker.PolicyError, match="escaped"):
+        worker._verify_tree(root)
+
+
+@pytest.mark.skipif(os.name != "nt", reason="Windows NTFS delete-during-resolution regression")
+@pytest.mark.parametrize("kind", ["file", "directory"])
+@pytest.mark.parametrize("publication", ["removed", "replaced"])
+def test_native_deleted_handle_path_is_tolerated_live_but_not_final(tmp_path, monkeypatch, kind, publication):
+    import ctypes
+    from ctypes import wintypes
+    root = tmp_path / "attempt"
+    root.mkdir()
+    candidate = root / ("staging.png" if kind == "file" else "staging")
+    kernel = ctypes.WinDLL("kernel32", use_last_error=True)
+    kernel.CreateFileW.argtypes = (wintypes.LPCWSTR, wintypes.DWORD, wintypes.DWORD,
+                                  ctypes.c_void_p, wintypes.DWORD, wintypes.DWORD, wintypes.HANDLE)
+    kernel.CreateFileW.restype = wintypes.HANDLE
+    kernel.GetFinalPathNameByHandleW.argtypes = (wintypes.HANDLE, wintypes.LPWSTR,
+                                               wintypes.DWORD, wintypes.DWORD)
+    kernel.GetFinalPathNameByHandleW.restype = wintypes.DWORD
+    kernel.CloseHandle.argtypes = (wintypes.HANDLE,)
+    original = worker.os.path.realpath
+    candidate_key = worker.os.path.normcase(str(candidate))
+    resolved_deleted_entries = []
+    armed = [True]
+
+    def delete_during_resolution(path):
+        if worker.os.path.normcase(str(path)) != candidate_key or not armed[0]:
+            return original(path)
+        armed[0] = False
+        # Emulate realpath's open/query/close window using the real NTFS API.
+        handle = kernel.CreateFileW(str(candidate), 0x80, 7, None, 3, 0x02000000, None)
+        assert handle != ctypes.c_void_p(-1).value
+        try:
+            candidate.unlink() if kind == "file" else candidate.rmdir()
+            if publication == "replaced":
+                candidate.write_bytes(b"replacement") if kind == "file" else candidate.mkdir()
+            buffer = ctypes.create_unicode_buffer(4096)
+            length = kernel.GetFinalPathNameByHandleW(handle, buffer, len(buffer), 0)
+            assert 0 < length < len(buffer)
+            resolved = buffer.value
+            if "$extend" not in resolved.casefold() or "$deleted" not in resolved.casefold():
+                pytest.skip("host filesystem does not expose NTFS deleted-handle paths")
+            resolved_deleted_entries.append(True)
+            return resolved
+        finally:
+            kernel.CloseHandle(handle)
+
+    monkeypatch.setattr(worker.os.path, "realpath", delete_during_resolution)
+    def create():
+        candidate.write_bytes(b"temporary") if kind == "file" else candidate.mkdir()
+    create()
+    manifest, total = worker._verify_tree(root, include_scratch=True)
+    if publication == "replaced" and kind == "file":
+        assert manifest == [{"path": "staging.png", "format": "png", "size_bytes": 11}]
+        assert total == 11
+    else:
+        assert (manifest, total) == ([], 0)
+    if candidate.exists():
+        candidate.unlink() if kind == "file" else candidate.rmdir()
+    create()
+    armed[0] = True
+    with pytest.raises(worker.PolicyError, match="escaped"):
+        worker._verify_tree(root)
+    assert resolved_deleted_entries == [True, True]
+
+
+def test_live_containment_rechecks_a_replaced_name_once(tmp_path, monkeypatch):
+    root = tmp_path / "attempt"
+    root.mkdir()
+    candidate = root / "stage.png"
+    candidate.write_bytes(b"new")
+    original = worker.os.path.realpath
+    calls = []
+    def replaced(path):
+        if str(path) == str(candidate):
+            calls.append(True)
+            if len(calls) == 1:
+                return str(tmp_path / "deleted" / "old-handle")
+        return original(path)
+    monkeypatch.setattr(worker.os.path, "realpath", replaced)
+    manifest, total = worker._verify_tree(root, include_scratch=True)
+    assert manifest == [{"path": "stage.png", "format": "png", "size_bytes": 3}]
+    assert total == 3
+    assert len(calls) == 2
+    calls.clear()
+    with pytest.raises(worker.PolicyError, match="escaped"):
+        worker._verify_tree(root)
+    assert len(calls) == 1
+
+
+def test_live_replacement_retry_rejects_link_takeover(tmp_path, monkeypatch):
+    root = tmp_path / "attempt"
+    root.mkdir()
+    candidate = root / "stage.png"
+    candidate.write_bytes(b"new")
+    original_resolve = worker.os.path.realpath
+    original_links = worker._assert_no_link_components
+    def relocated(path):
+        return str(tmp_path / "outside") if str(path) == str(candidate) else original_resolve(path)
+    def link_takeover(path, **kwargs):
+        if path == candidate:
+            raise worker._TreeAuditError("unsafe_output_tree", "link takeover", "link")
+        return original_links(path, **kwargs)
+    monkeypatch.setattr(worker.os.path, "realpath", relocated)
+    monkeypatch.setattr(worker, "_assert_no_link_components", link_takeover)
+    with pytest.raises(worker.PolicyError) as raised:
+        worker._verify_tree(root, include_scratch=True)
+    assert raised.value.reason == "link"

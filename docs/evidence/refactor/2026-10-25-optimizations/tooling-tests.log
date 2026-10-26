@@ -1,0 +1,7 @@
+....s.ss..........s..............................                        [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] scripts\test_phase10_tooling.py:120: file symlink creation is unavailable
+SKIPPED [1] scripts\test_phase10_tooling.py:169: directory symlink creation is unavailable
+SKIPPED [1] scripts\test_phase10_tooling.py:183: directory symlink creation is unavailable
+SKIPPED [1] scripts\test_phase10_tooling.py:484: directory symlink creation is unavailable
+45 passed, 4 skipped in 38.20s

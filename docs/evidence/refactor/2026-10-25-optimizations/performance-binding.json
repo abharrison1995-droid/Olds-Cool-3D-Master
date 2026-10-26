@@ -1,0 +1,19 @@
+{
+  "profiled_runtime_snapshot": "bcc31fcf0bbc5a43330cb1c9ce3f33f16856c5571e842eead45ac34e5e855795",
+  "final_snapshot": "294e131a5cfedb0fc20bd68a10a9f418779b02c71c8ac76c2a0263b01e51f2ec",
+  "later_changes": [
+    "am3d/ai/test_worker.py",
+    "am3d/ai/worker.py"
+  ],
+  "qualification": "Only worker lifecycle implementation/tests changed after the optimization snapshot. The static-export and artifact-check profiling fixtures do not execute the worker; their complete runtime pipeline is unchanged.",
+  "performance_modules": [
+    {
+      "path": "am3d/ai/_animation_checks.py",
+      "sha256": "fa471a0e53405b7dfb0651857eb832f91b5fdb8d067de04f4fcc57dfc13d501f"
+    },
+    {
+      "path": "am3d/recipes/_export_staging.py",
+      "sha256": "d1471386f7920f257006a4ff0587003b2ffac599c5acf4f590289153c41a88d4"
+    }
+  ]
+}

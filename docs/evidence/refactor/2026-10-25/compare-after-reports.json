@@ -1,0 +1,438 @@
+{
+  "failed": {
+    "artifacts": [
+      {
+        "bytes": 82624,
+        "path": "body.glb",
+        "sha256": "5b33f7a989497280e1ee865f7652739a73f6683a403bf85cdfcd4ce86c20d888"
+      },
+      {
+        "bytes": 173,
+        "path": "body.mtl",
+        "sha256": "a1899e978ca0d61c19ec352c98a94bda955d439bc9d0c3f36c11c3e9e7a09368"
+      },
+      {
+        "bytes": 243059,
+        "path": "body.obj",
+        "sha256": "e1902ff85f163592364ad9c81b0295a1b354b6e87847773a9f3f7974d7798c8f"
+      },
+      {
+        "bytes": 4994,
+        "path": "body_sheet_object_000_fb09a180.png",
+        "sha256": "b65d86a1f29d6a2d14899a3d0513741802a71583ac98cf077c0c2c63ba5374a7"
+      },
+      {
+        "bytes": 9975,
+        "path": "preview.png",
+        "sha256": "3ed1edbf8d93f15ac78667805222cf759bfcd3b094851552351ebc3961fbcdfd"
+      },
+      {
+        "bytes": 4394,
+        "path": "project.am3d",
+        "sha256": "4802e9f3176ace88c6f91bc5ec61faaad1a1492a75003036a1315479c6da7c5f"
+      }
+    ],
+    "checks": [
+      {
+        "code": "output_tree_preflight",
+        "details": {
+          "bytes": 345219,
+          "maximum_bytes": 268435456
+        },
+        "id": "output_tree_preflight",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Stat-checked output size before loading native or exported files."
+      },
+      {
+        "code": "native_roundtrip",
+        "details": {
+          "format_version": 2,
+          "generation_run_id": "11111111-1111-4111-8111-111111111111"
+        },
+        "id": "native_roundtrip",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Native project loaded, received bounded provenance, and survived a fresh save/reopen."
+      },
+      {
+        "code": "recipe_intentions",
+        "details": {
+          "bad_material_assignments": [],
+          "missing_actions": [],
+          "missing_materials": [],
+          "missing_objects": []
+        },
+        "id": "recipe_intentions",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Reopened project retains the recipe's named objects, materials, actions, and material bindings."
+      },
+      {
+        "code": "surface_geometry",
+        "details": {
+          "degenerate_triangles": 0,
+          "issues": [],
+          "surface_objects": [
+            "body"
+          ]
+        },
+        "id": "surface_geometry",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Evaluated scene has finite vertices/normals, valid triangle indices and nonzero bounds."
+      },
+      {
+        "code": "evaluated_resource_limits",
+        "details": {
+          "estimated_memory_limit_bytes": 1073741824,
+          "geometry_array_bytes": 138528,
+          "triangle_count": 2700,
+          "triangle_limit": 250000
+        },
+        "id": "evaluated_resource_limits",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Measured evaluated geometry stays within V1 triangle and memory limits."
+      },
+      {
+        "code": "required_components",
+        "details": {
+          "matched_surface_objects": [],
+          "method": "case-insensitive token matching; one mesh cannot satisfy two required components",
+          "missing": [
+            "missing_component"
+          ],
+          "required": [
+            "missing_component"
+          ]
+        },
+        "id": "required_components",
+        "path": null,
+        "severity": "error",
+        "status": "failed",
+        "summary": "Matched each caller-authored required component to distinct reopened surface geometry."
+      },
+      {
+        "code": "whole_scene_preview",
+        "details": {
+          "alpha_background_contrast": 0.9833890161520613,
+          "backend": "software material-aware",
+          "foreground_color_range": 0.6627450980392157,
+          "foreground_fraction": 0.2197113037109375,
+          "height": 512,
+          "width": 512
+        },
+        "id": "whole_scene_preview",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Rendered and decoded a 512x512 auto-fit whole-scene preview with bounded foreground occupancy and color contrast."
+      },
+      {
+        "code": "requested_exports",
+        "details": {
+          "files": [
+            "body.obj",
+            "body.mtl",
+            "body.glb",
+            "body_sheet_object_000_fb09a180.png",
+            "project.am3d"
+          ],
+          "issues": []
+        },
+        "id": "requested_exports",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Independently parsed requested exports and verified required files."
+      },
+      {
+        "code": "png_resources",
+        "details": {
+          "issues": []
+        },
+        "id": "png_resources",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Decoded every PNG output and checked bounded dimensions."
+      },
+      {
+        "code": "artifact_manifest",
+        "details": {
+          "bytes": 345219,
+          "count": 6,
+          "missing": []
+        },
+        "id": "artifact_manifest",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Verified relative artifact paths, file hashes, sizes, and required outputs."
+      }
+    ],
+    "limitations": [],
+    "measurements": {
+      "artifact_bytes": 345219,
+      "artifact_count": 6,
+      "bounds_max": [
+        0.5,
+        0.5,
+        0.40000000000000013
+      ],
+      "bounds_min": [
+        -0.5,
+        -0.5,
+        -0.40000000000000013
+      ],
+      "degenerate_triangles_reported": 0,
+      "preview": {
+        "alpha_background_contrast": 0.9833890161520613,
+        "backend": "software material-aware",
+        "foreground_color_range": 0.6627450980392157,
+        "foreground_fraction": 0.2197113037109375,
+        "height": 512,
+        "width": 512
+      },
+      "recipe_name": "refactor comparison",
+      "scene_diagonal": 1.6248076809271923,
+      "surface_object_count": 1,
+      "triangle_count": 2700,
+      "vertex_count": 1536,
+      "visible_object_count": 1
+    },
+    "ok": false,
+    "resource_limit": false,
+    "status": "failed"
+  },
+  "passed": {
+    "artifacts": [
+      {
+        "bytes": 82624,
+        "path": "body.glb",
+        "sha256": "5b33f7a989497280e1ee865f7652739a73f6683a403bf85cdfcd4ce86c20d888"
+      },
+      {
+        "bytes": 173,
+        "path": "body.mtl",
+        "sha256": "a1899e978ca0d61c19ec352c98a94bda955d439bc9d0c3f36c11c3e9e7a09368"
+      },
+      {
+        "bytes": 243059,
+        "path": "body.obj",
+        "sha256": "e1902ff85f163592364ad9c81b0295a1b354b6e87847773a9f3f7974d7798c8f"
+      },
+      {
+        "bytes": 4994,
+        "path": "body_sheet_object_000_fb09a180.png",
+        "sha256": "b65d86a1f29d6a2d14899a3d0513741802a71583ac98cf077c0c2c63ba5374a7"
+      },
+      {
+        "bytes": 9975,
+        "path": "preview.png",
+        "sha256": "3ed1edbf8d93f15ac78667805222cf759bfcd3b094851552351ebc3961fbcdfd"
+      },
+      {
+        "bytes": 4394,
+        "path": "project.am3d",
+        "sha256": "4802e9f3176ace88c6f91bc5ec61faaad1a1492a75003036a1315479c6da7c5f"
+      }
+    ],
+    "checks": [
+      {
+        "code": "output_tree_preflight",
+        "details": {
+          "bytes": 334575,
+          "maximum_bytes": 268435456
+        },
+        "id": "output_tree_preflight",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Stat-checked output size before loading native or exported files."
+      },
+      {
+        "code": "native_roundtrip",
+        "details": {
+          "format_version": 2,
+          "generation_run_id": "11111111-1111-4111-8111-111111111111"
+        },
+        "id": "native_roundtrip",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Native project loaded, received bounded provenance, and survived a fresh save/reopen."
+      },
+      {
+        "code": "recipe_intentions",
+        "details": {
+          "bad_material_assignments": [],
+          "missing_actions": [],
+          "missing_materials": [],
+          "missing_objects": []
+        },
+        "id": "recipe_intentions",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Reopened project retains the recipe's named objects, materials, actions, and material bindings."
+      },
+      {
+        "code": "surface_geometry",
+        "details": {
+          "degenerate_triangles": 0,
+          "issues": [],
+          "surface_objects": [
+            "body"
+          ]
+        },
+        "id": "surface_geometry",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Evaluated scene has finite vertices/normals, valid triangle indices and nonzero bounds."
+      },
+      {
+        "code": "evaluated_resource_limits",
+        "details": {
+          "estimated_memory_limit_bytes": 1073741824,
+          "geometry_array_bytes": 138528,
+          "triangle_count": 2700,
+          "triangle_limit": 250000
+        },
+        "id": "evaluated_resource_limits",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Measured evaluated geometry stays within V1 triangle and memory limits."
+      },
+      {
+        "code": "required_components",
+        "details": {
+          "matched_surface_objects": [
+            "body"
+          ],
+          "method": "case-insensitive token matching; one mesh cannot satisfy two required components",
+          "missing": [],
+          "required": [
+            "body"
+          ]
+        },
+        "id": "required_components",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Matched each caller-authored required component to distinct reopened surface geometry."
+      },
+      {
+        "code": "material_assignments_and_color",
+        "details": {
+          "issues": [],
+          "method": "native material assignment and sRGB base color; software preview color fidelity is reported separately"
+        },
+        "id": "material_assignments_and_color",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Checked assigned native material colors against caller-authored targets."
+      },
+      {
+        "code": "whole_scene_preview",
+        "details": {
+          "alpha_background_contrast": 0.9833890161520613,
+          "backend": "software material-aware",
+          "foreground_color_range": 0.6627450980392157,
+          "foreground_fraction": 0.2197113037109375,
+          "height": 512,
+          "width": 512
+        },
+        "id": "whole_scene_preview",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Rendered and decoded a 512x512 auto-fit whole-scene preview with bounded foreground occupancy and color contrast."
+      },
+      {
+        "code": "requested_exports",
+        "details": {
+          "files": [
+            "body.obj",
+            "body.mtl",
+            "body.glb",
+            "body_sheet_object_000_fb09a180.png",
+            "project.am3d"
+          ],
+          "issues": []
+        },
+        "id": "requested_exports",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Independently parsed requested exports and verified required files."
+      },
+      {
+        "code": "png_resources",
+        "details": {
+          "issues": []
+        },
+        "id": "png_resources",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Decoded every PNG output and checked bounded dimensions."
+      },
+      {
+        "code": "artifact_manifest",
+        "details": {
+          "bytes": 345219,
+          "count": 6,
+          "missing": []
+        },
+        "id": "artifact_manifest",
+        "path": null,
+        "severity": "info",
+        "status": "passed",
+        "summary": "Verified relative artifact paths, file hashes, sizes, and required outputs."
+      }
+    ],
+    "limitations": [],
+    "measurements": {
+      "artifact_bytes": 345219,
+      "artifact_count": 6,
+      "bounds_max": [
+        0.5,
+        0.5,
+        0.40000000000000013
+      ],
+      "bounds_min": [
+        -0.5,
+        -0.5,
+        -0.40000000000000013
+      ],
+      "degenerate_triangles_reported": 0,
+      "preview": {
+        "alpha_background_contrast": 0.9833890161520613,
+        "backend": "software material-aware",
+        "foreground_color_range": 0.6627450980392157,
+        "foreground_fraction": 0.2197113037109375,
+        "height": 512,
+        "width": 512
+      },
+      "recipe_name": "refactor comparison",
+      "scene_diagonal": 1.6248076809271923,
+      "surface_object_count": 1,
+      "triangle_count": 2700,
+      "vertex_count": 1536,
+      "visible_object_count": 1
+    },
+    "ok": true,
+    "resource_limit": false,
+    "status": "passed"
+  }
+}

@@ -1,0 +1,22 @@
+[
+  {
+    "check": "full-source-tests",
+    "exit_code": 0,
+    "seconds": 943.16
+  },
+  {
+    "check": "tooling-tests",
+    "exit_code": 0,
+    "seconds": 40.45
+  },
+  {
+    "check": "capabilities-check",
+    "exit_code": 0,
+    "seconds": 1.17
+  },
+  {
+    "check": "provider-schema-check",
+    "exit_code": 0,
+    "seconds": 1.17
+  }
+]

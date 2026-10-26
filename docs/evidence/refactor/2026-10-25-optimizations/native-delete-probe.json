@@ -1,0 +1,7 @@
+{
+  "deleted_path_is_absent": true,
+  "ntfs_deleted_namespace": true,
+  "resolved_inside_original_root": false,
+  "live_audit": "rejected",
+  "audit_reason": "containment"
+}

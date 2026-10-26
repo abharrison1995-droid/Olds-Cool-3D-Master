@@ -128,6 +128,53 @@ def _has_reparse_point(path: Path) -> bool:
     return path.is_symlink() or bool(reparse)
 
 
+class _TreeAuditError(PolicyError):
+    """Fixed host reasons, never exception text or a filesystem path."""
+
+    def __init__(self, code: str, message: str, reason: str):
+        super().__init__(code, message)
+        self.reason = reason
+
+
+def _audit_error_record(exc: PolicyError, phase: str) -> dict[str, str]:
+    # Retain both existing external codes: live policy failures used the tree
+    # code, while post-exit audit exceptions used the protocol code.
+    record = _safe_error("unsafe_output_tree" if phase == "live" else "worker_protocol", "worker")
+    reasons = {"path_syntax", "reserved_name", "collision", "link",
+               "containment", "unexpected_file", "file_count"}
+    reason = getattr(exc, "reason", None)
+    record["audit_reason"] = reason if isinstance(reason, str) and reason in reasons else "audit_policy"
+    record["audit_phase"] = phase
+    return record
+
+
+def _vanished_live_entry(path: Path, live: bool) -> bool:
+    if live:
+        try:
+            path.lstat()
+        except FileNotFoundError:
+            return True
+    return False
+
+
+def _tree_entry_contained(candidate: Path, root_real: str, *, live: bool) -> bool:
+    # A deleted NTFS handle can resolve to $Extend/$Deleted. If the original
+    # name is absent, live accounting can skip it; if atomically replaced,
+    # independently validate the current name once. Never reuse the stale
+    # resolution, bypass links, or retry a final post-exit audit.
+    for attempt in range(2 if live else 1):
+        if attempt:
+            if _vanished_live_entry(candidate, live):
+                return False
+            _assert_no_link_components(candidate)
+        resolved = extended_io_path(os.path.realpath(candidate))
+        if os.path.commonpath((root_real, resolved)) == root_real:
+            return True
+    if _vanished_live_entry(candidate, live):
+        return False
+    raise _TreeAuditError("unsafe_output_tree", "worker output escaped its private attempt root", "containment")
+
+
 def _assert_no_link_components(path: Path, *, allow_missing_leaf: bool = False) -> Path:
     absolute = Path(os.path.abspath(os.fspath(path)))
     parts = [absolute]
@@ -145,7 +192,7 @@ def _assert_no_link_components(path: Path, *, allow_missing_leaf: bool = False) 
                 continue
             continue
         if _has_reparse_point(part):
-            raise PolicyError("unsafe_output_tree", "output root contains a symlink or junction")
+            raise _TreeAuditError("unsafe_output_tree", "output root contains a symlink or junction", "link")
     return absolute
 
 
@@ -171,13 +218,13 @@ def _verify_tree(root: Path, *, include_protocol: bool = False,
                 or component[-1:] in {" ", "."}
                 or any(char in component for char in '<>:"/\\|?*')
                 or any(unicodedata.category(char) == "Cc" for char in component)):
-            raise PolicyError("unsafe_output_tree", "worker output contains a non-portable path")
+            raise _TreeAuditError("unsafe_output_tree", "worker output contains a non-portable path", "path_syntax")
         stem = component.split(".", 1)[0].upper()
         if stem in _WINDOWS_RESERVED_NAMES:
-            raise PolicyError("unsafe_output_tree", "worker output contains a reserved path")
+            raise _TreeAuditError("unsafe_output_tree", "worker output contains a reserved path", "reserved_name")
         key = unicodedata.normalize("NFC", relative).casefold()
         if key in portable_paths:
-            raise PolicyError("unsafe_output_tree", "worker output paths collide on a portable filesystem")
+            raise _TreeAuditError("unsafe_output_tree", "worker output paths collide on a portable filesystem", "collision")
         portable_paths[key] = relative
 
     for current, dirs, files in os.walk(root, topdown=True, followlinks=False):
@@ -189,25 +236,25 @@ def _verify_tree(root: Path, *, include_protocol: bool = False,
             relative_dir = candidate.relative_to(root).as_posix()
             audit_component(dirname, relative_dir)
             if _has_reparse_point(candidate):
-                raise PolicyError("unsafe_output_tree", "worker output tree contains a symlink or junction")
-            resolved = extended_io_path(os.path.realpath(candidate))
-            if os.path.commonpath((root_real, resolved)) != root_real:
-                raise PolicyError("unsafe_output_tree", "worker output escaped its private attempt root")
+                raise _TreeAuditError("unsafe_output_tree", "worker output tree contains a symlink or junction", "link")
+            if not _tree_entry_contained(candidate, root_real, live=include_scratch):
+                continue
             kept_dirs.append(dirname)
         dirs[:] = kept_dirs
         for filename in files:
             candidate = current_path / filename
             if not include_protocol and filename in {".ai_worker_input.json", ".ai_worker_result.json", ".ai_worker_result.json.tmp"}:
                 continue
-            if _has_reparse_point(candidate):
-                raise PolicyError("unsafe_output_tree", "worker output tree contains a symlink or junction")
-            resolved = extended_io_path(os.path.realpath(candidate))
-            if os.path.commonpath((root_real, resolved)) != root_real:
-                raise PolicyError("unsafe_output_tree", "worker output escaped its private attempt root")
+            # Reject portable-name violations before Windows can interpret a
+            # reserved basename as a device during realpath/lstat.
             relative = candidate.relative_to(root).as_posix()
             if not relative or relative.startswith("../"):
-                raise PolicyError("unsafe_output_tree", "worker output path escaped its private attempt root")
+                raise _TreeAuditError("unsafe_output_tree", "worker output path escaped its private attempt root", "containment")
             audit_component(filename, relative)
+            if _has_reparse_point(candidate):
+                raise _TreeAuditError("unsafe_output_tree", "worker output tree contains a symlink or junction", "link")
+            if not _tree_entry_contained(candidate, root_real, live=include_scratch):
+                continue
             is_scratch = scratch_root or relative.startswith("tmp/")
             serializer_stage = include_scratch and bool(
                 _SERIALIZER_TEMP_RE.fullmatch(filename))
@@ -226,9 +273,9 @@ def _verify_tree(root: Path, *, include_protocol: bool = False,
                             continue
                         count += 1
                         if count > 4096:
-                            raise PolicyError("output_limit", "worker produced too many temporary files")
+                            raise _TreeAuditError("output_limit", "worker produced too many temporary files", "file_count")
                     continue
-                raise PolicyError("unsafe_output_tree", "worker produced an unapproved output file")
+                raise _TreeAuditError("unsafe_output_tree", "worker produced an unapproved output file", "unexpected_file")
             try:
                 size = candidate.stat().st_size
             except FileNotFoundError:
@@ -242,7 +289,7 @@ def _verify_tree(root: Path, *, include_protocol: bool = False,
             total += size
             count += 1
             if count > 4096:
-                raise PolicyError("output_limit", "worker produced too many files")
+                raise _TreeAuditError("output_limit", "worker produced too many files", "file_count")
             if is_scratch:
                 continue
             manifest.append({
@@ -787,8 +834,8 @@ def run_worker(recipe: Any, output_dir: str | os.PathLike[str], deadline: float,
                     workspace, include_protocol=True, include_scratch=True,
                     scratch_root=True)
                 current_size = output_size + scratch_size
-            except PolicyError:
-                failure = ("worker_error", _safe_error("unsafe_output_tree", "worker"))
+            except PolicyError as exc:
+                failure = ("worker_error", _audit_error_record(exc, "live"))
                 break
             if token.cancelled:
                 failure = ("cancelled", _safe_error("cancelled", "worker"))
@@ -911,6 +958,11 @@ def run_worker(recipe: Any, output_dir: str | os.PathLike[str], deadline: float,
                                           record.get("path", "recipe")))
         return _result(child_result["status"], error=error,
                        error_records=errors or None, attempt_id=attempt_id)
+    except _TreeAuditError as exc:
+        if tree is not None and process.poll() is None:
+            tree.terminate(process)
+        return _result("worker_error", error=_audit_error_record(exc, "final"),
+                       attempt_id=attempt_id)
     except Exception:
         if tree is not None and process.poll() is None:
             tree.terminate(process)

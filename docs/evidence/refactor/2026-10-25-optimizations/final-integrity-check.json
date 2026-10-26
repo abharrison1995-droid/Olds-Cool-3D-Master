@@ -1,0 +1,9 @@
+{
+  "build_input_digest": "294e131a5cfedb0fc20bd68a10a9f418779b02c71c8ac76c2a0263b01e51f2ec",
+  "current_inputs_match_frozen_snapshot": true,
+  "payload_files_rehashed": 249,
+  "payload_unchanged": true,
+  "smoke_steps": 14,
+  "frozen_acceptance_reports_verified": 3,
+  "provider_transport": "fixed offline MockTransport"
+}

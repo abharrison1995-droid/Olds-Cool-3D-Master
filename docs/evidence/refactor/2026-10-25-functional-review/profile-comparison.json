@@ -1,0 +1,14 @@
+{
+  "animation_reports_and_artifact_hashes_match": true,
+  "call_counts": {
+    "multi_format_export": {
+      "am3d/core/scene.py:evaluate_scene": 3,
+      "am3d/core/script.py:evaluate_scene": 3
+    },
+    "three_component_animation_check": {
+      "am3d/core/scene.py:evaluate_scene": 25,
+      "am3d/core/script.py:evaluate_scene": 13,
+      "am3d/render_job.py:render_frame_image": 12
+    }
+  }
+}

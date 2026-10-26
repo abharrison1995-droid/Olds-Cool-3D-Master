@@ -1,0 +1,17 @@
+{
+  "ok": true,
+  "checks": [
+    {
+      "name": "cli-knight",
+      "exit_code": 0,
+      "expected_success": true
+    },
+    {
+      "name": "cli-malformed-json",
+      "exit_code": 1,
+      "expected_success": false
+    }
+  ],
+  "independent_obj_glb_validators": "passed",
+  "invalid_input_created_no_native_project": true
+}

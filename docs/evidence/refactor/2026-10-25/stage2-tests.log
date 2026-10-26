@@ -1,0 +1,5 @@
+..........................................s.......s........              [100%]
+=========================== short test summary info ===========================
+SKIPPED [1] am3d\ai\test_worker.py:313: directory symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-685\\test_output_root_symlink_is_re0\\real-output' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-685\\test_output_root_symlink_is_re0\\linked-output'
+SKIPPED [1] am3d\ai\test_worker.py:451: file symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-685\\test_final_tree_audit_rejects_1\\outside.png' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-685\\test_final_tree_audit_rejects_1\\attempt\\linked.png'
+57 passed, 2 skipped in 92.45s (0:01:32)

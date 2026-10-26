@@ -1,0 +1,53 @@
+................................s.......s.........F..                    [100%]
+================================== FAILURES ===================================
+______ test_audit_reasons_are_fixed_and_path_safe[CON.png-reserved_name] ______
+
+tmp_path = WindowsPath('C:/Users/Alex/AppData/Local/Temp/pytest-of-Alex/pytest-692/test_audit_reasons_are_fixed_a1')
+filename = 'CON.png', reason = 'reserved_name'
+
+    @pytest.mark.parametrize(("filename", "reason"), [
+        ("bad.txt", "unexpected_file"), ("CON.png", "reserved_name"),
+        ("trailing .png.", "path_syntax")])
+    def test_audit_reasons_are_fixed_and_path_safe(tmp_path, filename, reason):
+        root = tmp_path / "private-output"
+        root.mkdir()
+        # Enumerate the name independently of filesystem normalization on Windows.
+        with pytest.MonkeyPatch.context() as patch:
+            patch.setattr(worker.os, "walk", lambda *a, **kw: iter([(str(root), [], [filename])]))
+            with pytest.raises(worker.PolicyError) as raised:
+>               worker._verify_tree(root)
+
+am3d\ai\test_worker.py:604: 
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+am3d\ai\worker.py:224: in _verify_tree
+    resolved = extended_io_path(os.path.realpath(candidate))
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+_ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _ _
+
+path = 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-692\\test_audit_reasons_are_fixed_a1\\private-output\\CON.png'
+
+    def extended_io_path(path: str | PathLike[str]) -> str:
+        r"""Return an absolute host-I/O path with Windows long-path syntax.
+    
+        This helper is for application-owned filesystem operations only. It does
+        not validate or normalize recipe/resource paths; those remain governed by
+        the portable path policy below. On Windows, absolute drive and UNC paths
+        receive the ``\\?\`` prefix so deeply nested per-run roots work even
+        when process-wide long-path support is not enabled. Other platforms get
+        the ordinary absolute path.
+        """
+        absolute = os.path.abspath(os.fspath(path))
+        if os.name != "nt":
+            return absolute
+        if absolute.startswith("\\\\?\\"):
+            return absolute
+        if absolute.startswith("\\\\.\\"):
+>           raise ValueError("Windows device namespace paths are not supported")
+E           ValueError: Windows device namespace paths are not supported
+
+am3d\core\paths.py:50: ValueError
+=========================== short test summary info ===========================
+SKIPPED [1] am3d\ai\test_worker.py:313: directory symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-692\\test_output_root_symlink_is_re0\\real-output' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-692\\test_output_root_symlink_is_re0\\linked-output'
+SKIPPED [1] am3d\ai\test_worker.py:451: file symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-692\\test_final_tree_audit_rejects_1\\outside.png' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-692\\test_final_tree_audit_rejects_1\\attempt\\linked.png'
+FAILED am3d/ai/test_worker.py::test_audit_reasons_are_fixed_and_path_safe[CON.png-reserved_name]
+1 failed, 50 passed, 2 skipped in 120.92s (0:02:00)

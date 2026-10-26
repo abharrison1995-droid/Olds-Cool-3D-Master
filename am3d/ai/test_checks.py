@@ -7,6 +7,7 @@ import uuid
 from pathlib import Path
 
 import numpy as np
+import pytest
 from PIL import Image
 
 from am3d.ai import checks
@@ -585,3 +586,138 @@ def test_basic_bound_rig_needs_no_animation_but_unweighted_rig_fails(tmp_path):
     rig_check = next(c for c in report["checks"] if c["id"] == "rig_binding")
     assert rig_check["status"] == "failed"
     assert any("weights" in issue for issue in rig_check["details"]["issues"])
+
+
+def test_animation_shares_samples_without_changing_frames_or_logical_counts(tmp_path, monkeypatch):
+    from am3d.ai._animation_checks import _check_animation
+    from am3d import render_job
+    from am3d.core.scene import EvaluatedScene
+    from am3d.gpu import scene_camera
+
+    recipe = _two_rig_animation_recipe(explicit_shared=True)
+    session = Session()
+    assert RecipeExecutor(session, output_root=str(tmp_path)).execute(recipe).ok
+    scene = session.evaluate_scene()
+    camera = scene_camera(list(scene.meshes.values()))
+    original_render = render_job.render_frame_image
+    expected = [original_render(session, camera, 128, 128, time=t,
+                               action_name="turn", force_software=True)
+                for t in (0, .25, .5, .75)]
+    original_evaluate = session.evaluate_scene
+    evaluations, frames = [], []
+
+    def evaluate(**kwargs):
+        evaluations.append(kwargs["time"])
+        return original_evaluate(**kwargs)
+
+    def render(source, camera, width, height, **kwargs):
+        assert isinstance(source, EvaluatedScene)
+        image = original_render(source, camera, width, height, **kwargs)
+        frames.append(image)
+        return image
+
+    monkeypatch.setattr(session, "evaluate_scene", evaluate)
+    monkeypatch.setattr(render_job, "render_frame_image", render)
+    report = {"checks": []}
+    _check_animation(report, recipe, {"rig": {"must_deform_components": ["driver", "target"]}},
+                     {}, session, scene, 2.)
+    check = report["checks"][-1]
+    assert check["status"] == "passed", check
+    assert evaluations == [0, .25, .5, .75]
+    assert len(frames) == 4
+    assert all(np.array_equal(a, b) for a, b in zip(frames, expected))
+    assert check["details"]["rendered_sample_frames"] == 8
+
+
+@pytest.mark.parametrize("failure", ["exception", "invalid_image"])
+def test_shared_animation_render_failure_keeps_component_order_and_stops(tmp_path, monkeypatch, failure):
+    from am3d.ai._animation_checks import _check_animation
+    from am3d import render_job
+
+    recipe = _two_rig_animation_recipe(explicit_shared=True)
+    session = Session()
+    assert RecipeExecutor(session, output_root=str(tmp_path)).execute(recipe).ok
+    scene = session.evaluate_scene()
+    calls = []
+
+    def fail(*args, **kwargs):
+        calls.append(kwargs["time"])
+        if failure == "invalid_image":
+            return np.zeros((1, 1, 4))
+        raise RuntimeError("private diagnostic must not enter report")
+
+    monkeypatch.setattr(render_job, "render_frame_image", fail)
+    report = {"checks": []}
+    _check_animation(report, recipe,
+                     {"rig": {"must_deform_components": ["driver", "missing", "target"]}},
+                     {}, session, scene, 2.)
+    details = report["checks"][-1]["details"]
+    assert calls == [0.]
+    assert details["rendered_sample_frames"] == 0
+    assert details["issues"] == [
+        "driver: fixed-camera sample render failed", "driver: motion did not exceed threshold",
+        "missing: intended object missing",
+        "target: fixed-camera sample render failed", "target: motion did not exceed threshold"]
+    assert "private diagnostic" not in json.dumps(report)
+
+
+@pytest.mark.parametrize("defect", ["nonfinite", "missing", "shape"])
+def test_shared_animation_keeps_invalid_component_failures(tmp_path, monkeypatch, defect):
+    from am3d.ai._animation_checks import _check_animation
+    from am3d import render_job
+    recipe = _two_rig_animation_recipe(explicit_shared=True)
+    session = Session()
+    assert RecipeExecutor(session, output_root=str(tmp_path)).execute(recipe).ok
+    scene = session.evaluate_scene()
+    evaluate = session.evaluate_scene
+    renders = []
+
+    def nonfinite(**kwargs):
+        sampled = evaluate(**kwargs)
+        if defect == "nonfinite":
+            sampled.meshes["target"].vertices[0, 0] = np.nan
+        elif defect == "missing":
+            del sampled.meshes["target"]
+        else:
+            sampled.meshes["target"].vertices = sampled.meshes["target"].vertices[:1]
+        return sampled
+
+    def render(*args, **kwargs):
+        renders.append(kwargs["time"])
+        return np.zeros((128, 128, 4))
+
+    monkeypatch.setattr(session, "evaluate_scene", nonfinite)
+    monkeypatch.setattr(render_job, "render_frame_image", render)
+    report = {"checks": []}
+    _check_animation(report, recipe, {"rig": {"must_deform_components": ["driver", "target"]}},
+                     {}, session, scene, 2.)
+    check = report["checks"][-1]
+    assert check["status"] == "failed"
+    assert renders == [0, .25, .5, .75]
+    assert check["details"]["rendered_sample_frames"] == 4
+    issue = ("target: sampled non-finite geometry" if defect == "nonfinite" else
+             "target: sampled mesh changed shape or disappeared")
+    assert check["details"]["issues"] == [issue] * 4 + [
+        "target: motion did not exceed threshold"]
+
+
+def test_shared_animation_preserves_motion_check_without_camera(tmp_path, monkeypatch):
+    from am3d.ai._animation_checks import _check_animation
+    from am3d import gpu, render_job
+    recipe = _two_rig_animation_recipe(explicit_shared=True)
+    session = Session()
+    assert RecipeExecutor(session, output_root=str(tmp_path)).execute(recipe).ok
+    scene = session.evaluate_scene()
+
+    def no_camera(*args, **kwargs):
+        raise ValueError("camera unavailable")
+
+    monkeypatch.setattr(gpu, "scene_camera", no_camera)
+    monkeypatch.setattr(render_job, "render_frame_image", lambda *a, **kw: pytest.fail("no camera"))
+    report = {"checks": []}
+    _check_animation(report, recipe, {"rig": {"must_deform_components": ["driver", "target"]}},
+                     {}, session, scene, 2.)
+    check = report["checks"][-1]
+    assert check["status"] == "passed", check
+    assert check["details"]["rendered_sample_frames"] == 0
+    assert len(check["details"]["samples"]) == 2

@@ -1,0 +1,2 @@
+Seven UI methods retain identical ASTs after window-reference substitution.
+Five export branches retain identical ASTs after loop-continue to method-return substitution.

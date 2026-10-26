@@ -1,0 +1,23 @@
+{
+  "baseline": {
+    "mesh.glb": "6aa7dd8492e52276f9f1df9d66a035a57072bcdd97a5fb818283d98a49f0293a",
+    "mesh.obj": "832c005bc9f23cffd2663b22de71ba2acb55ad1b88bdc54c7e7b26079b3fa30d",
+    "views_object_000_fb09a180.png": "2eef19338049c529e04910f7a88c59ef8369b819ddc39c37039bf4df3c6514d3",
+    "views_object_001_8c916dbe.png": "23d83212ee9e9a4942e3a145dfc44ad061c5cfa83c49c23081d2ae03c5e36c60"
+  },
+  "optimized": [
+    {
+      "mesh.glb": "6aa7dd8492e52276f9f1df9d66a035a57072bcdd97a5fb818283d98a49f0293a",
+      "mesh.obj": "832c005bc9f23cffd2663b22de71ba2acb55ad1b88bdc54c7e7b26079b3fa30d",
+      "views_object_000_fb09a180.png": "2eef19338049c529e04910f7a88c59ef8369b819ddc39c37039bf4df3c6514d3",
+      "views_object_001_8c916dbe.png": "23d83212ee9e9a4942e3a145dfc44ad061c5cfa83c49c23081d2ae03c5e36c60"
+    },
+    {
+      "mesh.glb": "6aa7dd8492e52276f9f1df9d66a035a57072bcdd97a5fb818283d98a49f0293a",
+      "mesh.obj": "832c005bc9f23cffd2663b22de71ba2acb55ad1b88bdc54c7e7b26079b3fa30d",
+      "views_object_000_fb09a180.png": "2eef19338049c529e04910f7a88c59ef8369b819ddc39c37039bf4df3c6514d3",
+      "views_object_001_8c916dbe.png": "23d83212ee9e9a4942e3a145dfc44ad061c5cfa83c49c23081d2ae03c5e36c60"
+    }
+  ],
+  "equal": true
+}

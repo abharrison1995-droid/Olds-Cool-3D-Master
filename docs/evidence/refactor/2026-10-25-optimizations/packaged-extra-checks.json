@@ -1,0 +1,20 @@
+{
+  "independent_export_reader_checks": [
+    {
+      "artifact": "frozen-knight/knight_asset.glb",
+      "issues": [],
+      "bytes": 14668,
+      "sha256": "46248fe4c0fd672bf008486eaf0c35f859f509d28ce9342e95dfa078f17d7d1e"
+    },
+    {
+      "artifact": "frozen-knight/knight_mesh.obj",
+      "issues": [],
+      "bytes": 38005,
+      "sha256": "87568d65cf077a8e7b7c56b7411825d524b9525c87f246cf0bfcb0f4012a0acc"
+    }
+  ],
+  "cli_archive_entries_and_modules": 576,
+  "cli_qt_entries": [],
+  "payload_files": 249,
+  "payload_bytes": 191365334
+}

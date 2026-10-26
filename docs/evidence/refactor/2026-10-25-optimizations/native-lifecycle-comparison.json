@@ -1,0 +1,53 @@
+{
+  "qualification": "Controlled real Windows NTFS handles, no private paths retained; same regression called for both versions. Historical unclassified failure cannot be retrospectively attributed with certainty.",
+  "cases": [
+    {
+      "version": "pre_fix",
+      "entry_kind": "file",
+      "publication": "removed",
+      "result": "live_rejected_containment"
+    },
+    {
+      "version": "pre_fix",
+      "entry_kind": "file",
+      "publication": "replaced",
+      "result": "live_rejected_containment"
+    },
+    {
+      "version": "pre_fix",
+      "entry_kind": "directory",
+      "publication": "removed",
+      "result": "live_rejected_containment"
+    },
+    {
+      "version": "pre_fix",
+      "entry_kind": "directory",
+      "publication": "replaced",
+      "result": "live_rejected_containment"
+    },
+    {
+      "version": "corrected",
+      "entry_kind": "file",
+      "publication": "removed",
+      "result": "live_passes_and_final_rejects"
+    },
+    {
+      "version": "corrected",
+      "entry_kind": "file",
+      "publication": "replaced",
+      "result": "live_passes_and_final_rejects"
+    },
+    {
+      "version": "corrected",
+      "entry_kind": "directory",
+      "publication": "removed",
+      "result": "live_passes_and_final_rejects"
+    },
+    {
+      "version": "corrected",
+      "entry_kind": "directory",
+      "publication": "replaced",
+      "result": "live_passes_and_final_rejects"
+    }
+  ]
+}

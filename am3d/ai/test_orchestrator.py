@@ -640,3 +640,17 @@ def test_valid_recipe_runs_through_real_worker_checks_and_immutable_publish(
     assert saved["candidate_count"] == 1
     assert saved["validation_repairs"] == 0
     assert saved["runtime_check_repairs"] == 0
+
+
+def test_worker_audit_diagnostics_persist_only_fixed_categories():
+    from am3d.ai._generation_reports import _safe_worker_summary
+    result = {"status": "worker_error", "error_records": [{
+        "audit_reason": "unexpected_file", "audit_phase": "live", "message": "private sentinel"}]}
+    summary = _safe_worker_summary(result)
+    assert summary["audit_reason"] == "unexpected_file"
+    assert summary["audit_phase"] == "live"
+    assert "sentinel" not in str(summary)
+    result["error_records"][0]["audit_reason"] = "private sentinel"
+    assert "audit_reason" not in _safe_worker_summary(result)
+    result["error_records"][0]["audit_reason"] = []
+    assert "audit_reason" not in _safe_worker_summary(result)

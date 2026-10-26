@@ -1,0 +1,97 @@
+{
+  "ok": true,
+  "version": "1.0.0.dev1",
+  "steps": [
+    {
+      "name": "blank_startup",
+      "status": "ok",
+      "duration_ms": 2390.0
+    },
+    {
+      "name": "new_project",
+      "status": "ok",
+      "duration_ms": 32.0
+    },
+    {
+      "name": "primitive_and_profile_creation",
+      "status": "ok",
+      "duration_ms": 78.0
+    },
+    {
+      "name": "material_reference",
+      "status": "ok",
+      "duration_ms": 0.0
+    },
+    {
+      "name": "rig_and_weighted_action_playback",
+      "status": "ok",
+      "duration_ms": 15.0
+    },
+    {
+      "name": "gui_rig_build_and_bind",
+      "status": "ok",
+      "duration_ms": 2688.0
+    },
+    {
+      "name": "multi_object_software_rendering",
+      "status": "ok",
+      "duration_ms": 6344.0
+    },
+    {
+      "name": "still_render_to_png",
+      "status": "ok",
+      "duration_ms": 5031.0
+    },
+    {
+      "name": "save_and_reopen",
+      "status": "ok",
+      "duration_ms": 78.0
+    },
+    {
+      "name": "transformed_export",
+      "status": "ok",
+      "duration_ms": 1484.0
+    },
+    {
+      "name": "recipe_output_opens_in_the_gui",
+      "status": "ok",
+      "duration_ms": 125.0
+    },
+    {
+      "name": "autosave_snapshot_and_recovery",
+      "status": "ok",
+      "duration_ms": 141.0
+    },
+    {
+      "name": "damaged_project_is_reported_not_swallowed",
+      "status": "ok",
+      "duration_ms": 16.0
+    },
+    {
+      "name": "posed_export_carries_the_pose",
+      "status": "ok",
+      "duration_ms": 1734.0
+    }
+  ],
+  "artifacts": {
+    "bound_weight_count": 260,
+    "rendered_objects": 3,
+    "render_path": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts\\smoke_render.png",
+    "render_lit_pixels": 2243,
+    "gpu_parity": "skipped: real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a qualified graphics host",
+    "saved_project_path": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts\\smoke_project.am3d",
+    "export_size_bytes": 330393,
+    "recipe_project_path": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts\\recipe_out\\recipe_project.am3d",
+    "autosave_dir": "C:\\Users\\Alex\\AppData\\Local\\3DMASTER2005\\3D MASTER 2005",
+    "autosave_recovered_objects": [
+      "Unsaved"
+    ],
+    "damaged_open_error": "ProjectFormatError: Malformed msgpack data: unpack(b) received extra data.",
+    "posed_export": {
+      "rest": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts\\posed_export_rest.obj",
+      "bent": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts\\posed_export_bent.obj",
+      "max_vertex_shift": 0.7848
+    },
+    "work_dir": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor-followup\\frozen-functional\\smoke_artifacts"
+  }
+}

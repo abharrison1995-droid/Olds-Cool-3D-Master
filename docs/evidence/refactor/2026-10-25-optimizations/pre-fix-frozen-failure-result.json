@@ -1,0 +1,5 @@
+{
+  "exit_code": 1,
+  "seconds": 11.53,
+  "qualification": "One additional bounded fixed-mock run; success cannot establish that the earlier intermittent audit failure is fixed."
+}

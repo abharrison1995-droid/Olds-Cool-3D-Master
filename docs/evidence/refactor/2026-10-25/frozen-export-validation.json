@@ -1,0 +1,13 @@
+{
+  "ok": true,
+  "results": [
+    {
+      "path": "work/refactor/frozen-knight/knight_mesh.obj",
+      "issues": []
+    },
+    {
+      "path": "work/refactor/frozen-knight/knight_asset.glb",
+      "issues": []
+    }
+  ]
+}

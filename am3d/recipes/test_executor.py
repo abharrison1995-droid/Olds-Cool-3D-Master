@@ -1866,3 +1866,91 @@ def test_unknown_parent_uses_the_correct_object_index():
     record = next(record for record in result.error_records
                   if record["code"] == "missing_reference")
     assert record["path"] == "recipe.objects[1].bones"
+
+
+@pytest.mark.parametrize("native_between", [False, True])
+def test_static_export_transaction_reuses_geometry_and_preserves_files(tmp_path, monkeypatch, native_between):
+    import hashlib
+    from am3d.recipes._export_staging import ExportStager
+
+    recipe = {
+        "name": "shared static exports",
+        "objects": [{"name": "wall", "primitive": "box",
+                     "transform": [[1, 0, 0, 2], [0, 1, 0, 0], [0, 0, 1, 0], [0, 0, 0, 1]]},
+                    {"name": "vase", "primitive": "lathe",
+                     "params": {"profile": [[1, 0], [.8, 1], [.4, 2]], "sections": 8}}],
+        "materials": [{"name": "wall_box_front", "pattern": "solid",
+                       "params": {"color": [1., 0., 0.]}},
+                      {"name": "wall_box_back", "pattern": "solid",
+                       "params": {"color": [0., 0., 1.]}}],
+        "exports": [{"format": "obj", "path": "asset"},
+                    {"format": "glb", "path": "asset"},
+                    {"format": "toon_sheet", "path": "toon", "params": {"views": 2, "size": 32}},
+                    {"format": "animation_sheet", "path": "motion", "params": {"frames": 2, "size": 32}}]}
+    if native_between:
+        recipe["exports"].insert(1, {"format": "am3d", "path": "native"})
+    original_evaluate = Session.evaluate_scene
+    original_stage = ExportStager.stage_export
+    counts = []
+    scenes = []
+
+    def evaluate(session, **kwargs):
+        counts.append(kwargs)
+        scene = original_evaluate(session, **kwargs)
+        # These are shared buffers: all real writers must treat them as input.
+        for mesh in scene.meshes.values():
+            for field in ("vertices", "normals", "indices", "uvs"):
+                array = getattr(mesh, field, None)
+                if array is not None:
+                    array.flags.writeable = False
+        scenes.append(scene)
+        return scene
+
+    monkeypatch.setattr(Session, "evaluate_scene", evaluate)
+    cached_root = tmp_path / "cached"
+    result = RecipeExecutor(output_root=str(cached_root)).execute(recipe)
+    assert result.ok, result.errors
+    assert len(counts) == (4 if native_between else 3)  # static + two animation frames
+    counts.clear()
+
+    def uncached(stager, index, spec):
+        stager._static_scene = None
+        return original_stage(stager, index, spec)
+
+    monkeypatch.setattr(ExportStager, "stage_export", uncached)
+    uncached_root = tmp_path / "uncached"
+    baseline = RecipeExecutor(output_root=str(uncached_root)).execute(recipe)
+    assert baseline.ok, baseline.errors
+    assert len(counts) == 6  # four export preflights + two animation frames
+
+    def files(root):
+        return {path.relative_to(root).as_posix(): hashlib.sha256(path.read_bytes()).hexdigest()
+                for path in root.rglob("*") if path.is_file() and path.suffix != ".am3d"}
+
+    assert files(cached_root) == files(uncached_root)
+    if native_between:
+        restored = Session()
+        restored.load_project(str(cached_root / "native.am3d"))
+        assert set(restored.project.objects) == {"wall", "vase"}
+
+
+def test_shared_static_exports_keep_publication_and_session_atomic_on_writer_failure(tmp_path, monkeypatch):
+    import am3d.export.gltf as gltf
+    session = Session()
+    session.new_project("editor")
+    session.create_object("keep-editor")
+    existing = tmp_path / "asset.obj"
+    existing.write_text("keep existing", encoding="utf-8")
+
+    def fail(*args, **kwargs):
+        raise OSError("controlled writer failure")
+
+    monkeypatch.setattr(gltf, "write_glb", fail)
+    result = RecipeExecutor(session, output_root=str(tmp_path)).execute({
+        "name": "must not commit", "objects": [{"name": "new", "primitive": "box"}],
+        "exports": [{"format": "obj", "path": "asset"}, {"format": "glb", "path": "asset"}]})
+    assert not result.ok
+    assert result.error_records[-1]["code"] == "export_error"
+    assert existing.read_text(encoding="utf-8") == "keep existing"
+    assert sorted(path.name for path in tmp_path.iterdir()) == ["asset.obj"]
+    assert set(session.project.objects) == {"keep-editor"}

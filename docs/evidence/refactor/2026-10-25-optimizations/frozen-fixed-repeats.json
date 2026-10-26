@@ -1,0 +1,14 @@
+[
+  {
+    "repeat": 1,
+    "exit_code": 0,
+    "seconds": 15.39,
+    "output_root_length_matches_failed_run": true
+  },
+  {
+    "repeat": 2,
+    "exit_code": 0,
+    "seconds": 20.66,
+    "output_root_length_matches_failed_run": true
+  }
+]

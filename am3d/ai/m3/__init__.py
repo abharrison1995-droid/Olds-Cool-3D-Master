@@ -1,7 +1,7 @@
-"""Local, deterministic generation pipeline.
+"""Preserved M2/M3.1 generation and provider API, independent of Qt.
 
-This package is Qt-independent. Desktop integration belongs in ``am3d.ui``;
-model/provider integrations are out of scope until M3.
+Desktop compatibility integration belongs in ``am3d.ui``. These contracts
+remain distinct from the current V1 implementation at ``am3d.ai``.
 """
 
 __all__ = ["checks", "contracts", "policy", "runner", "storage", "worker"]

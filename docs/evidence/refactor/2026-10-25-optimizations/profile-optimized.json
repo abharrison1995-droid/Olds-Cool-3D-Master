@@ -1,0 +1,758 @@
+{
+  "source": "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master",
+  "qualification": "offline diagnostic profile, not a speed benchmark",
+  "samples": [
+    {
+      "label": "multi_format_export",
+      "seconds": 7.292096099932678,
+      "calls": {
+        "am3d/core/scene.py:evaluate_scene": 1,
+        "am3d/core/script.py:evaluate_scene": 1
+      },
+      "hotspots": [
+        {
+          "function": "am3d/recipes/executor.py:execute",
+          "calls": 1,
+          "self_seconds": 0.0003194,
+          "cumulative_seconds": 7.2910722
+        },
+        {
+          "function": "am3d/recipes/executor.py:_run_exports",
+          "calls": 1,
+          "self_seconds": 0.00047870000000000003,
+          "cumulative_seconds": 7.278410200000001
+        },
+        {
+          "function": "am3d/recipes/_export_staging.py:stage_export",
+          "calls": 3,
+          "self_seconds": 0.0001494,
+          "cumulative_seconds": 7.231609400000001
+        },
+        {
+          "function": "am3d/recipes/_export_staging.py:_stage_orbit_sheet",
+          "calls": 1,
+          "self_seconds": 0.00018600000000000002,
+          "cumulative_seconds": 6.227572400000001
+        },
+        {
+          "function": "am3d/renderer/toon.py:save_toon_sheet",
+          "calls": 2,
+          "self_seconds": 0.00036480000000000003,
+          "cumulative_seconds": 6.2113807
+        },
+        {
+          "function": "am3d/renderer/toon.py:render_toon_sheet",
+          "calls": 2,
+          "self_seconds": 0.0115484,
+          "cumulative_seconds": 6.024858200000001
+        },
+        {
+          "function": "am3d/renderer/toon.py:toon_render_view",
+          "calls": 4,
+          "self_seconds": 0.013425300000000001,
+          "cumulative_seconds": 6.0122894
+        },
+        {
+          "function": "am3d/renderer/sprite.py:_rasterize",
+          "calls": 4,
+          "self_seconds": 2.6278080000000004,
+          "cumulative_seconds": 5.7233533
+        },
+        {
+          "function": "am3d/core/script.py:evaluate_scene",
+          "calls": 1,
+          "self_seconds": 3.5300000000000004e-05,
+          "cumulative_seconds": 0.5600561000000001
+        },
+        {
+          "function": "am3d/core/scene.py:evaluate_scene",
+          "calls": 1,
+          "self_seconds": 0.0002391,
+          "cumulative_seconds": 0.5600153
+        }
+      ]
+    },
+    {
+      "label": "multi_format_export",
+      "seconds": 7.018088300013915,
+      "calls": {
+        "am3d/core/scene.py:evaluate_scene": 1,
+        "am3d/core/script.py:evaluate_scene": 1
+      },
+      "hotspots": [
+        {
+          "function": "am3d/recipes/executor.py:execute",
+          "calls": 1,
+          "self_seconds": 0.00034470000000000003,
+          "cumulative_seconds": 7.0178465
+        },
+        {
+          "function": "am3d/recipes/executor.py:_run_exports",
+          "calls": 1,
+          "self_seconds": 0.0002749,
+          "cumulative_seconds": 7.0078215
+        },
+        {
+          "function": "am3d/recipes/_export_staging.py:stage_export",
+          "calls": 3,
+          "self_seconds": 0.00012040000000000001,
+          "cumulative_seconds": 6.9730862
+        },
+        {
+          "function": "am3d/recipes/_export_staging.py:_stage_orbit_sheet",
+          "calls": 1,
+          "self_seconds": 0.0001493,
+          "cumulative_seconds": 6.218290400000001
+        },
+        {
+          "function": "am3d/renderer/toon.py:save_toon_sheet",
+          "calls": 2,
+          "self_seconds": 0.00040750000000000004,
+          "cumulative_seconds": 6.2176311
+        },
+        {
+          "function": "am3d/renderer/toon.py:render_toon_sheet",
+          "calls": 2,
+          "self_seconds": 0.0027319,
+          "cumulative_seconds": 6.173858500000001
+        },
+        {
+          "function": "am3d/renderer/toon.py:toon_render_view",
+          "calls": 4,
+          "self_seconds": 0.019826800000000002,
+          "cumulative_seconds": 6.1698934
+        },
+        {
+          "function": "am3d/renderer/sprite.py:_rasterize",
+          "calls": 4,
+          "self_seconds": 2.7143627,
+          "cumulative_seconds": 5.9893403
+        },
+        {
+          "function": "am3d/core/script.py:evaluate_scene",
+          "calls": 1,
+          "self_seconds": 2.15e-05,
+          "cumulative_seconds": 0.4746116
+        },
+        {
+          "function": "am3d/core/scene.py:evaluate_scene",
+          "calls": 1,
+          "self_seconds": 0.0006118,
+          "cumulative_seconds": 0.47458490000000003
+        }
+      ]
+    },
+    {
+      "label": "three_component_animation_check",
+      "seconds": 44.226203500060365,
+      "calls": {
+        "am3d/core/scene.py:evaluate_scene": 5,
+        "am3d/core/script.py:evaluate_scene": 5,
+        "am3d/render_job.py:render_frame_image": 4
+      },
+      "hotspots": [
+        {
+          "function": "am3d/ai/checks.py:check_artifacts",
+          "calls": 1,
+          "self_seconds": 0.0028655,
+          "cumulative_seconds": 44.225551100000004
+        },
+        {
+          "function": "am3d/ai/_animation_checks.py:_check_animation",
+          "calls": 1,
+          "self_seconds": 0.0039903000000000004,
+          "cumulative_seconds": 36.3636068
+        },
+        {
+          "function": "am3d/renderer/sprite.py:_rasterize_screen",
+          "calls": 7,
+          "self_seconds": 17.4919154,
+          "cumulative_seconds": 35.6631037
+        },
+        {
+          "function": "am3d/render_job.py:render_frame_image",
+          "calls": 4,
+          "self_seconds": 0.00047920000000000005,
+          "cumulative_seconds": 30.438504100000003
+        },
+        {
+          "function": "am3d/gpu/__init__.py:_software_render",
+          "calls": 4,
+          "self_seconds": 0.000341,
+          "cumulative_seconds": 30.4378913
+        },
+        {
+          "function": "am3d/gpu/__init__.py:_toon_through_camera",
+          "calls": 4,
+          "self_seconds": 0.0080827,
+          "cumulative_seconds": 30.432816400000004
+        },
+        {
+          "function": "am3d/renderer/toon.py:toon_render_camera",
+          "calls": 4,
+          "self_seconds": 0.0349406,
+          "cumulative_seconds": 30.4247115
+        },
+        {
+          "function": "am3d/core/script.py:evaluate_scene",
+          "calls": 5,
+          "self_seconds": 0.0002969,
+          "cumulative_seconds": 7.257304
+        },
+        {
+          "function": "am3d/core/scene.py:evaluate_scene",
+          "calls": 5,
+          "self_seconds": 0.0053733,
+          "cumulative_seconds": 7.2569705
+        },
+        {
+          "function": "am3d/renderer/tessellate.py:tessellate_object",
+          "calls": 15,
+          "self_seconds": 0.0215827,
+          "cumulative_seconds": 6.814577000000001
+        }
+      ]
+    },
+    {
+      "label": "three_component_animation_check",
+      "seconds": 32.211485799984075,
+      "calls": {
+        "am3d/core/scene.py:evaluate_scene": 5,
+        "am3d/core/script.py:evaluate_scene": 5,
+        "am3d/render_job.py:render_frame_image": 4
+      },
+      "hotspots": [
+        {
+          "function": "am3d/ai/checks.py:check_artifacts",
+          "calls": 1,
+          "self_seconds": 0.0018264000000000002,
+          "cumulative_seconds": 32.211165900000005
+        },
+        {
+          "function": "am3d/ai/_animation_checks.py:_check_animation",
+          "calls": 1,
+          "self_seconds": 0.0030402000000000003,
+          "cumulative_seconds": 25.684601800000003
+        },
+        {
+          "function": "am3d/renderer/sprite.py:_rasterize_screen",
+          "calls": 7,
+          "self_seconds": 12.234286500000001,
+          "cumulative_seconds": 25.192481500000003
+        },
+        {
+          "function": "am3d/render_job.py:render_frame_image",
+          "calls": 4,
+          "self_seconds": 0.0008517,
+          "cumulative_seconds": 21.0157738
+        },
+        {
+          "function": "am3d/gpu/__init__.py:_software_render",
+          "calls": 4,
+          "self_seconds": 0.0002517,
+          "cumulative_seconds": 21.0147942
+        },
+        {
+          "function": "am3d/gpu/__init__.py:_toon_through_camera",
+          "calls": 4,
+          "self_seconds": 0.0055614,
+          "cumulative_seconds": 21.0097728
+        },
+        {
+          "function": "am3d/renderer/toon.py:toon_render_camera",
+          "calls": 4,
+          "self_seconds": 0.0367547,
+          "cumulative_seconds": 21.004191600000002
+        },
+        {
+          "function": "am3d/core/script.py:evaluate_scene",
+          "calls": 5,
+          "self_seconds": 0.00035610000000000004,
+          "cumulative_seconds": 6.167710400000001
+        },
+        {
+          "function": "am3d/core/scene.py:evaluate_scene",
+          "calls": 5,
+          "self_seconds": 0.0046073,
+          "cumulative_seconds": 6.1672834000000005
+        },
+        {
+          "function": "am3d/renderer/tessellate.py:tessellate_object",
+          "calls": 15,
+          "self_seconds": 0.014758400000000001,
+          "cumulative_seconds": 5.7520302
+        }
+      ]
+    }
+  ],
+  "warm_medians_seconds": {
+    "three_component_animation_check": 32.211485799984075,
+    "multi_format_export": 7.018088300013915
+  },
+  "animation_reports": [
+    {
+      "ok": true,
+      "status": "passed",
+      "checks": [
+        {
+          "id": "output_tree_preflight",
+          "code": "output_tree_preflight",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Stat-checked output size before loading native or exported files.",
+          "details": {
+            "bytes": 14505,
+            "maximum_bytes": 268435456
+          }
+        },
+        {
+          "id": "native_roundtrip",
+          "code": "native_roundtrip",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Native project loaded, received bounded provenance, and survived a fresh save/reopen.",
+          "details": {
+            "format_version": 2,
+            "generation_run_id": "22222222-2222-4222-8222-222222222222"
+          }
+        },
+        {
+          "id": "recipe_intentions",
+          "code": "recipe_intentions",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Reopened project retains the recipe's named objects, materials, actions, and material bindings.",
+          "details": {
+            "missing_objects": [],
+            "missing_materials": [],
+            "missing_actions": [],
+            "bad_material_assignments": []
+          }
+        },
+        {
+          "id": "surface_geometry",
+          "code": "surface_geometry",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Evaluated scene has finite vertices/normals, valid triangle indices and nonzero bounds.",
+          "details": {
+            "surface_objects": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "issues": [],
+            "degenerate_triangles": 0
+          }
+        },
+        {
+          "id": "evaluated_resource_limits",
+          "code": "evaluated_resource_limits",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Measured evaluated geometry stays within V1 triangle and memory limits.",
+          "details": {
+            "triangle_count": 8100,
+            "triangle_limit": 250000,
+            "geometry_array_bytes": 415584,
+            "estimated_memory_limit_bytes": 1073741824
+          }
+        },
+        {
+          "id": "rig_binding",
+          "code": "rig_binding",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Checked required skeleton bones and positive weighted geometry bindings.",
+          "details": {
+            "required_bones": [
+              "root"
+            ],
+            "missing_bones": [],
+            "bound_components": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "issues": []
+          }
+        },
+        {
+          "id": "animation_and_deformation",
+          "code": "animation_and_deformation",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Checked bound action samples at 0%, 25%, 50%, and 75% of duration with one fixed camera.",
+          "details": {
+            "action": "turn",
+            "action_present": true,
+            "assignment_present": true,
+            "assigned_components": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "assignment_issues": [],
+            "missing_bones": [],
+            "samples": [
+              {
+                "component": "driver",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              },
+              {
+                "component": "target",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              },
+              {
+                "component": "third",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              }
+            ],
+            "rendered_sample_frames": 12,
+            "issues": [],
+            "human_review": "useful visible motion remains a human acceptance question"
+          }
+        },
+        {
+          "id": "whole_scene_preview",
+          "code": "whole_scene_preview",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Rendered and decoded a 512x512 auto-fit whole-scene preview with bounded foreground occupancy and color contrast.",
+          "details": {
+            "width": 512,
+            "height": 512,
+            "foreground_fraction": 0.2197113037109375,
+            "foreground_color_range": 0.5725490196078431,
+            "alpha_background_contrast": 0.9833890161520613,
+            "backend": "software material-aware"
+          }
+        },
+        {
+          "id": "requested_exports",
+          "code": "requested_exports",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Independently parsed requested exports and verified required files.",
+          "details": {
+            "files": [
+              "project.am3d"
+            ],
+            "issues": []
+          }
+        },
+        {
+          "id": "png_resources",
+          "code": "png_resources",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Decoded every PNG output and checked bounded dimensions.",
+          "details": {
+            "issues": []
+          }
+        },
+        {
+          "id": "artifact_manifest",
+          "code": "artifact_manifest",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Verified relative artifact paths, file hashes, sizes, and required outputs.",
+          "details": {
+            "missing": [],
+            "count": 2,
+            "bytes": 25933
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "preview.png",
+          "sha256": "8c14e03589507c283a2abc0e343315976d1d15dea1630f3d733c42cd8d290f4a",
+          "bytes": 10514
+        },
+        {
+          "path": "project.am3d",
+          "sha256": "696e31578a1114d80a9144208be6e41b74a3209c3555b80fd81cb6f9e6cc0eb3",
+          "bytes": 15419
+        }
+      ],
+      "measurements": {
+        "recipe_name": "three component motion",
+        "visible_object_count": 3,
+        "surface_object_count": 3,
+        "vertex_count": 4608,
+        "triangle_count": 8100,
+        "bounds_min": [
+          -0.5,
+          -0.5,
+          -0.40000000000000013
+        ],
+        "bounds_max": [
+          0.5,
+          0.5,
+          0.40000000000000013
+        ],
+        "scene_diagonal": 1.6248076809271923,
+        "degenerate_triangles_reported": 0,
+        "preview": {
+          "width": 512,
+          "height": 512,
+          "foreground_fraction": 0.2197113037109375,
+          "foreground_color_range": 0.5725490196078431,
+          "alpha_background_contrast": 0.9833890161520613,
+          "backend": "software material-aware"
+        },
+        "artifact_count": 2,
+        "artifact_bytes": 25933
+      },
+      "limitations": [],
+      "resource_limit": false
+    },
+    {
+      "ok": true,
+      "status": "passed",
+      "checks": [
+        {
+          "id": "output_tree_preflight",
+          "code": "output_tree_preflight",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Stat-checked output size before loading native or exported files.",
+          "details": {
+            "bytes": 14505,
+            "maximum_bytes": 268435456
+          }
+        },
+        {
+          "id": "native_roundtrip",
+          "code": "native_roundtrip",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Native project loaded, received bounded provenance, and survived a fresh save/reopen.",
+          "details": {
+            "format_version": 2,
+            "generation_run_id": "22222222-2222-4222-8222-222222222222"
+          }
+        },
+        {
+          "id": "recipe_intentions",
+          "code": "recipe_intentions",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Reopened project retains the recipe's named objects, materials, actions, and material bindings.",
+          "details": {
+            "missing_objects": [],
+            "missing_materials": [],
+            "missing_actions": [],
+            "bad_material_assignments": []
+          }
+        },
+        {
+          "id": "surface_geometry",
+          "code": "surface_geometry",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Evaluated scene has finite vertices/normals, valid triangle indices and nonzero bounds.",
+          "details": {
+            "surface_objects": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "issues": [],
+            "degenerate_triangles": 0
+          }
+        },
+        {
+          "id": "evaluated_resource_limits",
+          "code": "evaluated_resource_limits",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Measured evaluated geometry stays within V1 triangle and memory limits.",
+          "details": {
+            "triangle_count": 8100,
+            "triangle_limit": 250000,
+            "geometry_array_bytes": 415584,
+            "estimated_memory_limit_bytes": 1073741824
+          }
+        },
+        {
+          "id": "rig_binding",
+          "code": "rig_binding",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Checked required skeleton bones and positive weighted geometry bindings.",
+          "details": {
+            "required_bones": [
+              "root"
+            ],
+            "missing_bones": [],
+            "bound_components": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "issues": []
+          }
+        },
+        {
+          "id": "animation_and_deformation",
+          "code": "animation_and_deformation",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Checked bound action samples at 0%, 25%, 50%, and 75% of duration with one fixed camera.",
+          "details": {
+            "action": "turn",
+            "action_present": true,
+            "assignment_present": true,
+            "assigned_components": [
+              "driver",
+              "target",
+              "third"
+            ],
+            "assignment_issues": [],
+            "missing_bones": [],
+            "samples": [
+              {
+                "component": "driver",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              },
+              {
+                "component": "target",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              },
+              {
+                "component": "third",
+                "max_displacement": 1.265297847915829,
+                "required_displacement": 0.0016248076809271923
+              }
+            ],
+            "rendered_sample_frames": 12,
+            "issues": [],
+            "human_review": "useful visible motion remains a human acceptance question"
+          }
+        },
+        {
+          "id": "whole_scene_preview",
+          "code": "whole_scene_preview",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Rendered and decoded a 512x512 auto-fit whole-scene preview with bounded foreground occupancy and color contrast.",
+          "details": {
+            "width": 512,
+            "height": 512,
+            "foreground_fraction": 0.2197113037109375,
+            "foreground_color_range": 0.5725490196078431,
+            "alpha_background_contrast": 0.9833890161520613,
+            "backend": "software material-aware"
+          }
+        },
+        {
+          "id": "requested_exports",
+          "code": "requested_exports",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Independently parsed requested exports and verified required files.",
+          "details": {
+            "files": [
+              "project.am3d"
+            ],
+            "issues": []
+          }
+        },
+        {
+          "id": "png_resources",
+          "code": "png_resources",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Decoded every PNG output and checked bounded dimensions.",
+          "details": {
+            "issues": []
+          }
+        },
+        {
+          "id": "artifact_manifest",
+          "code": "artifact_manifest",
+          "status": "passed",
+          "severity": "info",
+          "path": null,
+          "summary": "Verified relative artifact paths, file hashes, sizes, and required outputs.",
+          "details": {
+            "missing": [],
+            "count": 2,
+            "bytes": 25933
+          }
+        }
+      ],
+      "artifacts": [
+        {
+          "path": "preview.png",
+          "sha256": "8c14e03589507c283a2abc0e343315976d1d15dea1630f3d733c42cd8d290f4a",
+          "bytes": 10514
+        },
+        {
+          "path": "project.am3d",
+          "sha256": "696e31578a1114d80a9144208be6e41b74a3209c3555b80fd81cb6f9e6cc0eb3",
+          "bytes": 15419
+        }
+      ],
+      "measurements": {
+        "recipe_name": "three component motion",
+        "visible_object_count": 3,
+        "surface_object_count": 3,
+        "vertex_count": 4608,
+        "triangle_count": 8100,
+        "bounds_min": [
+          -0.5,
+          -0.5,
+          -0.40000000000000013
+        ],
+        "bounds_max": [
+          0.5,
+          0.5,
+          0.40000000000000013
+        ],
+        "scene_diagonal": 1.6248076809271923,
+        "degenerate_triangles_reported": 0,
+        "preview": {
+          "width": 512,
+          "height": 512,
+          "foreground_fraction": 0.2197113037109375,
+          "foreground_color_range": 0.5725490196078431,
+          "alpha_background_contrast": 0.9833890161520613,
+          "backend": "software material-aware"
+        },
+        "artifact_count": 2,
+        "artifact_bytes": 25933
+      },
+      "limitations": [],
+      "resource_limit": false
+    }
+  ]
+}

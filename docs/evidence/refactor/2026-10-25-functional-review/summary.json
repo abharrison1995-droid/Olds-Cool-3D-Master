@@ -1,0 +1,22 @@
+{
+  "source_base": "ffe82ef0f96aed557075a312b40647ab96c6be2b",
+  "source_digest": "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa",
+  "source_changed_during_review": false,
+  "full_source_suite": {
+    "passed": 1180,
+    "skipped": 6,
+    "warnings": 4,
+    "seconds": 857.77
+  },
+  "frozen_gui_smoke_steps": 14,
+  "frozen_offline_runs": {
+    "initial": "failed: worker_error/unsafe_output_tree",
+    "retry01": "passed: acceptance report",
+    "retry02": "passed: waited exit 0 and acceptance report"
+  },
+  "source_diagnostic_runs": 2,
+  "cli_checks": "passed; malformed input rejected; independent OBJ/GLB parse passed",
+  "comparison_reports_identical": true,
+  "review_kind": "author self-review, not independent review",
+  "disposition": "retain intermittent audit failure as unresolved; proposed optimization plan only"
+}

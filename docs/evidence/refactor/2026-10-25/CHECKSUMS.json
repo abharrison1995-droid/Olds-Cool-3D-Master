@@ -1,0 +1,139 @@
+{
+  "date": "2026-10-25",
+  "source_base": "ffe82ef0f96aed557075a312b40647ab96c6be2b",
+  "branch": "codex/refactor-context-cleanup",
+  "source_state": "uncommitted maintenance implementation",
+  "build_input_digest": "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa",
+  "files": [
+    {
+      "path": "baseline-inputs.json",
+      "bytes": 44608,
+      "sha256": "5aa5270813878ea8bb1fd07d969b134c77c587af20e9190c06094dc4fd178a4a"
+    },
+    {
+      "path": "baseline-tests.log",
+      "bytes": 3997,
+      "sha256": "0691f99758055227c5a84802c6213156e3141bffbc86dd54889822cc2d531880"
+    },
+    {
+      "path": "compare-after-reports.json",
+      "bytes": 13635,
+      "sha256": "0b95fe95907329d2cd5b41f83d0b337a8feb1c57372e5b4fd37d172a20598815"
+    },
+    {
+      "path": "compare-before-reports.json",
+      "bytes": 13635,
+      "sha256": "0b95fe95907329d2cd5b41f83d0b337a8feb1c57372e5b4fd37d172a20598815"
+    },
+    {
+      "path": "final-inputs.json",
+      "bytes": 46225,
+      "sha256": "826e6eadc966524730a8ddf4e995cd97e95237aaf3bc2e5edd87e753f4821ed8"
+    },
+    {
+      "path": "final-tests.log",
+      "bytes": 3997,
+      "sha256": "00eb4346ec0128b372066b401b5b2354b7ecb48fb5dbde2e92fd940f951e10f7"
+    },
+    {
+      "path": "frozen-cli-build.log",
+      "bytes": 7904,
+      "sha256": "1d9c2f4c4c31e5605916d571504195cc9db1c1380dc9b61da9803148a1e617e4"
+    },
+    {
+      "path": "frozen-cli-knight.log",
+      "bytes": 588,
+      "sha256": "0105ff73532d4e3e4ae98e255ae192830de5d3365700ba1239f64d46f17b1d5d"
+    },
+    {
+      "path": "frozen-export-validation.json",
+      "bytes": 236,
+      "sha256": "b4c68a5319fe1269845b8ab10498ca78ef8fcd25f82678f41984ef846162fd82"
+    },
+    {
+      "path": "frozen-full-payload-audit.log",
+      "bytes": 57,
+      "sha256": "1af90094490882eaa8974ace7de47cbcaf5b2a902486ac07823222e445245d8f"
+    },
+    {
+      "path": "frozen-gui-build.log",
+      "bytes": 12910,
+      "sha256": "c7c8d92a090b9b837f0fb0c3dfe1c4c6ca855bc901f61081e11748bade50f28b"
+    },
+    {
+      "path": "frozen-gui-smoke.log",
+      "bytes": 3096,
+      "sha256": "be5f37fb9307921fb8500ce862d41eddd2005c8bbda9e4d9562d7cdf695fc9b1"
+    },
+    {
+      "path": "frozen-identity.log",
+      "bytes": 149,
+      "sha256": "747c37f2c1992c100a62c005490b46107cf1fd86b4281c2798cb34a870b30945"
+    },
+    {
+      "path": "frozen-offline-acceptance.json",
+      "bytes": 1488,
+      "sha256": "a0e35b89002d4dc306a6f861bf9147a047e74a238157ec1747d9b0fba5ac8b63"
+    },
+    {
+      "path": "frozen-offline-ai.log",
+      "bytes": 138,
+      "sha256": "e3a5b72b0830ab01e99905eebaacefe007e26477788277797282098685a3b3f6"
+    },
+    {
+      "path": "frozen-payload-audit.log",
+      "bytes": 57,
+      "sha256": "1af90094490882eaa8974ace7de47cbcaf5b2a902486ac07823222e445245d8f"
+    },
+    {
+      "path": "frozen-payload-manifest.json",
+      "bytes": 50788,
+      "sha256": "4038658a28567ee2dcd17d3dec3a791949452ff4cc65dbbb05276f56a7755d2c"
+    },
+    {
+      "path": "frozen-smoke.json",
+      "bytes": 2938,
+      "sha256": "10ef10fa42c8c46e814fbf7698281e5d29b51d92ee47b7e71429e66a79120582"
+    },
+    {
+      "path": "frozen-validation.json",
+      "bytes": 4877,
+      "sha256": "0b892033d01c2e684343647fde1ba9451f8b8f320099ad14ef523e38eb0588c9"
+    },
+    {
+      "path": "mechanical-equivalence.log",
+      "bytes": 172,
+      "sha256": "792917ffa1fb602e2428048e8042eac3b8700eb9f291457bdf565d55331de087"
+    },
+    {
+      "path": "stage2-tests.log",
+      "bytes": 967,
+      "sha256": "7b8f667fdc32910f168a49249aa18d5b6f4861f8dfcc3e2a1fa16d833c77fabb"
+    },
+    {
+      "path": "stage3-tests.log",
+      "bytes": 184,
+      "sha256": "f45261ca7c7319b3b257b09653d963f9d793ef34b5f21b2069751b3c9575aa8b"
+    },
+    {
+      "path": "stage4-tests.log",
+      "bytes": 437,
+      "sha256": "f8c583967d7cf334817e61397e2e85894a0910ff5193f0f7881e798bf523686a"
+    },
+    {
+      "path": "stage5-tests.log",
+      "bytes": 194,
+      "sha256": "b68793dd317fd16d92b2064b08f12a596385cc7db56a8706ff0fdb271c00d704"
+    },
+    {
+      "path": "tooling-tests.log",
+      "bytes": 567,
+      "sha256": "297066e69a1737b8bdc8bf1de8d98a34c97d023169259a318aaf3b5e0c5524c7"
+    },
+    {
+      "path": "VALIDATION.md",
+      "bytes": 9328,
+      "sha256": "091933840c67b75512a243a9d388adc1bedbfd82377513d96f0f77d59264b8c2"
+    }
+  ]
+}

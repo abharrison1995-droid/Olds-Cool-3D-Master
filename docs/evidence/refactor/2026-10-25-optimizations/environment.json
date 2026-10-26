@@ -1,0 +1,197 @@
+{
+  "python": "3.12.14",
+  "pytest": "9.1.1",
+  "lock_sha256": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
+  "packages": [
+    {
+      "package": "altgraph",
+      "version": "0.17.5",
+      "matches": true
+    },
+    {
+      "package": "anyio",
+      "version": "4.15.1",
+      "matches": true
+    },
+    {
+      "package": "attrs",
+      "version": "26.1.0",
+      "matches": true
+    },
+    {
+      "package": "certifi",
+      "version": "2026.7.22",
+      "matches": true
+    },
+    {
+      "package": "colorama",
+      "version": "0.4.6",
+      "matches": true
+    },
+    {
+      "package": "glcontext",
+      "version": "3.1.0",
+      "matches": true
+    },
+    {
+      "package": "h11",
+      "version": "0.16.0",
+      "matches": true
+    },
+    {
+      "package": "httpcore",
+      "version": "1.0.9",
+      "matches": true
+    },
+    {
+      "package": "httpx",
+      "version": "0.28.1",
+      "matches": true
+    },
+    {
+      "package": "idna",
+      "version": "3.20",
+      "matches": true
+    },
+    {
+      "package": "iniconfig",
+      "version": "2.3.1",
+      "matches": true
+    },
+    {
+      "package": "jaraco-classes",
+      "version": "3.4.0",
+      "matches": true
+    },
+    {
+      "package": "jaraco-context",
+      "version": "6.1.2",
+      "matches": true
+    },
+    {
+      "package": "jaraco-functools",
+      "version": "4.6.0",
+      "matches": true
+    },
+    {
+      "package": "jsonschema-specifications",
+      "version": "2025.9.1",
+      "matches": true
+    },
+    {
+      "package": "jsonschema",
+      "version": "4.26.0",
+      "matches": true
+    },
+    {
+      "package": "keyring",
+      "version": "25.7.0",
+      "matches": true
+    },
+    {
+      "package": "moderngl",
+      "version": "5.12.0",
+      "matches": true
+    },
+    {
+      "package": "more-itertools",
+      "version": "11.2.0",
+      "matches": true
+    },
+    {
+      "package": "msgpack",
+      "version": "1.2.1",
+      "matches": true
+    },
+    {
+      "package": "numpy",
+      "version": "2.4.6",
+      "matches": true
+    },
+    {
+      "package": "packaging",
+      "version": "26.3",
+      "matches": true
+    },
+    {
+      "package": "pefile",
+      "version": "2024.8.26",
+      "matches": true
+    },
+    {
+      "package": "pillow",
+      "version": "12.3.0",
+      "matches": true
+    },
+    {
+      "package": "pluggy",
+      "version": "1.6.0",
+      "matches": true
+    },
+    {
+      "package": "pygments",
+      "version": "2.21.0",
+      "matches": true
+    },
+    {
+      "package": "pyinstaller-hooks-contrib",
+      "version": "2026.8",
+      "matches": true
+    },
+    {
+      "package": "pyinstaller",
+      "version": "6.22.2",
+      "matches": true
+    },
+    {
+      "package": "pyside6-addons",
+      "version": "6.11.2",
+      "matches": true
+    },
+    {
+      "package": "pyside6-essentials",
+      "version": "6.11.2",
+      "matches": true
+    },
+    {
+      "package": "pyside6",
+      "version": "6.11.2",
+      "matches": true
+    },
+    {
+      "package": "pytest",
+      "version": "9.1.1",
+      "matches": true
+    },
+    {
+      "package": "pywin32-ctypes",
+      "version": "0.2.3",
+      "matches": true
+    },
+    {
+      "package": "referencing",
+      "version": "0.37.0",
+      "matches": true
+    },
+    {
+      "package": "rpds-py",
+      "version": "2026.9.1",
+      "matches": true
+    },
+    {
+      "package": "setuptools",
+      "version": "84.0.0",
+      "matches": true
+    },
+    {
+      "package": "shiboken6",
+      "version": "6.11.2",
+      "matches": true
+    },
+    {
+      "package": "typing-extensions",
+      "version": "4.16.0",
+      "matches": true
+    }
+  ]
+}

@@ -1,0 +1,37 @@
+.....................................................................s.. [  6%]
+........................................................................ [ 12%]
+........................................................................ [ 18%]
+........................................................................ [ 24%]
+....................s.......s........................................... [ 30%]
+........................................................................ [ 36%]
+........................................................................ [ 42%]
+........................................................................ [ 48%]
+..............s....................ss................................... [ 54%]
+........................................................................ [ 60%]
+........................................................................ [ 66%]
+........................................................................ [ 72%]
+........................................................................ [ 78%]
+........................................................................ [ 84%]
+........................................................................ [ 91%]
+........................................................................ [ 97%]
+..................................                                       [100%]
+============================== warnings summary ===============================
+am3d/ui/test_dopesheet.py::test_ruler_click_seeks
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:97: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    ev = QMouseEvent(QEvent.Type.MouseButtonPress, QPointF(x, 5),
+
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+am3d/ui/test_dopesheet.py::test_drag_key_moves_with_undo
+  C:\Users\Alex\Desktop\Olds-Cool-3D-Master\am3d\ui\test_dopesheet.py:152: DeprecationWarning: Function: 'QMouseEvent.QMouseEvent(QEvent.Type type, const QPointF &localPos, Qt.MouseButton button, QFlags<Qt.MouseButton> buttons, QFlags<Qt.KeyboardModifier> modifiers, const QPointingDevice *device)' is marked as deprecated, please check the documentation for more information.
+    return QMouseEvent(kind, QPointF(x_, y_), Qt.LeftButton,
+
+-- Docs: https://docs.pytest.org/en/stable/how-to/capture-warnings.html
+=========================== short test summary info ===========================
+SKIPPED [1] am3d\ai\m3\test_storage.py:46: this account cannot create symlinks
+SKIPPED [1] am3d\ai\test_worker.py:313: directory symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-690\\test_output_root_symlink_is_re0\\real-output' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-690\\test_output_root_symlink_is_re0\\linked-output'
+SKIPPED [1] am3d\ai\test_worker.py:451: file symlink creation is unavailable: [WinError 1314] A required privilege is not held by the client: 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-690\\test_final_tree_audit_rejects_1\\outside.png' -> 'C:\\Users\\Alex\\AppData\\Local\\Temp\\pytest-of-Alex\\pytest-690\\test_final_tree_audit_rejects_1\\attempt\\linked.png'
+SKIPPED [1] am3d\gpu\test_gpu.py:124: real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a qualified graphics host
+SKIPPED [1] am3d\gpu\test_scene_render.py:280: real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a qualified graphics host
+SKIPPED [1] am3d\gpu\test_scene_render.py:296: real GPU tests disabled; set AM3D_TEST_REAL_GPU=1 on a qualified graphics host
+1180 passed, 6 skipped, 4 warnings in 759.15s (0:12:39)

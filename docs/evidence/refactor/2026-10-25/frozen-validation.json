@@ -1,0 +1,128 @@
+{
+  "qualification": "maintenance-only/offline/software",
+  "source_head": "ffe82ef0f96aed557075a312b40647ab96c6be2b",
+  "build_input_digest": "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa",
+  "dependency_lock_sha256": "0a9a1b4086add4515dab3eed56cb585331b6526ef4de72e9fa83e4c38024d4d6",
+  "checks": [
+    {
+      "name": "frozen-identity",
+      "exit_code": 0,
+      "seconds": 2.8,
+      "log": "work\\refactor\\frozen-identity.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Scripts\\python.exe",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\scripts\\write_build_identity.py",
+        "--root",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source",
+        "--platform",
+        "windows",
+        "--digest",
+        "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa"
+      ]
+    },
+    {
+      "name": "frozen-gui-build",
+      "exit_code": 0,
+      "seconds": 279.58,
+      "log": "work\\refactor\\frozen-gui-build.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Scripts\\python.exe",
+        "-m",
+        "PyInstaller",
+        "--clean",
+        "--noconfirm",
+        "--distpath",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist",
+        "--workpath",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-work",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source\\am3d.spec"
+      ]
+    },
+    {
+      "name": "frozen-cli-build",
+      "exit_code": 0,
+      "seconds": 60.92,
+      "log": "work\\refactor\\frozen-cli-build.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Scripts\\python.exe",
+        "-m",
+        "PyInstaller",
+        "--clean",
+        "--noconfirm",
+        "--distpath",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist",
+        "--workpath",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-work",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source\\am3d_recipe.spec"
+      ]
+    },
+    {
+      "name": "Qt platform plugins",
+      "ok": true
+    },
+    {
+      "name": "frozen-payload-audit",
+      "exit_code": 0,
+      "seconds": 8.09,
+      "log": "work\\refactor\\frozen-payload-audit.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Scripts\\python.exe",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\scripts\\audit_build_payload.py",
+        "--payload",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist\\3D MASTER 2005 Beta",
+        "--forbidden-root",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source"
+      ]
+    },
+    {
+      "name": "frozen-gui-smoke",
+      "exit_code": 0,
+      "seconds": 11.72,
+      "log": "work\\refactor\\frozen-gui-smoke.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist\\3D MASTER 2005 Beta\\3D MASTER 2005.exe",
+        "--smoke-test",
+        "--out",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-smoke.json"
+      ]
+    },
+    {
+      "name": "frozen-offline-ai",
+      "exit_code": 0,
+      "seconds": 21.39,
+      "log": "work\\refactor\\frozen-offline-ai.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist\\3D MASTER 2005 Beta\\3D MASTER 2005.exe",
+        "--ai-self-test",
+        "--out",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-offline"
+      ]
+    },
+    {
+      "name": "frozen-cli-knight",
+      "exit_code": 0,
+      "seconds": 10.16,
+      "log": "work\\refactor\\frozen-cli-knight.log",
+      "argv": [
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-dist\\am3d-recipe.exe",
+        "--recipe",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source\\docs\\recipes\\examples\\knight_full.json",
+        "--out",
+        "C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-knight"
+      ]
+    }
+  ],
+  "artifacts": [
+    {
+      "path": "work\\refactor\\frozen-dist\\3D MASTER 2005 Beta\\3D MASTER 2005.exe",
+      "bytes": 6862218,
+      "sha256": "8f87d824e4ec889556a79d27c86b1be74fd9f6b486a9d0ecb988394b7fb922d8"
+    },
+    {
+      "path": "work\\refactor\\frozen-dist\\am3d-recipe.exe",
+      "bytes": 26843359,
+      "sha256": "488a694fb68eed2c3ddf4c988190fb4bcac9fe793a4efbeda9fa4d8d74af44b7"
+    }
+  ],
+  "ok": true
+}

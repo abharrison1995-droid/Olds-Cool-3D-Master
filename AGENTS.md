@@ -2,10 +2,13 @@
 
 - Product: 3D MASTER:2005, an editable spline-patch modeling and animation application with a recipe CLI.
 - Active plan: [docs/V1_MASTER_IMPLEMENTATION_PLAN.md](docs/V1_MASTER_IMPLEMENTATION_PLAN.md); current handoff and exact task: [docs/agent/CURRENT_PHASE.md](docs/agent/CURRENT_PHASE.md).
+- Maintenance record: [docs/agent/REFACTOR_PLAN.md](docs/agent/REFACTOR_PLAN.md). It preserves the active V1 product contract; current state belongs in the handoff. Do not restart completed stages.
 - The 6 Oct M0 plan at docs/V1_PLAN.md is historical context; the approved 13 Oct V1 master plan supersedes it.
 - Design authority: [`DESIGN.md`](DESIGN.md). Platform support and caveats: [`docs/SUPPORTED_PLATFORMS.md`](docs/SUPPORTED_PLATFORMS.md).
 - Before changing source, inspect current phase, relevant GitHub issue, and the touched package. Preserve all local and historical work.
 - Default full test command: `QT_QPA_PLATFORM=offscreen build/linux/venv/bin/python -m pytest am3d/ -q`. Fresh pinned env: `python -m pip install -r requirements-lock-linux.txt`, then `QT_QPA_PLATFORM=offscreen python -m pytest am3d/ -q`.
+- Windows PowerShell: set `$env:QT_QPA_PLATFORM = 'offscreen'`, then `build/windows/venv/Scripts/python.exe -m pytest am3d/ -q`. Verify the existing environment against `requirements-lock-windows.txt`; use that lock for a fresh Windows environment.
+- Ordinary tests use software rendering. Leave `AM3D_TEST_REAL_GPU` unset unless running a separately qualified native-GPU check.
 - Fast CI uses the Linux pinned lock and offscreen pytest on every push and pull request.
 
 ## Package map
@@ -13,9 +16,9 @@
 - `am3d/spline/`: spline geometry and patch evaluation.
 - `am3d/core/`: document/session model, serialization, paths, and scripting facade.
 - `am3d/recipes/`: recipe schema, validation, builders, execution, and CLI.
-- Package map: am3d/ai/ contains the authoritative Windows V1 policy, worker checks, provider and orchestration implementation. am3d/ai/m3/ preserves the older M3.1 API in isolation; do not mix these imports.
+- `am3d/ai/`: authoritative V1 policy, worker checks, provider and orchestration implementation. `am3d/ai/m3/` preserves the incompatible earlier M2/M3.1 API. Existing UI compatibility integrations and the legacy worker still use it; preserve those boundaries and do not mix contracts or remove it as dead code.
 - `am3d/ui/`: PySide6 desktop editor and document controller.
-- `am3d/export/`, `am3d/renderer/`, `am3d/rig/`: export readers/writers, rendering, skeletons and actions.
+- `am3d/export/`, `am3d/renderer/`, `am3d/gpu/`: export readers/writers and rendering. Skeletons and actions live in `am3d/core/rigging.py` and `am3d/core/animation.py`.
 - `docs/`: active contract and user docs; `docs/evidence/` is immutable historical evidence.
 
 ## Invariants

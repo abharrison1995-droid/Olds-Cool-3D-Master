@@ -1,0 +1,95 @@
+{
+  "qualification": "Sequential, separate processes on this Windows 10 workstation with software rendering. Three samples per workflow: first cold, median of last two warm. No controlled-load or cross-platform speed claim. Peak working set is the process high-water mark including imports and both fixtures.",
+  "baseline_source_digest": "817f8e1d2176c7ddcbae02e18cbcbe3b2c8c2f6f4cde69ed6f12a10fb9bbf3aa",
+  "baseline": {
+    "samples": [
+      {
+        "label": "multi_format_export",
+        "seconds": 4.33070230006706,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "multi_format_export",
+        "seconds": 3.8231676999712363,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "multi_format_export",
+        "seconds": 6.02355839998927,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 58.07711810001638,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 91.79922419996001,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 110.83119239995722,
+        "calls": {},
+        "hotspots": []
+      }
+    ],
+    "warm_medians_seconds": {
+      "multi_format_export": 4.923363049980253,
+      "three_component_animation_check": 101.31520829995861
+    },
+    "peak_working_set_bytes": 102031360
+  },
+  "optimized": {
+    "samples": [
+      {
+        "label": "multi_format_export",
+        "seconds": 4.405972999986261,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "multi_format_export",
+        "seconds": 3.312618999974802,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "multi_format_export",
+        "seconds": 1.9093353999778628,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 18.13175830000546,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 20.510269900085405,
+        "calls": {},
+        "hotspots": []
+      },
+      {
+        "label": "three_component_animation_check",
+        "seconds": 16.322122699930333,
+        "calls": {},
+        "hotspots": []
+      }
+    ],
+    "warm_medians_seconds": {
+      "multi_format_export": 2.6109771999763325,
+      "three_component_animation_check": 18.41619630000787
+    },
+    "peak_working_set_bytes": 102252544
+  },
+  "animation_reports_and_artifact_hashes_equal": true
+}

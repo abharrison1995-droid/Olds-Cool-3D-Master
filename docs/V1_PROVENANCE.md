@@ -4,11 +4,15 @@ V1 evidence must identify what was requested, which source/configuration ran,
 what the host checked, and which immutable artifacts resulted. Historical
 build or review evidence certifies only its named commit and artifact.
 
+Authority: [V1 master plan](V1_MASTER_IMPLEMENTATION_PLAN.md), section 7.
+Current V1 records are owned by `am3d/ai/records.py`. The preserved M2/M3.1
+storage API has a separate layout and must not be interpreted as V1 records.
+
 ## Generation records
 
 Use `generations/<run-id>/` as an immutable completed-run directory. A run
 contains `record.json`, exact `recipe.json`, `preview.png`, `project.am3d`,
-`checks.json`, and exported files. IDs are host-generated. A refinement
+`brief.json`, `check-report.json`, and exported files. IDs are host-generated. A refinement
 records its parent run ID and produces a child; never edit parent bytes.
 Persist stages/times, app/build/capability identity, provider/model/prompt
 version where known, usage and quota fields (`null` when unknown), policy
@@ -23,14 +27,19 @@ verified completed directory; for cross-volume copy, stage privately, verify,
 then rename. No active document is replaced. The editor opens a separate
 writable copy after the ordinary dirty-document guard.
 
-M2's local record format stores the host run ID, parent ID (null), UTC
-start/end times, application version, optional build identity, recipe hash and
-version, policy digest, check version, status, warnings, bounded errors,
-relative artifact paths/sizes/hashes, preview dimensions, and elapsed time.
-Provider, model, prompt, and usage fields are absent because M2 has no model
-call. Failed and cancelled diagnostics live under generation-failures/;
-they contain no publishable project or export artifacts and are never treated
-as completed generations.
+Current V1 private attempts live in `.generation-attempts/<canonical-UUID>/`
+with atomic `state.json` and isolated candidate directories. Completed snapshots
+live in `generations/<canonical-UUID>/`. Publication copies only checked files
+into private staging, verifies hashes before/during/after copy, writes bounded
+sidecars and `record.json`, then atomically renames on the history volume.
+The orchestrator outcome uses `completed`; the durable successful record uses
+`complete`. Interrupted attempts recover without relabeling a published result.
+Never make these status spellings interchangeable across APIs.
+
+Legacy M2/M3.1 records under `am3d.ai.m3.storage` retain their earlier IDs,
+`checks.json` and `generation-failures/` conventions. Provider fields are absent
+from the M2-only format. Preserve legacy adoption and writable-copy safeguards;
+this distinction is not a record migration instruction.
 
 Credentials, credential-bearing URLs, raw HTTP responses, and provider
 transcripts never enter projects, workers, logs, or records. Sanitize errors
@@ -39,12 +48,12 @@ rebuildable index. A copied `.am3d` can still open without a sidecar, with
 history reported unavailable. Save As/manual edits retain origin but mark
 divergence; provenance never claims later geometry still matches the recipe.
 
-An optional bounded project `generation` envelope may store record version,
-run/parent IDs, accepted brief, exact recipe/hash, build/capability identity,
-warnings, and relative sidecar references. Choose a format-2 optional field
-only after compatibility tests prove old files remain readable and new files
-roundtrip; otherwise use a versioned format change with legacy fixtures. Do
-not use action metadata for project provenance.
+The implemented optional format-2 `generation` envelope stores bounded
+run/parent IDs, accepted brief, exact recipe/hash, application identity, warnings
+and relative artifact references. `core/serializer.py` validates and preserves
+it through current save/reopen. Older readers may ignore it on load and drop
+it on save; copying to an older reader does not preserve full provenance.
+Legacy format-1/2 files remain readable. Action metadata is not provenance.
 
 ## Build candidate evidence
 

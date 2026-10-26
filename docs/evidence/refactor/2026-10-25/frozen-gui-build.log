@@ -1,0 +1,105 @@
+4311 INFO: PyInstaller: 6.22.2, contrib hooks: 2026.8
+4313 INFO: Python: 3.12.14
+6291 INFO: Platform: Windows-10-10.0.19044-SP0
+6293 INFO: Python environment: C:\Users\Alex\Desktop\Olds-Cool-3D-Master\build\windows\venv
+6305 INFO: Removing temporary files and cleaning cache in C:\Users\Alex\AppData\Local\pyinstaller
+6483 INFO: Module search paths (PYTHONPATH):
+['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\python312.zip',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\DLLs',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python\\Lib',
+ 'C:\\Users\\Alex\\.cache\\codex-runtimes\\codex-primary-runtime\\dependencies\\python',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages',
+ 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\work\\refactor\\frozen-source']
+18287 INFO: Appending 'datas' from .spec
+18293 INFO: checking Analysis
+18294 INFO: Building Analysis because Analysis-00.toc is non existent
+18294 INFO: Looking for Python shared library...
+18294 INFO: Using Python shared library: C:\Users\Alex\.cache\codex-runtimes\codex-primary-runtime\dependencies\python\python312.dll
+18294 INFO: Running Analysis Analysis-00.toc
+18294 INFO: Target bytecode optimization level: 0
+18295 INFO: Initializing module dependency graph...
+18302 INFO: Initializing module graph hook caches...
+18749 INFO: Analyzing modules for base_library.zip ...
+37875 INFO: Processing standard module hook 'hook-heapq.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+38706 INFO: Processing standard module hook 'hook-encodings.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+50444 INFO: Processing standard module hook 'hook-math.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+51918 INFO: Processing standard module hook 'hook-pickle.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+65200 INFO: Caching module dependency graph...
+65579 INFO: Analyzing C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-source\am3d\ui\__main__.py
+65753 INFO: Processing standard module hook 'hook-numpy.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+69596 INFO: Processing pre-safe-import-module hook 'hook-typing_extensions.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+69671 INFO: SetuptoolsInfo: initializing cached setuptools info...
+74031 INFO: Processing standard module hook 'hook-multiprocessing.util.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+74857 INFO: Processing standard module hook 'hook-xml.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+77462 INFO: Processing standard module hook 'hook-_ctypes.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+81488 INFO: Processing standard module hook 'hook-difflib.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+85327 INFO: Processing standard module hook 'hook-sysconfig.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+86175 INFO: Processing standard module hook 'hook-platform.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+90739 INFO: Processing standard module hook 'hook-webbrowser.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+104548 INFO: Processing standard module hook 'hook-PIL.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+105580 INFO: Processing standard module hook 'hook-PIL.Image.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+108738 INFO: Processing standard module hook 'hook-xml.etree.cElementTree.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+111302 INFO: Processing standard module hook 'hook-PIL.ImageFilter.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+115082 INFO: Processing standard module hook 'hook-keyring.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+118336 INFO: Processing pre-safe-import-module hook 'hook-jaraco.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+118339 INFO: Setuptools: 'jaraco' appears to be a partial setuptools-vendored copy - extending search paths to ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\jaraco', 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\setuptools\\_vendor\\jaraco']!
+118346 INFO: Processing pre-safe-import-module hook 'hook-jaraco.context.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+118411 INFO: Processing pre-safe-import-module hook 'hook-backports.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+118443 INFO: Setuptools: 'backports' appears to be a full setuptools-vendored copy - creating alias to 'setuptools._vendor.backports'!
+118448 INFO: Processing pre-safe-import-module hook 'hook-jaraco.functools.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+118554 INFO: Processing pre-safe-import-module hook 'hook-more_itertools.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+119608 INFO: Processing pre-safe-import-module hook 'hook-importlib_metadata.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+119624 INFO: Setuptools: 'importlib_metadata' appears to be a setuptools-vendored copy - creating alias to 'setuptools._vendor.importlib_metadata'!
+119836 INFO: Processing standard module hook 'hook-win32ctypes.core.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+130150 INFO: Processing standard module hook 'hook-certifi.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+132075 INFO: Processing standard module hook 'hook-anyio.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\_pyinstaller_hooks_contrib\\stdhooks'
+147700 INFO: Processing standard module hook 'hook-PySide6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+151845 INFO: Processing standard module hook 'hook-shiboken6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+158383 INFO: Processing standard module hook 'hook-PySide6.QtNetwork.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+173132 INFO: Processing standard module hook 'hook-PySide6.QtCore.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+187004 INFO: Processing standard module hook 'hook-PySide6.QtWidgets.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+197181 INFO: Processing standard module hook 'hook-PySide6.QtGui.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+249284 INFO: Processing module hooks (post-graph stage)...
+250247 INFO: Processing pre-safe-import-module hook 'hook-gi.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_safe_import_module'
+253283 INFO: Processing standard module hook 'hook-PIL.SpiderImagePlugin.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+254119 INFO: Performing binary vs. data reclassification (149 entries)
+255761 INFO: Looking for ctypes DLLs
+255896 INFO: Analyzing run-time hooks ...
+255909 INFO: Including run-time hook 'pyi_rth_inspect.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+255937 INFO: Including run-time hook 'pyi_rth_pkgutil.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+255961 INFO: Including run-time hook 'pyi_rth_multiprocessing.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+255985 INFO: Including run-time hook 'pyi_rth_pyside6.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\rthooks'
+256013 INFO: Processing pre-find-module-path hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks\\pre_find_module_path'
+256036 INFO: Processing standard module hook 'hook-_pyi_rth_utils.py' from 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PyInstaller\\hooks'
+256119 INFO: Creating base_library.zip...
+256198 INFO: Looking for dynamic libraries
+262522 INFO: Extra DLL search directories (AddDllDirectory): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\shiboken6', 'C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\numpy.libs']
+262523 INFO: Extra DLL search directories (PATH): ['C:\\Users\\Alex\\Desktop\\Olds-Cool-3D-Master\\build\\windows\\venv\\Lib\\site-packages\\PySide6']
+269035 INFO: Warnings written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d\warn-am3d.txt
+269286 INFO: Graph cross-reference written to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d\xref-am3d.html
+269609 INFO: checking PYZ
+269609 INFO: Building PYZ because PYZ-00.toc is non existent
+269609 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d\PYZ-00.pyz
+271460 INFO: Building PYZ (ZlibArchive) C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d\PYZ-00.pyz completed successfully.
+271525 INFO: checking PKG
+271525 INFO: Building PKG because PKG-00.toc is non existent
+271525 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg
+271618 INFO: Building PKG (CArchive) 3D MASTER 2005.pkg completed successfully.
+271621 INFO: Bootloader C:\Users\Alex\Desktop\Olds-Cool-3D-Master\build\windows\venv\Lib\site-packages\PyInstaller\bootloader\Windows-64bit-intel\runw.exe
+271621 INFO: checking EXE
+271622 INFO: Building EXE because EXE-00.toc is non existent
+271622 INFO: Building EXE from EXE-00.toc
+271622 INFO: Copying bootloader EXE to C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-work\am3d\3D MASTER 2005.exe
+271822 INFO: Copying icon to EXE
+271932 INFO: Copying 0 resources to EXE
+271933 INFO: Embedding manifest in EXE
+272027 INFO: Appending PKG archive to EXE
+272208 INFO: Fixing EXE headers
+272902 INFO: Building EXE from EXE-00.toc completed successfully.
+272920 INFO: checking COLLECT
+272921 INFO: Building COLLECT because COLLECT-00.toc is non existent
+272922 INFO: Building COLLECT COLLECT-00.toc
+275078 INFO: Building COLLECT COLLECT-00.toc completed successfully.
+275124 INFO: Build complete! The results are available in: C:\Users\Alex\Desktop\Olds-Cool-3D-Master\work\refactor\frozen-dist

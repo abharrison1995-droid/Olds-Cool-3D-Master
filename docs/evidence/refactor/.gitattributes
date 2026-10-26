@@ -1,2 +1,2 @@
 # Preserve exact historical receipt/log bytes on every platform.
-** -text
+** -text -whitespace
